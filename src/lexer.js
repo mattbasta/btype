@@ -16,7 +16,6 @@ var tokens = [
     [/^\]/, ']'],
     [/^\(/, '('],
     [/^\)/, ')'],
-    [/^\)/, ')'],
     [/^\+/, '+'],
     [/^\-/, '-'],
     [/^\//, '/'],
@@ -49,7 +48,7 @@ var tokens = [
     [/^[a-zA-Z]\w*/, 'identifier'],
 ];
 
-exports.lexer = function(data) {
+module.exports = function(data) {
     var pointer = 0;
     var remainingData = data;
     var currentLine = 1;
