@@ -53,5 +53,16 @@ describe('Lexer', function() {
     it('should tokenize identifiers containing keywords', function() {
         matches('varfoo casebar');
     });
+    it('should tokenize integers', function() {
+        matches('123345 1000');
+        tokensOfType('123456', 'integer');
+        tokensOfType('1000', 'integer');
+    });
+    it('should tokenize floats', function() {
+        matches('123.456 0.98765400');
+        tokensOfType('123.456', 'float');
+        tokensOfType('100.0', 'float');
+        tokensOfType('0.98765400', 'float');
+    });
 });
 

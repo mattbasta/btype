@@ -6,9 +6,10 @@ var tokens = [
     [/^"(?:\\(?:.|\r\n|\r|\n)|[^"\\\n])*"/i, 'string'],
     [/^'(?:\\(?:.|\r\n|\r|\n)|[^'\\\n])*'/i, 'string'],
     [/^#[^\n\r]*/i, 'comment'],
-    [/^[1-9][0-9]+/i, 'integer'],
-    [/^[1-9][0-9]+\.[0-9]+/i, 'float'],
-    [/^0\.[0-9]+/i, 'float'],
+    // Floats must be matched before integers
+    [/^[1-9][0-9]+\.[0-9]+/, 'float'],
+    [/^0\.[0-9]+/, 'float'],
+    [/^[1-9][0-9]+(?!\.)/, 'integer'],
     [/^;/, ';'],
     [/^\{/, '{'],
     [/^\}/, '}'],
@@ -81,6 +82,7 @@ module.exports = function(data) {
         var token = readToken();
         if (!token) {
             console.error('Syntax Error');
+            console.error(remainingData);
             throw new SyntaxError('Unknown token at line ' + currentLine);
         }
         return token;
