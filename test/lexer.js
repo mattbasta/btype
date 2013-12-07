@@ -64,5 +64,19 @@ describe('Lexer', function() {
         tokensOfType('100.0', 'float');
         tokensOfType('0.98765400', 'float');
     });
+    it('should tokenize string literals', function() {
+        matches('"asdf" "foo" "123" "123\\nbar"');
+        tokensOfType('"foo"', 'string');
+        tokensOfType('"123"', 'string');
+        tokensOfType('"0.123"', 'string');
+        tokensOfType('"123.456"', 'string');
+    });
+    it('should tokenize string literals with single quotes', function() {
+        matches("'asdf' 'foo' '123' '123\\nbar'");
+        tokensOfType("'foo'", 'string');
+        tokensOfType("'123'", 'string');
+        tokensOfType("'0.123'", 'string');
+        tokensOfType("'123.456'", 'string');
+    });
 });
 
