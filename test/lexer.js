@@ -50,5 +50,8 @@ describe('Lexer', function() {
         tokensOfType('Hello', 'identifier');
         tokensOfType('hell0', 'identifier');
     });
+    it('should tokenize identifiers containing keywords', function() {
+        matches('varfoo casebar');
+    });
 });
 
