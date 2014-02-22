@@ -7,8 +7,8 @@ var node = parser.node;
 
 function compareTree(script, tree) {
     var parsed = parser(lexer(script));
-    console.log(parsed);
-    console.log(tree);
+    console.log(parsed.body[0]);
+    console.log(tree.body[0]);
     function compare(left, right, base, key) {
         if (!!left !== !!right) {
             assert.fail(left, right, 'Mismatched key "' + key + '" at ' + base);
@@ -123,6 +123,42 @@ describe('Parser', function() {
                                 {type: _i('str'), name: _i('y')}
                             ],
                             body: []
+                        }
+                    )
+                ])
+            );
+        });
+
+        it('should parse nested functions', function() {
+            compareTree(
+                'func int:foo(int:x, str:y) {func str(bool:z){}}',
+                _root([
+                    node(
+                        'Function',
+                        0,
+                        undefined,
+                        {
+                            returnType: _i('int'),
+                            name: _i('foo'),
+                            params: [
+                                {type: _i('int'), name: _i('x')},
+                                {type: _i('str'), name: _i('y')}
+                            ],
+                            body: [
+                                node(
+                                    'Function',
+                                    28,
+                                    47,
+                                    {
+                                        returnType: _i('str'),
+                                        name: null,
+                                        params: [
+                                            {type: _i('bool'), name: _i('z')}
+                                        ],
+                                        body: []
+                                    }
+                                )
+                            ]
                         }
                     )
                 ])
