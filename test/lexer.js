@@ -78,5 +78,8 @@ describe('Lexer', function() {
         tokensOfType("'0.123'", 'string');
         tokensOfType("'123.456'", 'string');
     });
+    it('should tokenize strings with escapes', function() {
+        matches("'asd\\'f' 'f\\\\oo' '1\\n23' '123\\tbar'");
+    });
 });
 

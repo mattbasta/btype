@@ -11,6 +11,7 @@ var tokens = [
     [/^0\.[0-9]+/, 'float'],
     [/^[1-9][0-9]+(?!\.)/, 'integer'],
     [/^;/, ';'],
+    [/^,/, ','],
     [/^\{/, '{'],
     [/^\}/, '}'],
     [/^\[/, '['],
@@ -29,6 +30,7 @@ var tokens = [
     [/^=/, '='],
     [/^</, '<'],
     [/^>/, '>'],
+    [/^:/, ':'],
 
     [/^var(?!\w)/, 'var'],
     [/^return(?!\w)/, 'return'],
@@ -50,10 +52,18 @@ var tokens = [
     [/^[a-zA-Z]\w*/, 'identifier'],
 ];
 
+function Token(text, type, start, end) {
+    this.text = text;
+    this.type = type;
+    this.start = start;
+    this.end = end;
+};
+
 module.exports = function(data) {
     var pointer = 0;
     var remainingData = data;
     var currentLine = 1;
+
     function readToken() {
         var match;
         var startPointer = pointer;
@@ -68,12 +78,7 @@ module.exports = function(data) {
                 i = -1;
                 continue;
             }
-            return {
-                text: match[0],
-                type: tokens[i][1],
-                start: startPointer,
-                end: pointer
-            };
+            return new Token(match[0], tokens[i][1], startPointer, pointer);
         }
         return null;
     }
@@ -89,3 +94,4 @@ module.exports = function(data) {
     };
 };
 
+module.exports.token = Token;
