@@ -400,5 +400,39 @@ describe('Parser', function() {
                 ])
             );
         });
+        it('should parse nested binops around literals', function() {
+            compareTree(
+                'x = 3 + 4 + 5;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        14,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Binop',
+                                3,
+                                13,
+                                {
+                                    left: _int(3),
+                                    right: node(
+                                        'Binop',
+                                        7,
+                                        13,
+                                        {
+                                            left: _int(4),
+                                            right: _int(5),
+                                            operator: '+'
+                                        }
+                                    ),
+                                    operator: '+'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
     });
 });
