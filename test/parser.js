@@ -10,13 +10,15 @@ function compareTree(script, tree) {
     console.log(parsed.body[0]);
     console.log(tree.body[0]);
     function compare(left, right, base, key) {
-        if (!!left !== !!right) {
-            assert.fail(left, right, 'Mismatched key "' + key + '" at ' + base + ': ' + left + ', ' + right);
-        }
         if (left instanceof lexer.token) {
             assert.equal(left.text, right.text, 'Expected token "' + key + '" text to be equal in both trees at ' + base);
             assert.equal(left.type, right.type, 'Expected token "' + key + '" type to be equal in both trees at ' + base);
-        } else if (left instanceof Array) {
+            return true;
+        }
+        if (!!left !== !!right) {
+            assert.fail(left, right, 'Mismatched key "' + key + '" at ' + base + ': ' + left + ', ' + right);
+        }
+        if (left instanceof Array) {
             if (!arrEq(left, right, base + key)) {
                 return false;
             }
@@ -38,6 +40,11 @@ function compareTree(script, tree) {
     }
     function objEq(left, right, base) {
         base = base || '';
+        if (left && left.type === 'Literal') {
+            assert.equal(left.value, right.value, 'Expected literal value to be equal in both trees at ' + base);
+            assert.equal(left.litType, right.litType, 'Expected literal type to be equal in both trees at ' + base);
+            return true;
+        }
         var keys = {};  // A set of string key names
         var key;
         for(key in left) {
@@ -63,6 +70,10 @@ function _root(body) {
 
 function _i(text) {
     return new lexer.token(text, 'identifier', 0, 0);
+}
+
+function _int(val) {
+    return node('Literal',0, 0, {value: val.toString(), litType: 'integer'});
 }
 
 describe('Parser', function() {
@@ -181,17 +192,7 @@ describe('Parser', function() {
                                     'Return',
                                     16,
                                     25,
-                                    {
-                                        value: node(
-                                            'Literal',
-                                            22,
-                                            24,
-                                            {
-                                                type: 'integer',
-                                                value: '3'
-                                            }
-                                        )
-                                    }
+                                    {value: _int(3)}
                                 )
                             ]
                         }
@@ -366,6 +367,34 @@ describe('Parser', function() {
                                 }
                             ),
                             params: []
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
+    describe('binary operators', function() {
+        it('should parse binops around literals', function() {
+            compareTree(
+                'x = 3 + 4;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        10,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Binop',
+                                3,
+                                9,
+                                {
+                                    left: _int(3),
+                                    right: _int(4),
+                                    operator: '+'
+                                }
+                            )
                         }
                     )
                 ])

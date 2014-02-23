@@ -266,74 +266,148 @@ module.exports = function(tokenizer) {
             }
         );
     }
-    function parseExpression(base) {
-        function parseNext(base) {
+
+    // https://github.com/mattbasta/btype/wiki/Operator-Precedence
+    var OPERATOR_PRECEDENCE = {
+        'or': 0,
+        'and': 1,
+        '==': 2,
+        '!=': 2,
+        '<': 3,
+        '>': 3,
+        '<=': 3,
+        '>=': 3,
+        '+': 4,
+        '-': 4,
+        '*': 5,
+        '/': 5,
+        '%': 5,
+    };
+    var OPERATOR_NODE = {
+        'or': 'LogicalBinop',
+        'and': 'LogicalBinop',
+        '==': 'EqualityBinop',
+        '!=': 'EqualityBinop',
+        '<': 'RelativeBinop',
+        '>': 'RelativeBinop',
+        '<=': 'RelativeBinop',
+        '>=': 'RelativeBinop',
+        '+': 'Binop',
+        '-': 'Binop',
+        '*': 'Binop',
+        '/': 'Binop',
+        '%': 'Binop',
+    };
+    function parseOperator(left, newPrec) {
+        var operator = pop();
+        var precedence = newPrec || OPERATOR_PRECEDENCE[operator.type];
+        var right = parseExpression();
+        return node(
+            OPERATOR_NODE[operator.type],
+            left.start,
+            right.end,
+            {
+                left: left,
+                right: right,
+                operator: operator.type
+            }
+        );
+    }
+
+    function parseExpressionModifier(base, precedence) {
+        var part;
+        var peeked = peek();
+        console.log('pem', base, peeked, precedence);
+        switch (peeked.type) {
+            case '=':
+                // TODO: Multiple assignment?
+                // TODO: Chained assignment?
+                return parseAssignment(true, base);
+            case '(':
+                part = parseCall(base);
+                break;
+            case '.':
+                part = parseMember(base);
+                break;
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+            case '%':
+            case '==':
+            case '!=':
+            case '<=':
+            case '>=':
+            case '<':
+            case '>':
+            case 'and':
+            case 'or':
+                var newPrec = OPERATOR_PRECEDENCE[peeked.type];
+                if (newPrec > precedence) {
+                    return parseExpression(parseOperator(base, newPrec), newPrec);
+                }
+                // If the precedence is not higher, return so the
+                // expression is terminated.
+            default:
+                return base;
+        }
+        return parseExpressionModifier(part, precedence);
+    }
+    function parseExpression(base, precedence) {
+        function parseNext(base, precedence) {
             if (base === 'EOF' || base.type === 'EOF') {
                 throw new SyntaxError('Unexpected end of file in expression');
             }
+            precedence = precedence || 0;
+            console.log('pn', base, precedence);
             switch (base.type) {
                 case '(':
                     var parsed = parseExpression();
                     assert(')');
                     if (parsed.precedence) delete parsed.precedence;
-                    return parsed;
+                    return parseExpressionModifier(parsed, precedence);
                 case 'true':
                 case 'false':
-                    return node(
+                    return parseExpressionModifier(node(
                         'Literal',
                         base.start,
                         base.end,
                         {
-                            type: 'bool',
+                            litType: 'bool',
                             value: base.text
                         }
-                    );
+                    ), precedence);
                 case 'null':
-                    return node(
+                    return parseExpressionModifier(node(
                         'Literal',
                         base.start,
                         base.end,
                         {
-                            type: 'null',
+                            litType: 'null',
                             value: null
                         }
-                    );
+                    ), precedence);
                 case 'float':
                 case 'integer':
                 case 'string':
-                    return node(
+                    return parseExpressionModifier(node(
                         'Literal',
                         base.start,
                         base.end,
                         {
-                            type: base.type,
+                            litType: base.type,
                             value: base.text
                         }
-                    );
+                    ), precedence);
                 default:
                     // This catches identifiers as well as complex expressions.
-                    var part;
-                    switch (peek().type) {
-                        case '(':
-                            part = parseCall(base);
-                            break;
-                        case '.':
-                            part = parseMember(base);
-                            break;
-                        case '=':
-                            // TODO: Multiple assignment?
-                            // TODO: Chained assignment?
-                            return parseAssignment(true, base);
-                        default:
-                            return base;
-                    }
-                    return parseNext(part);
+                    return parseExpressionModifier(base, precedence);
             }
             // Throw an error?
             return null;
         }
 
-        return parseNext(base || pop());
+        return parseNext(base || pop(), precedence);
     }
 
     function parseTypedIdentifier(base) {
