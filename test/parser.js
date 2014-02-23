@@ -242,4 +242,99 @@ describe('Parser', function() {
             );
         });
     });
+
+    describe('calls', function() {
+        it('should parse call statements', function() {
+            compareTree(
+                'foo();',
+                _root([
+                    node(
+                        'Call',
+                        0,
+                        6,
+                        {
+                            callee: _i('foo'),
+                            params: []
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse call expressions', function() {
+            compareTree(
+                'x = foo();',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        10,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Call',
+                                3,
+                                9,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse calls with parameters', function() {
+            compareTree(
+                'foo(x, y, bar());',
+                _root([
+                    node(
+                        'Call',
+                        0,
+                        17,
+                        {
+                            callee: _i('foo'),
+                            params: [
+                                _i('x'),
+                                _i('y'),
+                                node(
+                                    'Call',
+                                    9,
+                                    15,
+                                    {
+                                        callee: _i('bar'),
+                                        params: []
+                                    }
+                                )
+                            ]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse chained calls', function() {
+            compareTree(
+                'foo()();',
+                _root([
+                    node(
+                        'Call',
+                        0,
+                        8,
+                        {
+                            callee: node(
+                                'Call',
+                                0,
+                                5,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            ),
+                            params: []
+                        }
+                    )
+                ])
+            );
+        });
+    });
 });

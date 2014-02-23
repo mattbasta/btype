@@ -62,6 +62,7 @@ module.exports = function(tokenizer) {
         if (accept('(')) {
             // If it's not an empty parameter list, start parsing.
             parameters = parseSignature(true, ')');
+            assert(')');
         }
         assert('{');
         var body = parseStatements('}');
@@ -237,16 +238,17 @@ module.exports = function(tokenizer) {
     }
     function parseSignature(typed, endToken) {
         var params = [];
-        if (accept(endToken)) return params;
+        if (peek().type === endToken) return params;
         while (true) {
             if (typed) {
                 params.push(parseTypedIdentifier());
             } else {
                 params.push(parseExpression());
             }
-            if (accept(endToken)) {
+            if (peek().type === endToken) {
                 break;
             }
+            console.log(peek(), params, typed, endToken);
             assert(',');
         }
         return params;
@@ -332,7 +334,7 @@ module.exports = function(tokenizer) {
             return null;
         }
 
-        return parseNext(base || _next());
+        return parseNext(base || pop());
     }
 
     function parseTypedIdentifier(base) {
