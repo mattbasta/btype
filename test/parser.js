@@ -77,7 +77,7 @@ describe('Parser', function() {
                     node(
                         'Function',
                         0,
-                        21  ,
+                        21,
                         {
                             returnType: _i('retType'),
                             name: _i('foo'),
@@ -156,6 +156,41 @@ describe('Parser', function() {
                                             {type: _i('bool'), name: _i('z')}
                                         ],
                                         body: []
+                                    }
+                                )
+                            ]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse return statements', function() {
+            compareTree(
+                'func int:foo() {return 3;}',
+                _root([
+                    node(
+                        'Function',
+                        0,
+                        26,
+                        {
+                            returnType: _i('int'),
+                            name: _i('foo'),
+                            params: [],
+                            body: [
+                                node(
+                                    'Return',
+                                    16,
+                                    25,
+                                    {
+                                        value: node(
+                                            'Literal',
+                                            22,
+                                            24,
+                                            {
+                                                type: 'integer',
+                                                value: '3'
+                                            }
+                                        )
                                     }
                                 )
                             ]

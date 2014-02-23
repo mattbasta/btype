@@ -126,8 +126,8 @@ module.exports = function(tokenizer) {
         );
     }
     function parseReturn() {
-        var head;
-        if (!(head = accept('return'))) return;
+        var head = accept('return');
+        if (!head) return;
         var value = parseExpression();
         var end = assert(';');
         return node(
@@ -248,7 +248,6 @@ module.exports = function(tokenizer) {
             if (peek().type === endToken) {
                 break;
             }
-            console.log(peek(), params, typed, endToken);
             assert(',');
         }
         return params;

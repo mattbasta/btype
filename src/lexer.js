@@ -9,7 +9,7 @@ var tokens = [
     // Floats must be matched before integers
     [/^[1-9][0-9]+\.[0-9]+/, 'float'],
     [/^0\.[0-9]+/, 'float'],
-    [/^[1-9][0-9]+(?!\.)/, 'integer'],
+    [/^[1-9][0-9]*(?!\.)/, 'integer'],
     [/^;/, ';'],
     [/^,/, ','],
     [/^\{/, '{'],
@@ -73,7 +73,7 @@ module.exports = function(data) {
                 continue;
             }
             remainingData = remainingData.substr(match[0].length);
-            currentLine += match[0].split(/(?:\r\n|\r|\n)/).length;
+            currentLine += match[0].split(/(?:\r\n|\r|\n)/).length - 1;
             pointer += match[0].length;
             if (!tokens[i][1]) {
                 i = -1;
