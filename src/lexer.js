@@ -30,24 +30,25 @@ var tokens = [
     [/^=/, '='],
     [/^</, '<'],
     [/^>/, '>'],
-    [/^:/, ':'],
+    [/^:/, ':'],  // For `case` and types
 
     [/^var(?!\w)/, 'var'],
-    [/^return(?!\w)/, 'return'],
     [/^switch(?!\w)/, 'switch'],
     [/^case(?!\w)/, 'case'],
+    [/^do(?!\w)/, 'do'],
     [/^while(?!\w)/, 'while'],
     [/^if(?!\w)/, 'if'],
     [/^else(?!\w)/, 'else'],
     [/^true(?!\w)/, 'true'],
     [/^false(?!\w)/, 'false'],
-    [/^for(?!\w)/, 'for'],
     [/^null(?!\w)/, 'null'],
+    [/^for(?!\w)/, 'for'],
     [/^continue(?!\w)/, 'continue'],
     [/^break(?!\w)/, 'break'],
     [/^or(?!\w)/, 'or'],
     [/^and(?!\w)/, 'and'],
     [/^func(?!\w)/, 'func'],
+    [/^return(?!\w)/, 'return'],
 
     [/^[a-zA-Z]\w*/, 'identifier'],
 ];

@@ -17,8 +17,10 @@ module.exports = function(tokenizer) {
         return peeked || (peeked = tokenizer());
     }
     function _next() {
-        var token = tokenizer();
-        if (token.type === 'comment') return _next();
+        var token;
+        do {
+            token = tokenizer();
+        } while(token.type === 'comment');
         return token;
     }
     function pop() {
@@ -38,8 +40,8 @@ module.exports = function(tokenizer) {
     }
     function assert(type) {
         var temp = lastSeen = pop();
-        if (!temp) {
-            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen + '".');
+        if (!temp || temp.type !== type) {
+            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen.type + '".');
         }
         return temp;
     }
@@ -59,16 +61,7 @@ module.exports = function(tokenizer) {
         // Parameter lists are optional.
         if (accept('(')) {
             // If it's not an empty parameter list, start parsing.
-            if (!accept(')')) {
-                do {
-                    // TODO: Change this to parse types.
-                    param_type = assert('identifier');
-                    assert(':');
-                    param_name = assert('identifier');
-                    parameters.push({type: param_type, name: param_name});
-                } while(accept(','));
-                assert(')');
-            }
+            parameters = parseSignature(true, ')');
         }
         assert('{');
         var body = parseStatements('}');
@@ -199,51 +192,156 @@ module.exports = function(tokenizer) {
             {condition: condition, loop: body}
         );
     }
-    function parseAssignment() {
-        var identifier = accept('identifier');
-        if (!identifier) {
-            return parseDeclaration(null);
-        }
-        if (accept(':')) {
-            return parseDeclaration(identifier);
-        }
-        assert('=');
-        var expression = parseExpression();
-        var end = assert(';');
-        return node(
-            'Assignment',
-            identifier.start,
-            end.end,
-            {identifier: identifier, value: expression}
-        );
-    }
-    function parseDeclaration(type) {
-        if (!type) {
-            type = accept('var');
-        }
-        if (!type) {
-            return parseCallStatement();
-        }
+    function parseDeclaration(type, start) {
         var identifier = assert('identifier');
         assert('=');
         var value = parseExpression();
         var end = assert(';');
         return node(
             'Declaration',
-            type.start,
+            type ? type.start : start,
             end.end,
             {
-                type: type.type === 'var' ? null : type,
+                type: type || null,
                 identifier: identifier,
                 value: value
             }
         );
     }
-    function parseCallStatement() {
-        var callee = parseExpression();
-        var end = assert(';');
+    function parseAssignment(isExpression, base) {
+        if (base && base.type === 'Call') {
+            throw new SyntaxError('Assignment to function call output');
+        }
+        if (!isExpression) {
+            var start;
+            if (start = accept('var')) {
+                return parseDeclaration(null, start.start);
+            }
+            base = accept('identifier');
+            if (base && accept(':')) {
+                return parseDeclaration(base);
+            }
+            var expr = parseExpression(base);
+            expr.end = assert(';').end;
+            return expr;
+        }
+
+        assert('=');
+        var expression = parseExpression();
+        return node(
+            'Assignment',
+            base.start,
+            expression.end,
+            {base: base, value: expression}
+        );
     }
-    function parseExpression() {}
+    function parseSignature(typed, endToken) {
+        var params = [];
+        if (accept(endToken)) return params;
+        while (true) {
+            if (typed) {
+                params.push(parseTypedIdentifier());
+            } else {
+                params.push(parseExpression());
+            }
+            if (accept(endToken)) {
+                break;
+            }
+            assert(',');
+        }
+        return params;
+    }
+    function parseCall(base) {
+        assert('(');
+        var params = parseSignature(false, ')');
+        var end = assert(')');
+        return node(
+            'Call',
+            base.start,
+            end.end,
+            {
+                callee: base,
+                params: params
+            }
+        );
+    }
+    function parseExpression(base) {
+        function parseNext(base) {
+            if (base === 'EOF' || base.type === 'EOF') {
+                throw new SyntaxError('Unexpected end of file in expression');
+            }
+            switch (base.type) {
+                case '(':
+                    var parsed = parseExpression();
+                    assert(')');
+                    if (parsed.precedence) delete parsed.precedence;
+                    return parsed;
+                case 'true':
+                case 'false':
+                    return node(
+                        'Literal',
+                        base.start,
+                        base.end,
+                        {
+                            type: 'bool',
+                            value: base.text
+                        }
+                    );
+                case 'null':
+                    return node(
+                        'Literal',
+                        base.start,
+                        base.end,
+                        {
+                            type: 'null',
+                            value: null
+                        }
+                    );
+                case 'float':
+                case 'integer':
+                case 'string':
+                    return node(
+                        'Literal',
+                        base.start,
+                        base.end,
+                        {
+                            type: base.type,
+                            value: base.text
+                        }
+                    );
+                default:
+                    // This catches identifiers as well as complex expressions.
+                    var part;
+                    switch (peek().type) {
+                        case '(':
+                            part = parseCall(base);
+                            break;
+                        case '.':
+                            part = parseMember(base);
+                            break;
+                        case '=':
+                            // TODO: Multiple assignment?
+                            // TODO: Chained assignment?
+                            return parseAssignment(true, base);
+                        default:
+                            return base;
+                    }
+                    return parseNext(part);
+            }
+            // Throw an error?
+            return null;
+        }
+
+        return parseNext(base || _next());
+    }
+
+    function parseTypedIdentifier(base) {
+        // TODO: This should accept complex types
+        var type = base || assert('identifier');
+        assert(':');
+        var ident = assert('identifier');
+        return {type: type, name: ident};
+    }
 
     function parseStatement() {
         return parseFunction() ||
@@ -253,21 +351,23 @@ module.exports = function(tokenizer) {
                parseWhile() ||
                parseDoWhile() ||
                parseFor() ||
-               parseAssignment(); // Leads into other identifier-first statements.
+               parseAssignment(); //call?
+               // TODO: return, break, continue
     }
 
     function parseStatements(endTokens) {
         endTokens = Array.isArray(endTokens) ? endTokens : [endTokens];
         var statements = [];
-        var temp;
-        do {
+        var temp = peek();
+        while (endTokens.indexOf(temp) === -1 &&
+               (temp.type && endTokens.indexOf(temp.type) === -1)) {
             var statement = parseStatement();
+            temp = peek();
             if (!statement) {
                 continue;
             }
             statements.push(statement);
-        } while (temp = peek(), endTokens.indexOf(temp) === -1 &&
-                                (temp.type && endTokens.indexOf(temp.type) === -1));
+        }
         return statements;
     }
 

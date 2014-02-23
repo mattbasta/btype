@@ -11,7 +11,7 @@ function compareTree(script, tree) {
     console.log(tree.body[0]);
     function compare(left, right, base, key) {
         if (!!left !== !!right) {
-            assert.fail(left, right, 'Mismatched key "' + key + '" at ' + base);
+            assert.fail(left, right, 'Mismatched key "' + key + '" at ' + base + ': ' + left + ', ' + right);
         }
         if (left instanceof lexer.token) {
             assert.equal(left.text, right.text, 'Expected token "' + key + '" text to be equal in both trees at ' + base);
@@ -25,7 +25,7 @@ function compareTree(script, tree) {
                 return false;
             }
         } else {
-            assert.equal(left, right, 'Expected key "' + key + '" to be equal in both trees at ' + base);
+            assert.equal(left, right, 'Expected key "' + key + '" to be equal in both trees at ' + base + ': ' + left + ', ' + right);
         }
         return true;
     }
@@ -77,7 +77,7 @@ describe('Parser', function() {
                     node(
                         'Function',
                         0,
-                        undefined,
+                        21  ,
                         {
                             returnType: _i('retType'),
                             name: _i('foo'),
@@ -95,7 +95,7 @@ describe('Parser', function() {
                     node(
                         'Function',
                         0,
-                        undefined,
+                        17,
                         {
                             returnType: _i('retType'),
                             name: null,
@@ -114,7 +114,7 @@ describe('Parser', function() {
                     node(
                         'Function',
                         0,
-                        undefined,
+                        29,
                         {
                             returnType: _i('retType'),
                             name: null,
@@ -136,7 +136,7 @@ describe('Parser', function() {
                     node(
                         'Function',
                         0,
-                        undefined,
+                        47,
                         {
                             returnType: _i('int'),
                             name: _i('foo'),
@@ -148,7 +148,7 @@ describe('Parser', function() {
                                 node(
                                     'Function',
                                     28,
-                                    47,
+                                    46,
                                     {
                                         returnType: _i('str'),
                                         name: null,
@@ -164,6 +164,82 @@ describe('Parser', function() {
                 ])
             );
         });
+    });
 
+    describe('assignments and declarations', function() {
+        it('should parse basic assignments', function() {
+            compareTree(
+                'x = y;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        6,
+                        {
+                            base: _i('x'),
+                            value: _i('y')
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse chained assignments', function() {
+            compareTree(
+                'x = y = z;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        10,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Assignment',
+                                3,
+                                9,
+                                {
+                                    base: _i('y'),
+                                    value: _i('z')
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse basic declarations', function() {
+            compareTree(
+                'var x = y;',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        10,
+                        {
+                            type: null,
+                            identifier: _i('x'),
+                            value: _i('y')
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse typed declarations', function() {
+            compareTree(
+                'int:x = y;',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        10,
+                        {
+                            type: _i('int'),
+                            identifier: _i('x'),
+                            value: _i('y')
+                        }
+                    )
+                ])
+            );
+        });
     });
 });
