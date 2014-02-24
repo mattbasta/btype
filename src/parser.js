@@ -382,15 +382,15 @@ module.exports = function(tokenizer) {
             if (base === 'EOF' || base.type === 'EOF') {
                 throw new SyntaxError('Unexpected end of file in expression');
             }
+            var parsed;
             switch (base.type) {
                 case '(':
-                    var parsed = parseExpression();
+                    parsed = parseExpression();
                     assert(')');
-                    if (parsed.precedence) delete parsed.precedence;
-                    return parseExpressionModifier(parsed, precedence);
+                    return parsed;
                 case 'true':
                 case 'false':
-                    return parseExpressionModifier(node(
+                    return node(
                         'Literal',
                         base.start,
                         base.end,
@@ -398,9 +398,9 @@ module.exports = function(tokenizer) {
                             litType: 'bool',
                             value: base.text === 'true'
                         }
-                    ), precedence);
+                    );
                 case 'null':
-                    return parseExpressionModifier(node(
+                    return node(
                         'Literal',
                         base.start,
                         base.end,
@@ -408,11 +408,11 @@ module.exports = function(tokenizer) {
                             litType: 'null',
                             value: null
                         }
-                    ), precedence);
+                    );
                 case 'float':
                 case 'integer':
                 case 'string':
-                    return parseExpressionModifier(node(
+                    return node(
                         'Literal',
                         base.start,
                         base.end,
@@ -420,10 +420,23 @@ module.exports = function(tokenizer) {
                             litType: base.type,
                             value: base.text
                         }
-                    ), precedence);
+                    );
+                // Unary operators
+                case '-':
+                case '!':
+                    parsed = parseExpression();
+                    return node(
+                        'Unary',
+                        base.start,
+                        parsed.end,
+                        {
+                            base: parsed,
+                            operator: base.type
+                        }
+                    );
                 default:
                     // This catches identifiers as well as complex expressions.
-                    return parseExpressionModifier(base, precedence);
+                    return base;
             }
         }
         precedence = precedence || 0;

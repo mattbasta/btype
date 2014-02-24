@@ -717,4 +717,148 @@ describe('Parser', function() {
             );
         });
     });
+
+    describe('unary operators', function() {
+        it('should parse simple operators', function() {
+            compareTree(
+                'x = !y;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        7,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Unary',
+                                3,
+                                6,
+                                {
+                                    base: _i('y'),
+                                    operator: '!'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse chained operators', function() {
+            compareTree(
+                'x = !!y;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        8,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Unary',
+                                3,
+                                7,
+                                {
+                                    base: node(
+                                        'Unary',
+                                        5,
+                                        7,
+                                        {
+                                            base: _i('y'),
+                                            operator: '!'
+                                        }
+                                    ),
+                                    operator: '!'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse minus', function() {
+            compareTree(
+                'x = -y;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        7,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Unary',
+                                3,
+                                6,
+                                {
+                                    base: _i('y'),
+                                    operator: '-'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+            compareTree(
+                'x = --y;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        8,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Unary',
+                                3,
+                                7,
+                                {
+                                    base: node(
+                                        'Unary',
+                                        5,
+                                        7,
+                                        {
+                                            base: _i('y'),
+                                            operator: '-'
+                                        }
+                                    ),
+                                    operator: '-'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+            compareTree(
+                'x = 4 - -4;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        11,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Binop',
+                                3,
+                                10,
+                                {
+                                    left: _int(4),
+                                    right: node(
+                                        'Unary',
+                                        7,
+                                        10,
+                                        {
+                                            base: _int(4),
+                                            operator: '-'
+                                        }
+                                    ),
+                                    operator: '-'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+    });
 });
