@@ -87,15 +87,40 @@ module.exports = function(tokenizer) {
         assert('(');
         var condition = parseExpression();
         assert(')');
-        assert('{');
-        var body = parseStatements('}');
-        var end = assert('}');
+        var hasBraces = !!accept('{');
+        var body;
+        var end;
+        if (hasBraces) {
+            body = parseStatements('}');
+            end = assert('}');
+        } else {
+            body = [end = parseStatement()];
+        }
+
+        var alternate = null;
+        if (accept('else')) {
+            if (peek().type === 'if') {
+                alternate = [end = parseIf()];
+            } else {
+                hasBraces = !!accept('{');
+                if (hasBraces) {
+                    alternate = parseStatements('}');
+                    end = assert('}');
+                } else {
+                    alternate = [end = parseStatement()];
+                }
+            }
+        }
         // TODO: Add else clause.
         return node(
             'If',
             head.start,
             end.end,
-            {condition: condition, consequent: body}
+            {
+                condition: condition,
+                consequent: body,
+                alternate: alternate
+            }
         );
     }
     function parseSwitch() {

@@ -31,6 +31,7 @@ var tokens = [
     [/^</, '<'],
     [/^>/, '>'],
     [/^:/, ':'],  // For `case` and types
+    [/^!/, '!'],
 
     [/^var(?!\w)/, 'var'],
     [/^switch(?!\w)/, 'switch'],

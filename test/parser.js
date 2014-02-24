@@ -556,4 +556,165 @@ describe('Parser', function() {
             );
         });
     });
+
+    describe('conditionals', function() {
+        it('should parse simple blocks', function() {
+            compareTree(
+                'if(x) {foo();}',
+                _root([
+                    node(
+                        'If',
+                        0,
+                        14,
+                        {
+                            condition: _i('x'),
+                            consequent: [node(
+                                'Call',
+                                7,
+                                13,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )],
+                            alternate: null
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse single statements without braces', function() {
+            compareTree(
+                'if(x) foo();',
+                _root([
+                    node(
+                        'If',
+                        0,
+                        12,
+                        {
+                            condition: _i('x'),
+                            consequent: [node(
+                                'Call',
+                                5,
+                                12,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )],
+                            alternate: null
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse simple alternates', function() {
+            compareTree(
+                'if(x) {foo();} else {bar();}',
+                _root([
+                    node(
+                        'If',
+                        0,
+                        28,
+                        {
+                            condition: _i('x'),
+                            consequent: [node(
+                                'Call',
+                                7,
+                                13,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )],
+                            alternate: [node(
+                                'Call',
+                                21,
+                                27,
+                                {
+                                    callee: _i('bar'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse simple alternates without braces', function() {
+            compareTree(
+                'if(x) foo(); else bar();',
+                _root([
+                    node(
+                        'If',
+                        0,
+                        24,
+                        {
+                            condition: _i('x'),
+                            consequent: [node(
+                                'Call',
+                                5,
+                                12,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )],
+                            alternate: [node(
+                                'Call',
+                                17,
+                                24,
+                                {
+                                    callee: _i('bar'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse simple alternates without braces', function() {
+            compareTree(
+                'if(x) foo(); else if (y)bar();',
+                _root([
+                    node(
+                        'If',
+                        0,
+                        30,
+                        {
+                            condition: _i('x'),
+                            consequent: [node(
+                                'Call',
+                                5,
+                                12,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )],
+                            alternate: [node(
+                                'If',
+                                17,
+                                30,
+                                {
+                                    condition: _i('y'),
+                                    consequent: [node(
+                                        'Call',
+                                        24,
+                                        30,
+                                        {
+                                            callee: _i('bar'),
+                                            params: []
+                                        }
+                                    )],
+                                    alternate: null
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+    });
 });
