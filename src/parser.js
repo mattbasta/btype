@@ -269,19 +269,19 @@ module.exports = function(tokenizer) {
 
     // https://github.com/mattbasta/btype/wiki/Operator-Precedence
     var OPERATOR_PRECEDENCE = {
-        'or': 0,
-        'and': 1,
-        '==': 2,
-        '!=': 2,
-        '<': 3,
-        '>': 3,
-        '<=': 3,
-        '>=': 3,
-        '+': 4,
-        '-': 4,
-        '*': 5,
-        '/': 5,
-        '%': 5,
+        'or': 1,
+        'and': 2,
+        '==': 3,
+        '!=': 3,
+        '<': 4,
+        '>': 4,
+        '<=': 4,
+        '>=': 4,
+        '+': 5,
+        '-': 5,
+        '*': 6,
+        '/': 6,
+        '%': 6,
     };
     var OPERATOR_NODE = {
         'or': 'LogicalBinop',
@@ -301,7 +301,7 @@ module.exports = function(tokenizer) {
     function parseOperator(left, newPrec) {
         var operator = pop();
         var precedence = newPrec || OPERATOR_PRECEDENCE[operator.type];
-        var right = parseExpression();
+        var right = parseExpression(null, precedence);
         return node(
             OPERATOR_NODE[operator.type],
             left.start,
@@ -317,7 +317,6 @@ module.exports = function(tokenizer) {
     function parseExpressionModifier(base, precedence) {
         var part;
         var peeked = peek();
-        console.log('pem', base, peeked, precedence);
         switch (peeked.type) {
             case '=':
                 // TODO: Multiple assignment?
@@ -358,8 +357,6 @@ module.exports = function(tokenizer) {
             if (base === 'EOF' || base.type === 'EOF') {
                 throw new SyntaxError('Unexpected end of file in expression');
             }
-            precedence = precedence || 0;
-            console.log('pn', base, precedence);
             switch (base.type) {
                 case '(':
                     var parsed = parseExpression();
@@ -374,7 +371,7 @@ module.exports = function(tokenizer) {
                         base.end,
                         {
                             litType: 'bool',
-                            value: base.text
+                            value: base.text === 'true'
                         }
                     ), precedence);
                 case 'null':
@@ -403,11 +400,15 @@ module.exports = function(tokenizer) {
                     // This catches identifiers as well as complex expressions.
                     return parseExpressionModifier(base, precedence);
             }
-            // Throw an error?
-            return null;
         }
-
-        return parseNext(base || pop(), precedence);
+        precedence = precedence || 0;
+        var next = parseNext(base || pop(), precedence);
+        var prev;
+        do {
+            prev = next;
+            next = parseExpressionModifier(next, precedence);
+        } while(next !== prev);
+        return next;
     }
 
     function parseTypedIdentifier(base) {
