@@ -86,7 +86,7 @@ module.exports = function(data) {
         return null;
     }
     return function() {
-        if (!remainingData) return 'EOF';
+        if (!remainingData.trim()) return 'EOF';
         var token = readToken();
         if (!token) {
             console.error('Syntax Error');
