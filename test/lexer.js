@@ -57,6 +57,7 @@ describe('Lexer', function() {
         matches('123345 1000');
         tokensOfType('123456', 'integer');
         tokensOfType('1000', 'integer');
+        tokensOfType('0', 'integer');
     });
     it('should tokenize floats', function() {
         matches('123.456 0.98765400');
