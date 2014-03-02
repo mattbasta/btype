@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+function help() {
+    console.log([
+        'Usage:',
+        '  btype <bt file path>'
+    ].join('\n'));
+}
+
+if (process.argv.length < 3) {
+    help();
+    process.exit(1);
+}
+
+var fs = require('fs');
+var path = require('path');
+
+
+var lexer = require('../src/lexer');
+var parser = require('../src/parser');
+var compiler = require('../src/compiler/compiler');
+
+fs.readFile(process.argv[2], function(err, data) {
+    if (err) {
+        console.error('Could not read file.');
+        console.error(err);
+        help();
+        process.exit(1);
+    }
+
+    var parsed = parser(lexer(data + ''));
+    console.log(parsed);
+    var compiled = compiler(
+        path.basename(process.argv[2], '.bt'),
+        parsed
+    );
+
+});

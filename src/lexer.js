@@ -9,8 +9,8 @@ var tokens = [
     // Floats must be matched before integers
     [/^[1-9][0-9]+\.[0-9]+/, 'float'],
     [/^0\.[0-9]+/, 'float'],
-    [/^[1-9][0-9]*(?!\.)/, 'integer'],
-    [/^0(?!\.)/, 'integer'],
+    [/^[1-9][0-9]*(?!\.)/, 'int'],
+    [/^0(?!\.)/, 'int'],
     [/^;/, ';'],
     [/^,/, ','],
     [/^\{/, '{'],
@@ -37,6 +37,7 @@ var tokens = [
     [/^var(?!\w)/, 'var'],
     [/^switch(?!\w)/, 'switch'],
     [/^case(?!\w)/, 'case'],
+    [/^default(?!\w)/, 'default'],
     [/^do(?!\w)/, 'do'],
     [/^while(?!\w)/, 'while'],
     [/^if(?!\w)/, 'if'],

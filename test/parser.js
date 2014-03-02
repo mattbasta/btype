@@ -48,13 +48,19 @@ function compareTree(script, tree) {
         var keys = {};  // A set of string key names
         var key;
         for(key in left) {
+            if (!left.hasOwnProperty(key)) continue;
             keys[key] = true;
             if (!(key in right)) {
                 assert.fail('Key "' + key + '" was found in generated parse tree but not in expected parse tree at ' + base);
             }
+            if ((key === 'start' || key === 'end') &&
+                left.type === 'Symbol' ||
+                left.type === 'Type' ||
+                left.type === 'TypedIdentifier') continue;
             compare(left[key], right[key], base, '.' + key);
         }
         for(key in right) {
+            if (!right.hasOwnProperty(key)) continue;
             if (!(key in keys)) {
                 assert.fail('Key "' + key + '" was found in expected parse tree but not in generated parse tree at ' + base);
             }
@@ -69,11 +75,40 @@ function _root(body) {
 }
 
 function _i(text) {
-    return new lexer.token(text, 'identifier', 0, 0);
+    return node(
+        'Symbol',
+        0,
+        0,
+        {name: text}
+    );
+}
+
+function _type(text, traits) {
+    return node(
+        'Type',
+        0,
+        0,
+        {
+            name: text,
+            traits: traits || []
+        }
+    );
+}
+
+function _typed(ident, type) {
+    return node(
+        'TypedIdentifier',
+        0,
+        0,
+        {
+            idType: type,
+            name: ident
+        }
+    );
 }
 
 function _int(val) {
-    return node('Literal',0, 0, {value: val.toString(), litType: 'integer'});
+    return node('Literal', 0, 0, {value: val.toString(), litType: 'int'});
 }
 
 describe('Parser', function() {
@@ -90,8 +125,8 @@ describe('Parser', function() {
                         0,
                         21,
                         {
-                            returnType: _i('retType'),
-                            name: _i('foo'),
+                            returnType: _type('retType'),
+                            name: 'foo',
                             params: [],
                             body: []
                         }
@@ -108,7 +143,7 @@ describe('Parser', function() {
                         0,
                         17,
                         {
-                            returnType: _i('retType'),
+                            returnType: _type('retType'),
                             name: null,
                             params: [],
                             body: []
@@ -127,11 +162,11 @@ describe('Parser', function() {
                         0,
                         29,
                         {
-                            returnType: _i('retType'),
+                            returnType: _type('retType'),
                             name: null,
                             params: [
-                                {type: _i('int'), name: _i('x')},
-                                {type: _i('str'), name: _i('y')}
+                                _typed('x', _type('int')),
+                                _typed('y', _type('str'))
                             ],
                             body: []
                         }
@@ -149,11 +184,11 @@ describe('Parser', function() {
                         0,
                         47,
                         {
-                            returnType: _i('int'),
-                            name: _i('foo'),
+                            returnType: _type('int'),
+                            name: 'foo',
                             params: [
-                                {type: _i('int'), name: _i('x')},
-                                {type: _i('str'), name: _i('y')}
+                                _typed('x', _type('int')),
+                                _typed('y', _type('str'))
                             ],
                             body: [
                                 node(
@@ -161,10 +196,10 @@ describe('Parser', function() {
                                     28,
                                     46,
                                     {
-                                        returnType: _i('str'),
+                                        returnType: _type('str'),
                                         name: null,
                                         params: [
-                                            {type: _i('bool'), name: _i('z')}
+                                            _typed('z', _type('bool'))
                                         ],
                                         body: []
                                     }
@@ -184,8 +219,8 @@ describe('Parser', function() {
                         0,
                         26,
                         {
-                            returnType: _i('int'),
-                            name: _i('foo'),
+                            returnType: _type('int'),
+                            name: 'foo',
                             params: [],
                             body: [
                                 node(
@@ -193,6 +228,31 @@ describe('Parser', function() {
                                     16,
                                     25,
                                     {value: _int(3)}
+                                )
+                            ]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse bare return statements', function() {
+            compareTree(
+                'func int:foo() {return;}',
+                _root([
+                    node(
+                        'Function',
+                        0,
+                        24,
+                        {
+                            returnType: _type('int'),
+                            name: 'foo',
+                            params: [],
+                            body: [
+                                node(
+                                    'Return',
+                                    16,
+                                    23,
+                                    {value: null}
                                 )
                             ]
                         }
@@ -252,8 +312,8 @@ describe('Parser', function() {
                         0,
                         10,
                         {
-                            type: null,
-                            identifier: _i('x'),
+                            declType: null,
+                            identifier: 'x',
                             value: _i('y')
                         }
                     )
@@ -269,8 +329,8 @@ describe('Parser', function() {
                         0,
                         10,
                         {
-                            type: _i('int'),
-                            identifier: _i('x'),
+                            declType: _type('int'),
+                            identifier: 'x',
                             value: _i('y')
                         }
                     )

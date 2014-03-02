@@ -1,14 +1,11 @@
+var nodes = require('./compiler/nodes');
+
+
 function node(name, start, end, args) {
-    var result = {
-        type: name,
-        start: start,
-        end: end
-    };
-    for (var i in args) {
-        if (!args.hasOwnProperty(i)) continue;
-        result[i] = args[i];
+    if (!(name in nodes)) {
+        console.log(name, Object.keys(nodes));
     }
-    return result;
+    return new (nodes[name])(start, end, args);
 }
 
 module.exports = function(tokenizer) {
@@ -49,8 +46,7 @@ module.exports = function(tokenizer) {
     function parseFunction() {
         var func;
         if (!(func = accept('func'))) return;
-        // TODO: Change this to parse types.
-        var returnType = accept('identifier');
+        var returnType = parseType();
         var identifier = null;
         if (returnType && accept(':')) {
             identifier = assert('identifier');
@@ -74,7 +70,7 @@ module.exports = function(tokenizer) {
             end.end,
             {
                 returnType: returnType,
-                name: identifier,
+                name: identifier ? identifier.text : null,
                 params: parameters,
                 body: body
             }
@@ -132,14 +128,23 @@ module.exports = function(tokenizer) {
         assert('{');
 
         var cases = [];
+        var case_head;
         var case_value;
-        while (accept('case')) {
+        var case_body;
+        var case_col;
+        while (case_head = accept('case')) {
             case_value = parseExpression();
-            assert(':');
-            cases.push({
-                value: case_value,
-                body: parseStatements(['case', '}'])
-            });
+            case_col = assert(':');
+            case_body = parseStatements(['case', '}']);
+            cases.push(node(
+                'Case',
+                case_head.start,
+                case_body.length ? case_body[case_body.length - 1].end : case_col.end,
+                {
+                    value: case_value,
+                    body: case_body
+                }
+            ));
         }
 
         var end = assert('}');
@@ -153,8 +158,12 @@ module.exports = function(tokenizer) {
     function parseReturn() {
         var head = accept('return');
         if (!head) return;
-        var value = parseExpression();
-        var end = assert(';');
+        var end = head;
+        var value = null;
+        if (!(end = accept(';'))) {
+            value = parseExpression();
+            end = assert(';');
+        }
         return node(
             'Return',
             head.start,
@@ -219,6 +228,8 @@ module.exports = function(tokenizer) {
         );
     }
     function parseDeclaration(type, start) {
+        if (type && type.type !== 'Type')
+            type = parseType(type);
         var identifier = assert('identifier');
         assert('=');
         var value = parseExpression();
@@ -228,8 +239,8 @@ module.exports = function(tokenizer) {
             type ? type.start : start,
             end.end,
             {
-                type: type || null,
-                identifier: identifier,
+                declType: type || null,
+                identifier: identifier.text,
                 value: value
             }
         );
@@ -288,6 +299,19 @@ module.exports = function(tokenizer) {
             {
                 callee: base,
                 params: params
+            }
+        );
+    }
+    function parseMember(base) {
+        assert('.');
+        var child = assert('identifier');
+        return node(
+            'Member',
+            base.start,
+            child.end,
+            {
+                base: base,
+                child: child.text
             }
         );
     }
@@ -410,7 +434,7 @@ module.exports = function(tokenizer) {
                         }
                     );
                 case 'float':
-                case 'integer':
+                case 'int':
                 case 'string':
                     return node(
                         'Literal',
@@ -434,8 +458,15 @@ module.exports = function(tokenizer) {
                             operator: base.type
                         }
                     );
+                case 'identifier':
+                    return node(
+                        'Symbol',
+                        base.start,
+                        base.end,
+                        {name: base.text}
+                    );
                 default:
-                    // This catches identifiers as well as complex expressions.
+                    // This catches complex expressions.
                     return base;
             }
         }
@@ -449,12 +480,37 @@ module.exports = function(tokenizer) {
         return next;
     }
 
-    function parseTypedIdentifier(base) {
-        // TODO: This should accept complex types
+    function parseType(base) {
         var type = base || assert('identifier');
+        var typeEnd = type;
+        var traits = [];
+        if (accept('<')) {
+            do {
+                traits.push(parseType());
+            } while (accept(','));
+            typeEnd = assert('>');
+        }
+        return node(
+            'Type',
+            type.start,
+            typeEnd.end,
+            {
+                name: type.text,
+                traits: traits
+            }
+        );
+    }
+
+    function parseTypedIdentifier(base) {
+        var type = parseType(base);
         assert(':');
         var ident = assert('identifier');
-        return {type: type, name: ident};
+        return node(
+            'TypedIdentifier',
+            type.start,
+            ident.end,
+            {idType: type, name: ident.text}
+        );
     }
 
     function parseStatement() {
