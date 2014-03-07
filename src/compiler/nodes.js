@@ -96,18 +96,17 @@ var NODES = {
             this.params.forEach(cb);
         },
         getType: function(ctx) {
-            var base = this.callee.getType(ctx);
-            if (base.name !== 'func') {
-                throw new Error('Call to non-executable type');
-            }
-            // TODO: Add type checking for params here?
-            return base.traits[0];
+            return this.callee.getType(ctx).traits[0];
         },
         validateTypes: function(ctx) {
             this.callee.validateTypes(ctx);
             this.params.forEach(function(p) {p.validateTypes(ctx);});
 
             var base = this.callee.getType(ctx);
+            if (base.name !== 'func') {
+                throw new Error('Call to non-executable type');
+            }
+
             var paramTypes = base.slice(1);
             if (this.params.length < paramTypes.length) {
                 throw new TypeError('Too few arguments passed to function call');
@@ -181,6 +180,18 @@ var NODES = {
             }
             if (!func.returnType.equals(valueType)) {
                 throw new TypeError('Mismatched return type');
+            }
+        }
+    },
+    Export: {
+        traverse: function(cb) {
+            cb(this.value);
+        },
+        validateTypes: function(ctx) {
+            this.value.validateTypes(ctx);
+            var valueType = this.value.getType(ctx);
+            if (valueType.name !== 'func') {
+                throw new TypeError('Cannot export non-executable objects');
             }
         }
     },

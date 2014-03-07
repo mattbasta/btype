@@ -171,6 +171,18 @@ module.exports = function(tokenizer) {
             {value: value}
         );
     }
+    function parseExport() {
+        var head = accept('export');
+        if (!head) return;
+        var value = parseSymbol();
+        var end = assert(';');
+        return node(
+            'Export',
+            head.start,
+            end.end,
+            {value: value}
+        );
+    }
     function parseWhile() {
         var head;
         if (!(head = accept('while'))) return;
@@ -401,6 +413,15 @@ module.exports = function(tokenizer) {
         }
         return parseExpressionModifier(part, precedence);
     }
+    function parseSymbol(base) {
+        base = base || assert('identifier');
+        return node(
+            'Symbol',
+            base.start,
+            base.end,
+            {name: base.text}
+        );
+    }
     function parseExpression(base, precedence) {
         function parseNext(base, precedence) {
             if (base === 'EOF' || base.type === 'EOF') {
@@ -459,12 +480,7 @@ module.exports = function(tokenizer) {
                         }
                     );
                 case 'identifier':
-                    return node(
-                        'Symbol',
-                        base.start,
-                        base.end,
-                        {name: base.text}
-                    );
+                    return parseSymbol(base);
                 default:
                     // This catches complex expressions.
                     return base;
@@ -518,6 +534,7 @@ module.exports = function(tokenizer) {
                parseIf() ||
                parseSwitch() ||
                parseReturn() ||
+               parseExport() ||
                parseWhile() ||
                parseDoWhile() ||
                parseFor() ||

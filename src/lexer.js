@@ -52,6 +52,7 @@ var tokens = [
     [/^and(?!\w)/, 'and'],
     [/^func(?!\w)/, 'func'],
     [/^return(?!\w)/, 'return'],
+    [/^export(?!\w)/, 'export'],
 
     [/^[a-zA-Z]\w*/, 'identifier'],
 ];

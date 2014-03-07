@@ -1,3 +1,4 @@
+var namer = require('./namer')();
 var traverser = require('./traverser');
 
 
@@ -9,9 +10,11 @@ function Context(scope, parent) {
     }
     this.functions = [];
     this.vars = {};
+    this.nameMap = {};
     this.accessesGlobalScope = false;
     this.accessesLexicalScope = false;
     this.lexicalLookups = {};
+    this.exports = {};
 }
 
 Context.prototype.addVar = function(varName, type) {
@@ -50,11 +53,14 @@ module.exports = function generateContext(tree) {
                 }
                 contexts[0].functions.push(node);
                 contexts[0].vars[node.name] = node.getType(contexts[0]);
+                contexts[0].nameMap[node.name] = node.__assignedName = namer();
+
                 var newContext = new Context(node, contexts[0]);
                 node.__definesContext = newContext;
                 contexts.unshift(newContext);
                 node.params.forEach(function(param) {
                     newContext.addVar(param.name, param.getType(newContext));
+                    newContext.nameMap[param.name] = namer();
                 });
                 return;
             case 'Declaration':
@@ -62,6 +68,7 @@ module.exports = function generateContext(tree) {
                 return;
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
+                node.__refName = node.__refContext.nameMap[node.name];
                 if (node.__refContext === rootContext && contexts.length > 1) {
                     contexts[0].accessesGlobalScope = true;
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
@@ -70,6 +77,12 @@ module.exports = function generateContext(tree) {
                         contexts[i].lexicalLookups[node.name] = node.__refContext;
                     }
                 }
+                return;
+            case 'Export':
+                if (contexts.length > 1) {
+                    throw new Error('Unexpected export: all exports must be in the global scope');
+                }
+                node.__assignedName = rootContext.exports[node.value.name] = rootContext.nameMap[node.value.name] = namer();
                 return;
         }
     }, function(node) {

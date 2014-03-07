@@ -262,6 +262,22 @@ describe('Parser', function() {
         });
     });
 
+    describe('exports', function() {
+        it('should parse export statements', function() {
+            compareTree(
+                'export foo;',
+                _root([
+                    node(
+                        'Export',
+                        0,
+                        11,
+                        {value: _i('foo')}
+                    )
+                ])
+            );
+        });
+    });
+
     describe('assignments and declarations', function() {
         it('should parse basic assignments', function() {
             compareTree(
