@@ -6,15 +6,28 @@ var transformer = require('./transformer');
 var context = require('./context');
 
 
-const HEAP_SIZE = 128 * 1024 * 1024;  // TODO: Make this customizable.
-const ENV_VARS = {
-    HEAP_SIZE: HEAP_SIZE
-};
+// TODO: Make these customizable.
+const LOWEST_ORDER = 128;
+const HEAP_SIZE = 128 * 1024 * 1024;
 
 
 function makeModule(moduleName, body, includes, exports) {
+    var ENV_VARS = {
+        HEAP_SIZE: HEAP_SIZE,
+        BUDDY_SPACE: HEAP_SIZE / LOWEST_ORDER / 4,  // 4 == sizeof(uint8) / 2 bits
+        LOWEST_ORDER: LOWEST_ORDER
+    };
     return [
-        'function' + (moduleName ? ' ' + moduleName.trim() : '') + '(__stdlib, __foreign, __heap) {',
+        '(function(module) {',
+        // TODO: Make errors better.
+        'var error = function() {throw new Error("Error!")};',
+        'var heap = new ArrayBuffer(' + (HEAP_SIZE + BUDDY_SPACE) + ');',
+        'var ret = module(window, {error: error}, heap);',
+        'if (ret.__init) ret.__init();',
+        'return ret;',
+        '})(function' + (moduleName ? ' ' + moduleName.trim() : '') + '(stdlib, foreign, heap) {',
+        '    "use asm";',
+        '    var imul = stdlib.Math.imul;',
         body,
         includes.map(function(module) {
             return fs.readFileSync(path.resolve(__dirname, 'static', module + '.js')).toString().replace(/\$([A-Z_]+)\$/g, function(v) {
@@ -26,7 +39,7 @@ function makeModule(moduleName, body, includes, exports) {
             return '        ' + e + ': ' + exports[e];
         }).join(';\n    '),
         '    };',
-        '}'
+        '})'
     ].join('\n');
 }
 
