@@ -195,6 +195,18 @@ var NODES = {
             }
         }
     },
+    Import: {
+        traverse: function(cb) {
+            cb(this.base);
+            if (this.member) cb(this.member);
+            if (this.alias) cb(this.alias);
+        },
+        validateTypes: function(ctx) {
+            this.base.validateTypes(ctx);
+            if (this.member) this.member.validateTypes(ctx);
+            if (this.alias) this.alias.validateTypes(ctx);
+        }
+    },
     For: {
         traverse: loop_traverser,
         validateTypes: loopValidator

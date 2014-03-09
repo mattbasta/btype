@@ -7,7 +7,7 @@ var intheap = new stdlib.Int32Array(heap);
 // Heap object for storing floating point data.
 var floatheap = new stdlib.Float64Array(heap);
 
-var HEAP_SIZE = 1024;
+var HEAP_SIZE = $HEAP_SIZE$;
 
 /*
 Memory is managed in a buddy system. The heap starts out as one contiguous

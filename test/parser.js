@@ -278,6 +278,77 @@ describe('Parser', function() {
         });
     });
 
+    describe('imports', function() {
+        it('should parse import statements', function() {
+            compareTree(
+                'import foo;',
+                _root([
+                    node(
+                        'Import',
+                        0,
+                        11,
+                        {
+                            base: _i('foo'),
+                            member: null,
+                            alias: null
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse import statements with a member', function() {
+            compareTree(
+                'import foo.bar;',
+                _root([
+                    node(
+                        'Import',
+                        0,
+                        15,
+                        {
+                            base: _i('foo'),
+                            member: 'bar',
+                            alias: null
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse import statements with an alias', function() {
+            compareTree(
+                'import foo as bar;',
+                _root([
+                    node(
+                        'Import',
+                        0,
+                        18,
+                        {
+                            base: _i('foo'),
+                            member: null,
+                            alias: _i('bar')
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse import statements with a member and an alias', function() {
+            compareTree(
+                'import foo.bar as zap;',
+                _root([
+                    node(
+                        'Import',
+                        0,
+                        22,
+                        {
+                            base: _i('foo'),
+                            member: 'bar',
+                            alias: _i('zap')
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
     describe('assignments and declarations', function() {
         it('should parse basic assignments', function() {
             compareTree(

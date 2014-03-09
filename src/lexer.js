@@ -13,6 +13,7 @@ var tokens = [
     [/^0(?!\.)/, 'int'],
     [/^;/, ';'],
     [/^,/, ','],
+    [/^\./, '.'],
     [/^\{/, '{'],
     [/^\}/, '}'],
     [/^\[/, '['],
@@ -35,6 +36,7 @@ var tokens = [
     [/^!/, '!'],
 
     [/^var(?!\w)/, 'var'],
+    [/^as(?!\w)/, 'as'],
     [/^switch(?!\w)/, 'switch'],
     [/^case(?!\w)/, 'case'],
     [/^default(?!\w)/, 'default'],
@@ -52,6 +54,7 @@ var tokens = [
     [/^and(?!\w)/, 'and'],
     [/^func(?!\w)/, 'func'],
     [/^return(?!\w)/, 'return'],
+    [/^import(?!\w)/, 'import'],
     [/^export(?!\w)/, 'export'],
 
     [/^[a-zA-Z]\w*/, 'identifier'],

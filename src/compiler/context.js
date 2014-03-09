@@ -1,8 +1,8 @@
-var namer = require('./namer')();
 var traverser = require('./traverser');
 
 
-function Context(scope, parent) {
+function Context(env, scope, parent) {
+    this.env = env;
     this.scope = scope || null;
     this.parent = parent || null;
     if (scope) {
@@ -40,8 +40,8 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
-module.exports = function generateContext(tree) {
-    var rootContext = new Context();
+module.exports = function generateContext(env, tree) {
+    var rootContext = new Context(env);
     var contexts = [rootContext];
 
     traverser.traverse(tree, function(node) {
@@ -53,14 +53,14 @@ module.exports = function generateContext(tree) {
                 }
                 contexts[0].functions.push(node);
                 contexts[0].vars[node.name] = node.getType(contexts[0]);
-                contexts[0].nameMap[node.name] = node.__assignedName = namer();
+                contexts[0].nameMap[node.name] = node.__assignedName = env.namer();
 
-                var newContext = new Context(node, contexts[0]);
+                var newContext = new Context(env, node, contexts[0]);
                 node.__definesContext = newContext;
                 contexts.unshift(newContext);
                 node.params.forEach(function(param) {
                     newContext.addVar(param.name, param.getType(newContext));
-                    newContext.nameMap[param.name] = namer();
+                    newContext.nameMap[param.name] = env.namer();
                 });
                 return;
             case 'Declaration':
@@ -82,7 +82,7 @@ module.exports = function generateContext(tree) {
                 if (contexts.length > 1) {
                     throw new Error('Unexpected export: all exports must be in the global scope');
                 }
-                node.__assignedName = rootContext.exports[node.value.name] = rootContext.nameMap[node.value.name] = namer();
+                node.__assignedName = rootContext.exports[node.value.name] = rootContext.nameMap[node.value.name] = env.namer();
                 return;
         }
     }, function(node) {

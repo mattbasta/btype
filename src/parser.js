@@ -183,6 +183,37 @@ module.exports = function(tokenizer) {
             {value: value}
         );
     }
+    function parseImport() {
+        var head = accept('import');
+        if (!head) return;
+        var value = parseExpression();
+        if (value.type !== 'Symbol' && value.type !== 'Member') {
+            throw new SyntaxError('Unexpected import expression');
+        }
+        var base = value;
+        var member = null;
+        if (base.type === 'Member') {
+            base = value.base;
+            member = value.child;
+        }
+
+        var alias = null;
+        if (accept('as')) {
+            alias = parseSymbol();
+        }
+
+        var end = assert(';');
+        return node(
+            'Import',
+            head.start,
+            end.end,
+            {
+                base: base,
+                member: member,
+                alias: alias
+            }
+        );
+    }
     function parseWhile() {
         var head;
         if (!(head = accept('while'))) return;
@@ -535,6 +566,7 @@ module.exports = function(tokenizer) {
                parseSwitch() ||
                parseReturn() ||
                parseExport() ||
+               parseImport() ||
                parseWhile() ||
                parseDoWhile() ||
                parseFor() ||
