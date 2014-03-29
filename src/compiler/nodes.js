@@ -15,6 +15,11 @@ function loopValidator(ctx) {
     this.loop.forEach(function(stmt) {stmt.validateTypes(ctx);});
 }
 
+function binopFindFirstClassFuncs(cb) {
+    this.left.findFirstClassFuncs(cb);
+    this.right.findFirstClassFuncs(cb);
+}
+
 var NODES = {
     Root: {
         traverse: function(cb) {
@@ -23,6 +28,11 @@ var NODES = {
         validateTypes: function(ctx) {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
+            });
+        },
+        findFirstClassFuncs: function(cb) {
+            this.body.forEach(function(stmt) {
+                stmt.findFirstClassFuncs(cb);
             });
         }
     },
@@ -41,6 +51,9 @@ var NODES = {
                     throw new TypeError('Invalid type for unary minus');
                 }
             }
+        },
+        findFirstClassFuncs: function(cb) {
+            this.base.findFirstClassFuncs(cb);
         }
     },
     LogicalBinop: {
@@ -49,7 +62,8 @@ var NODES = {
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
-        }
+        },
+        findFirstClassFuncs: binopFindFirstClassFuncs
     },
     EqualityBinop: {
         traverse: binop_traverser,
@@ -60,7 +74,8 @@ var NODES = {
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Equality operations may only be performed against same types');
             }
-        }
+        },
+        findFirstClassFuncs: binopFindFirstClassFuncs
     },
     RelativeBinop: {
         traverse: binop_traverser,
@@ -71,7 +86,8 @@ var NODES = {
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Comparison operations may only be performed against same types');
             }
-        }
+        },
+        findFirstClassFuncs: binopFindFirstClassFuncs
     },
     Binop: {
         traverse: binop_traverser,
@@ -88,7 +104,8 @@ var NODES = {
                 // TODO: implement basic casting
                 throw new TypeError('Mismatched types in binop');
             }
-        }
+        },
+        findFirstClassFuncs: binopFindFirstClassFuncs
     },
     Call: {
         traverse: function(cb) {
@@ -118,6 +135,12 @@ var NODES = {
                     throw new TypeError('Wrong type passed as parameter to function call');
                 }
             }
+        },
+        findFirstClassFuncs: function(cb) {
+            this.callee.findFirstClassFuncs(cb, true);
+            this.params.forEach(function(param) {
+                param.findFirstClassFuncs(cb);
+            });
         }
     },
     Member: {
@@ -133,6 +156,14 @@ var NODES = {
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
             // TODO: ???
+        },
+        findFirstClassFuncs: function(cb, isFC) {
+            if (!isFC && this.base.type === 'Symbol') {
+                cb(this.base);
+            } else {
+                this.base.findFirstClassFuncs(cb);
+            }
+            // `this.child` is a string.
         }
     },
     Assignment: {
@@ -149,6 +180,10 @@ var NODES = {
             if (!baseType.equals(this.value.getType(ctx))) {
                 throw new TypeError('Mismatched types in assignment');
             }
+        },
+        findFirstClassFuncs: function(cb) {
+            this.base.findFirstClassFuncs(cb, true);
+            this.value.findFirstClassFuncs(cb, true);
         }
     },
     Declaration: {
@@ -277,7 +312,7 @@ var NODES = {
             );
         },
         validateTypes: function(ctx) {
-            var context = this.__definesContext;
+            var context = this.__context;
             console.log(this, 'asdf');
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(context);
