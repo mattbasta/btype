@@ -189,7 +189,10 @@ module.exports = function(tokenizer) {
         var value = parseExpression();
         if (value.type !== 'Symbol' && value.type !== 'Member') {
             throw new SyntaxError('Unexpected import expression');
+        } else if (value.type === 'Member' && value.base.type !== 'Symbol') {
+            throw new SyntaxError('Cannot import complex expressions');
         }
+
         var base = value;
         var member = null;
         if (base.type === 'Member') {
@@ -208,7 +211,7 @@ module.exports = function(tokenizer) {
             head.start,
             end.end,
             {
-                base: base,
+                base: base.name,
                 member: member,
                 alias: alias
             }

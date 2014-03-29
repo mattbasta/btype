@@ -77,6 +77,9 @@ module.exports = function generateContext(env, tree) {
     traverser.traverse(tree, function(node) {
         node.__context = contexts[0];
         switch (node.type) {
+            case 'Import':
+                env.import(node.base);
+                return;
             case 'Function':
                 // Remember the function in the function hierarchy.
                 contexts[0].functions.push(node);

@@ -1,3 +1,5 @@
+var type = require('./types');
+
 
 function binop_traverser(cb) {
     cb(this.left);
@@ -8,7 +10,7 @@ function loop_traverser(cb) {
     this.loop.forEach(cb);
 }
 function boolType() {
-    return _type('bool');
+    return new type('bool');
 }
 function loopValidator(ctx) {
     this.condition.validateTypes(ctx);
@@ -41,7 +43,7 @@ var NODES = {
             cb(this.base);
         },
         getType: function(ctx) {
-            return this.operator === '-' ? this.base.getType(ctx) : _type('bool');
+            return this.operator === '-' ? this.base.getType(ctx) : new type('bool');
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
@@ -285,7 +287,7 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             this.condition.validateTypes(ctx);
-            if(!this.condition.getType(ctx).equals(_type('bool')))
+            if(!this.condition.getType(ctx).equals(new type('bool')))
                 throw new TypeError('Unexpected type passed as condition');
             this.consequent.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
@@ -304,7 +306,7 @@ var NODES = {
             this.body.forEach(cb);
         },
         getType: function(ctx) {
-            return _type(
+            return new type(
                 'func',
                 [this.returnType].concat(this.params.map(function(p) {
                     return p.getType(ctx);
@@ -324,15 +326,7 @@ var NODES = {
             this.traits.forEach(cb);
         },
         getType: function() {
-            return this;
-        },
-        equals: function(type) {
-            if (type.name !== this.name) return false;
-            if (type.traits.length !== this.traits.length) return false;
-            for (var i = 0; i < this.traits.length; i++) {
-                if (!this.traits[i].equals(type.traits[i])) return false;
-            }
-            return true;
+            return new type(this.name, this.traits);
         },
         validateTypes: function() {}
     },
@@ -348,7 +342,7 @@ var NODES = {
     Literal: {
         traverse: function(cb) {},
         getType: function() {
-            return _type(this.litType);
+            return new type(this.litType);
         },
         validateTypes: function() {}
     },
@@ -367,6 +361,7 @@ function buildNode(proto, name) {
         this.type = name;
         this.start = start;
         this.end = end;
+        this.__base = base;
         for(var prop in base) {
             this[prop] = base[prop];
         }
@@ -374,21 +369,25 @@ function buildNode(proto, name) {
     for(var protoMem in proto) {
         node.prototype[protoMem] = proto[protoMem];
     }
+    node.prototype.clone = function() {
+        var out = new node(
+            this.start,
+            this.end,
+            {}
+        );
+        for (var item in this.__base) {
+            if (this.__base[item].clone) {
+                out[item] = this.__base[item].clone();
+            } else {
+                out[item] = this.__base[item];
+            }
+            out.__base[item] = out[item];
+        }
+    };
     return node;
 }
 
 var preparedNodes = module.exports = {};
 for(var node in NODES) {
     preparedNodes[node] = buildNode(NODES[node], node);
-}
-
-function _type(name, traits) {
-    return new preparedNodes['Type'](
-        0,
-        0,
-        {
-            name: name,
-            traits: traits || []
-        }
-    );
 }

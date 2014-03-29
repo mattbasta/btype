@@ -9,6 +9,7 @@ function Environment(name) {
     this.included = [];
     this.requested = null;
     this.modules = {};
+    this.inits = [];
 }
 
 Environment.prototype.addModule = function(module, context) {
@@ -21,6 +22,10 @@ Environment.prototype.addContext = function(context) {
 
 Environment.prototype.markRequested = function(context) {
     this.requested = context;
+};
+
+Environment.prototype.addInit = function(stmt) {
+    this.inits.push(stmt);
 };
 
 Environment.prototype.make = function(outputLanguage) {
@@ -62,7 +67,7 @@ Environment.prototype.make = function(outputLanguage) {
         '(function(module) {',
         // TODO: Make errors better.
         'var error = function() {throw new Error("Error!")};',
-        'var heap = new ArrayBuffer(' + (HEAP_SIZE + BUDDY_SPACE) + ');',
+        'var heap = new ArrayBuffer(' + (ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         'var ret = module(window, {error: error}, heap);',
         'if (ret.__init) ret.__init();',
         'return ret;',
@@ -70,7 +75,7 @@ Environment.prototype.make = function(outputLanguage) {
         '    "use asm";',
         '    var imul = stdlib.Math.imul;',
         includes.map(function(module) {
-            return fs.readFileSync(path.resolve(__dirname, 'static', module + '.js')).toString().replace(/\$([A-Z_]+)\$/g, function(v) {
+            return fs.readFileSync(path.resolve(__dirname, 'static', outputLanguage, module + '.js')).toString().replace(/\$([A-Z_]+)\$/g, function(v) {
                 return ENV_VARS[v.substr(1, v.length - 2)];
             });
         }).join('\n'),

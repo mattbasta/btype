@@ -288,7 +288,7 @@ describe('Parser', function() {
                         0,
                         11,
                         {
-                            base: _i('foo'),
+                            base: 'foo',
                             member: null,
                             alias: null
                         }
@@ -305,7 +305,7 @@ describe('Parser', function() {
                         0,
                         15,
                         {
-                            base: _i('foo'),
+                            base: 'foo',
                             member: 'bar',
                             alias: null
                         }
@@ -322,7 +322,7 @@ describe('Parser', function() {
                         0,
                         18,
                         {
-                            base: _i('foo'),
+                            base: 'foo',
                             member: null,
                             alias: _i('bar')
                         }
@@ -339,7 +339,7 @@ describe('Parser', function() {
                         0,
                         22,
                         {
-                            base: _i('foo'),
+                            base: 'foo',
                             member: 'bar',
                             alias: _i('zap')
                         }
