@@ -1,5 +1,5 @@
 var nodes = require('./nodes');
-// var traverser = require('./traverser');
+var traverser = require('./traverser');
 
 /*
 The transformer is responsible for taking a collection of nested BType
@@ -122,7 +122,49 @@ application space. This allows the implementation to be more tightly integrated
 with the compiler, enabling optimizations.
 
 */
+
+function markFirstClassFunctions(context) {
+    /*
+    This function searches for nested functions within a context that are
+    accessed such that first-class function objects are created (references to
+    objects of type `func`). This happens when a Symbol node references the
+    identifier of a function under these circumstances:
+
+    - It is not the callee of a Call node
+    - It is not the l-value of an Assignment
+    */
+    var result = [];
+    var stack = [];
+    traverser.traverse(
+        context.scope,
+        function(node, marker) {
+            if (node.type === 'Symbol') {
+                if (stack[0].type === 'Assignment' && marker === 'base' ||
+                    stack[0].type === 'Call' && marker === 'callee') {
+                    result.push(context.lookupFunctionContext(node.name).functionDeclarations[node.name]);
+                }
+                return false;
+            }
+
+            stack.unshift(node);
+        },
+        function() {
+            stack.shift(node);
+        }
+    );
+
+    result.forEach(function(func) {
+        func.__firstClass = true;
+    });
+
+    return result;
+}
+
 var transform = module.exports = function(context) {
+
+    // First step: mark all first class functions as such.
+    markFirstClassFunctions(context);
+
 	var resultingFuncs = [];
 
     function processFunc(node, context) {

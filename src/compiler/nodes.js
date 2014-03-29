@@ -2,11 +2,11 @@ var type = require('./types');
 
 
 function binop_traverser(cb) {
-    cb(this.left);
-    cb(this.right);
+    cb(this.left, 'left');
+    cb(this.right, 'right');
 }
 function loop_traverser(cb) {
-    cb(this.condition);
+    cb(this.condition, 'condition');
     this.loop.forEach(cb);
 }
 function boolType() {
@@ -17,11 +17,6 @@ function loopValidator(ctx) {
     this.loop.forEach(function(stmt) {stmt.validateTypes(ctx);});
 }
 
-function binopFindFirstClassFuncs(cb) {
-    this.left.findFirstClassFuncs(cb);
-    this.right.findFirstClassFuncs(cb);
-}
-
 var NODES = {
     Root: {
         traverse: function(cb) {
@@ -30,11 +25,6 @@ var NODES = {
         validateTypes: function(ctx) {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
-            });
-        },
-        findFirstClassFuncs: function(cb) {
-            this.body.forEach(function(stmt) {
-                stmt.findFirstClassFuncs(cb);
             });
         }
     },
@@ -53,9 +43,6 @@ var NODES = {
                     throw new TypeError('Invalid type for unary minus');
                 }
             }
-        },
-        findFirstClassFuncs: function(cb) {
-            this.base.findFirstClassFuncs(cb);
         }
     },
     LogicalBinop: {
@@ -64,8 +51,7 @@ var NODES = {
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
-        },
-        findFirstClassFuncs: binopFindFirstClassFuncs
+        }
     },
     EqualityBinop: {
         traverse: binop_traverser,
@@ -76,8 +62,7 @@ var NODES = {
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Equality operations may only be performed against same types');
             }
-        },
-        findFirstClassFuncs: binopFindFirstClassFuncs
+        }
     },
     RelativeBinop: {
         traverse: binop_traverser,
@@ -88,8 +73,7 @@ var NODES = {
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Comparison operations may only be performed against same types');
             }
-        },
-        findFirstClassFuncs: binopFindFirstClassFuncs
+        }
     },
     Binop: {
         traverse: binop_traverser,
@@ -106,12 +90,11 @@ var NODES = {
                 // TODO: implement basic casting
                 throw new TypeError('Mismatched types in binop');
             }
-        },
-        findFirstClassFuncs: binopFindFirstClassFuncs
+        }
     },
     Call: {
         traverse: function(cb) {
-            cb(this.callee);
+            cb(this.callee, 'callee');
             this.params.forEach(cb);
         },
         getType: function(ctx) {
@@ -137,18 +120,12 @@ var NODES = {
                     throw new TypeError('Wrong type passed as parameter to function call');
                 }
             }
-        },
-        findFirstClassFuncs: function(cb) {
-            this.callee.findFirstClassFuncs(cb, true);
-            this.params.forEach(function(param) {
-                param.findFirstClassFuncs(cb);
-            });
         }
     },
     Member: {
         traverse: function(cb) {
-            cb(this.base);
-            cb(this.child);
+            cb(this.base, 'base');
+            cb(this.child, 'child');
         },
         getType: function(ctx) {
             var base = this.base.getType(ctx);
@@ -158,20 +135,12 @@ var NODES = {
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
             // TODO: ???
-        },
-        findFirstClassFuncs: function(cb, isFC) {
-            if (!isFC && this.base.type === 'Symbol') {
-                cb(this.base);
-            } else {
-                this.base.findFirstClassFuncs(cb);
-            }
-            // `this.child` is a string.
         }
     },
     Assignment: {
         traverse: function(cb) {
-            cb(this.base);
-            cb(this.value);
+            cb(this.base, 'base');
+            cb(this.value, 'value');
         },
         getType: function(ctx) {
             // TODO: Check that base and value are the same type.
@@ -182,17 +151,13 @@ var NODES = {
             if (!baseType.equals(this.value.getType(ctx))) {
                 throw new TypeError('Mismatched types in assignment');
             }
-        },
-        findFirstClassFuncs: function(cb) {
-            this.base.findFirstClassFuncs(cb, true);
-            this.value.findFirstClassFuncs(cb, true);
         }
     },
     Declaration: {
         traverse: function(cb) {
             if (this.declType)
-                cb(this.declType);
-            cb(this.value);
+                cb(this.declType, 'type');
+            cb(this.value, 'value');
         },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
@@ -234,9 +199,9 @@ var NODES = {
     },
     Import: {
         traverse: function(cb) {
-            cb(this.base);
-            if (this.member) cb(this.member);
-            if (this.alias) cb(this.alias);
+            cb(this.base, 'base');
+            if (this.member) cb(this.member, 'member');
+            if (this.alias) cb(this.alias, 'alias');
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
@@ -258,7 +223,7 @@ var NODES = {
     },
     Switch: {
         traverse: function(cb) {
-            cb(this.condition);
+            cb(this.condition, 'condition');
             this.cases.forEach(cb);
         },
         validateTypes: function(ctx) {
@@ -269,7 +234,7 @@ var NODES = {
     },
     Case: {
         traverse: function(cb) {
-            cb(this.value);
+            cb(this.value, 'value');
             this.body.forEach(cb);
         },
         validateTypes: function(ctx) {
@@ -280,7 +245,7 @@ var NODES = {
     },
     If: {
         traverse: function(cb) {
-            cb(this.condition);
+            cb(this.condition, 'condition');
             this.consequent.forEach(cb);
             if (this.alternate)
                 this.alternate.forEach(cb);
@@ -301,7 +266,7 @@ var NODES = {
     },
     'Function': {
         traverse: function(cb) {
-            cb(this.returnType);
+            cb(this.returnType, 'return');
             this.params.forEach(cb);
             this.body.forEach(cb);
         },

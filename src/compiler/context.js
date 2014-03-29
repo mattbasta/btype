@@ -4,8 +4,8 @@ var traverser = require('./traverser');
 function Context(env, scope, parent) {
     // A reference to the containing environment.
     this.env = env;
-    // `null` or a reference to an AST node that this context corresponds to.
-    this.scope = scope || null;
+    // a reference to an AST node that this context corresponds to.
+    this.scope = scope;
     // `null` or a reference to the parent context of this context.
     this.parent = parent || null;
     if (scope) {
@@ -14,6 +14,7 @@ function Context(env, scope, parent) {
     }
     // A collection of functions directly within this context.
     this.functions = [];
+    this.functionDeclarations = {};
     // A mapping of assigned names to types.
     this.vars = {};
     // A mapping of assigned names to generated names.
@@ -49,7 +50,7 @@ function Context(env, scope, parent) {
 
 Context.prototype.addVar = function(varName, type) {
     if (varName in this.vars) {
-        throw new Error('Cannot redeclare variable in context');
+        throw new Error('Cannot redeclare symbol in context: ' + varName);
     }
     this.vars[varName] = type;
 };
@@ -70,8 +71,18 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
+Context.prototype.lookupFunctionContext = function(funcName) {
+    if (varName in this.functionDeclarations) {
+        return this;
+    }
+    // By the time this function is called, the context will have been
+    // generated already and reference errors will have been caught. There
+    // should be no case where `this.parent` is null.
+    return this.parent.lookupFunctionContext(varName);
+};
+
 module.exports = function generateContext(env, tree) {
-    var rootContext = new Context(env);
+    var rootContext = new Context(env, tree);
     var contexts = [rootContext];
 
     traverser.traverse(tree, function(node) {
@@ -83,6 +94,7 @@ module.exports = function generateContext(env, tree) {
             case 'Function':
                 // Remember the function in the function hierarchy.
                 contexts[0].functions.push(node);
+                contexts[0].functionDeclarations[node.name] = node;
                 // Mark the function as a variable containing a function type.
                 contexts[0].addVar(node.name, node.getType(contexts[0]);
                 // Mark the generated name for the function.
