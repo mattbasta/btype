@@ -139,10 +139,18 @@ function markFirstClassFunctions(context) {
         context.scope,
         function(node, marker) {
             if (node.type === 'Symbol') {
+                // Ignore symbols that don't point to functions.
+                if (node.__refType.name !== 'func') return false;
+                // Ignore symbols that meet the stop conditions above.
                 if (stack[0].type === 'Assignment' && marker === 'base' ||
                     stack[0].type === 'Call' && marker === 'callee') {
-                    result.push(context.lookupFunctionContext(node.name).functionDeclarations[node.name]);
+                    return false;
                 }
+                // Get the actual function node and add it to the result set.
+                // Note that we don't check for duplicates, but the marking
+                // process is idempotent so it shouldn't matter.
+                result.push(node.__refContext.functionDeclarations[node.name]);
+                // There's nothing left to do with a symbol, so hard return.
                 return false;
             }
 

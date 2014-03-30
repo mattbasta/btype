@@ -71,16 +71,6 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
-Context.prototype.lookupFunctionContext = function(funcName) {
-    if (varName in this.functionDeclarations) {
-        return this;
-    }
-    // By the time this function is called, the context will have been
-    // generated already and reference errors will have been caught. There
-    // should be no case where `this.parent` is null.
-    return this.parent.lookupFunctionContext(varName);
-};
-
 module.exports = function generateContext(env, tree) {
     var rootContext = new Context(env, tree);
     var contexts = [rootContext];
@@ -96,7 +86,7 @@ module.exports = function generateContext(env, tree) {
                 contexts[0].functions.push(node);
                 contexts[0].functionDeclarations[node.name] = node;
                 // Mark the function as a variable containing a function type.
-                contexts[0].addVar(node.name, node.getType(contexts[0]);
+                contexts[0].addVar(node.name, node.getType(contexts[0]));
                 // Mark the generated name for the function.
                 contexts[0].nameMap[node.name] = node.__assignedName = env.namer();
 
@@ -118,6 +108,7 @@ module.exports = function generateContext(env, tree) {
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
                 node.__refName = node.__refContext.nameMap[node.name];
+                node.__refType = node.__refContext.vars[node.name];
                 if (node.__refContext === rootContext && contexts.length > 1) {
                     contexts[0].accessesGlobalScope = true;
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
@@ -140,6 +131,7 @@ module.exports = function generateContext(env, tree) {
                 contexts.shift();
                 break;
             case 'Assignment':
+                // TODO: Check that function declarations are not overwritten.
                 function follow(node) {
                     switch (node.type) {
                         // x = foo;

@@ -531,10 +531,10 @@ module.exports = function(tokenizer) {
     }
 
     function parseType(base) {
-        var type = base || assert('identifier');
+        var type = base || accept('func') || accept('null') || assert('identifier');
         var typeEnd = type;
         var traits = [];
-        if (accept('<')) {
+        if (type.type !== 'null' && accept('<')) {
             do {
                 traits.push(parseType());
             } while (accept(','));

@@ -99,27 +99,42 @@ var GHOST_TYPES = {
 var PRIMITIVE_TYPES = {
     int: {
         ghost: 'int32',
-        primitive: true
+        primitive: true,
+        zeroVal: function() {
+            return Literal({value: 0});
+        }
     },
     _uint: {
         // Not exposed to the user directly
         ghost: 'uint32',
         primitive: true,
-        extend: 'int'
+        extend: 'int',
+        zeroVal: function() {
+            return Literal({value: 0});
+        }
     },
     _byte: {
         // Not exposed to the user directly
         ghost: 'uint8',
         primitive: true,
-        extend: 'int'
+        extend: 'int',
+        zeroVal: function() {
+            return Literal({value: 0});
+        }
     },
     float: {
         ghost: 'float64',
-        primitive: true
+        primitive: true,
+        zeroVal: function() {
+            return Literal({value: 0.0});
+        }
     },
     bool: {
         ghost: 'uint8',
-        primitive: true
+        primitive: true,
+        zeroVal: function() {
+            return Literal({value: 0});
+        }
     }
 };
 
@@ -164,6 +179,9 @@ var INCLUDED_TYPES = {
                 })
             });
         }
+    },
+    func: {
+
     }
 };
 

@@ -175,6 +175,37 @@ describe('Parser', function() {
             );
         });
 
+        it('should parse types with non-identifier tokens', function() {
+            compareTree(
+                // Neither null and func are identifiers
+                'func retType(func<null, int>:x) {}',
+                _root([
+                    node(
+                        'Function',
+                        0,
+                        34,
+                        {
+                            returnType: _type('retType'),
+                            name: null,
+                            params: [
+                                _typed(
+                                    'x',
+                                    _type(
+                                        'func',
+                                        [
+                                            _type('null'),
+                                            _type('int')
+                                        ]
+                                    )
+                                )
+                            ],
+                            body: []
+                        }
+                    )
+                ])
+            );
+        });
+
         it('should parse nested functions', function() {
             compareTree(
                 'func int:foo(int:x, str:y) {func str(bool:z){}}',
