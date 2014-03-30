@@ -1,4 +1,4 @@
-var generatorNodes = require('generators/nodes');
+var generatorNodes = require('./generators/nodes');
 
 var Literal = generatorNodes.Literal;
 var HeapLookup = generatorNodes.HeapLookup;
@@ -168,6 +168,7 @@ var INCLUDED_TYPES = {
 };
 
 var COMPLEX_TYPES = {
+    // Strings and static strings
     str: {
         extend: 'array',
         subscriptType: function(instance) {
@@ -189,7 +190,7 @@ var COMPLEX_TYPES = {
 };
 
 function lookupType(name) {
-    return COMPLEX_TYPES[name] ||
-        INCLUDED_TYPES[name] ||
-        PRIMITIVE_TYPES[name] || null;
+    return (COMPLEX_TYPES && COMPLEX_TYPES[name]) ||
+        (INCLUDED_TYPES && INCLUDED_TYPES[name]) ||
+        (PRIMITIVE_TYPES && PRIMITIVE_TYPES[name]) || null;
 }
