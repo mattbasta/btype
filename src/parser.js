@@ -2,9 +2,6 @@ var nodes = require('./compiler/nodes');
 
 
 function node(name, start, end, args) {
-    if (!(name in nodes)) {
-        throw new Error('Could not find node type "' + name + '"');
-    }
     return new (nodes[name])(start, end, args);
 }
 
@@ -574,7 +571,7 @@ module.exports = function(tokenizer) {
                parseDoWhile() ||
                parseFor() ||
                parseAssignment(); //call?
-               // TODO: return, break, continue
+               // TODO: break, continue
     }
 
     function parseStatements(endTokens) {
@@ -585,9 +582,6 @@ module.exports = function(tokenizer) {
                (temp.type && endTokens.indexOf(temp.type) === -1)) {
             var statement = parseStatement();
             temp = peek();
-            if (!statement) {
-                continue;
-            }
             statements.push(statement);
         }
         return statements;

@@ -82,5 +82,11 @@ describe('Lexer', function() {
     it('should tokenize strings with escapes', function() {
         matches("'asd\\'f' 'f\\\\oo' '1\\n23' '123\\tbar'");
     });
+
+    it('should fail on unknown tokens', function() {
+        assert.throws(function() {
+            lexer('\\')();
+        });
+    });
 });
 

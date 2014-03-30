@@ -378,6 +378,18 @@ describe('Parser', function() {
                 ])
             );
         });
+
+        it('should not accept invalid expressions', function() {
+            assert.throws(function() {
+                parser(lexer('import x + y;'));
+            });
+        });
+
+        it('should not accept complex imports', function() {
+            assert.throws(function() {
+                parser(lexer('import foo().x;'));
+            });
+        });
     });
 
     describe('assignments and declarations', function() {
@@ -454,6 +466,12 @@ describe('Parser', function() {
                     )
                 ])
             );
+        });
+
+        it('should not accept assignments to call expressions', function() {
+            assert.throws(function() {
+                parser(lexer('foo() = bar;'));
+            });
         });
     });
 
@@ -552,6 +570,61 @@ describe('Parser', function() {
         });
     });
 
+    describe('parenthesized expressions', function() {
+        it('should parse properly', function() {
+            compareTree(
+                'x = (3 + 4);',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        12,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Binop',
+                                5,
+                                10,
+                                {
+                                    left: _int(3),
+                                    right: _int(4),
+                                    operator: '+'
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
+    describe('null', function() {
+        it('should be parsed properly', function() {
+            compareTree(
+                'x = null;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        9,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Literal',
+                                3,
+                                7,
+                                {
+                                    litType: 'null',
+                                    value: null
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
     describe('binary operators', function() {
         it('should parse binops around literals', function() {
             compareTree(
@@ -578,6 +651,7 @@ describe('Parser', function() {
                 ])
             );
         });
+
         it('should parse nested binops', function() {
             compareTree(
                 'x = 3 + 4 + 5;',
@@ -732,6 +806,12 @@ describe('Parser', function() {
                     )
                 ])
             );
+        });
+
+        it('should fail when the file ends mid-expression', function() {
+            assert.throws(function() {
+                parser(lexer('x = 1 +'));
+            });
         });
     });
 
@@ -1037,6 +1117,16 @@ describe('Parser', function() {
                     )
                 ])
             );
+        });
+    });
+
+    it('should fail on invalid assertions', function() {
+        // Some examples of invalid code
+        assert.throws(function() {
+            parser(lexer('func () {}'));
+        });
+        assert.throws(function() {
+            parser(lexer(';'));
         });
     });
 });

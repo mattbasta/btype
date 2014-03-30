@@ -94,9 +94,7 @@ module.exports = function(data) {
         if (!remainingData.trim()) return 'EOF';
         var token = readToken();
         if (!token) {
-            console.error('Syntax Error');
-            console.error(remainingData);
-            throw new SyntaxError('Unknown token at line ' + currentLine);
+            throw new SyntaxError('Unknown token at line ' + currentLine + ' near ' + remainingData.substr(0, 20));
         }
         return token;
     };
