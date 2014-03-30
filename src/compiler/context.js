@@ -61,10 +61,10 @@ Context.prototype.hasVar = function(varName) {
 
 Context.prototype.lookupVar = function(varName) {
     if (varName in this.vars) {
-        console.log('Found ' + varName + ' in this scope');
+        // console.log('Found ' + varName + ' in this scope');
         return this;
     } else if (this.parent) {
-        console.log('Looking for ' + varName + ' in parent scope');
+        // console.log('Looking for ' + varName + ' in parent scope');
         return this.parent.lookupVar(varName);
     } else {
         throw new ReferenceError('Reference to undefined variable "' + varName + '"');
@@ -104,6 +104,7 @@ module.exports = function generateContext(env, tree) {
                 return;
             case 'Declaration':
                 contexts[0].addVar(node.identifier, node.value.getType(contexts[0]));
+                contexts[0].nameMap[node.identifier] = env.namer();
                 return;
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);

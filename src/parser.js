@@ -3,7 +3,7 @@ var nodes = require('./compiler/nodes');
 
 function node(name, start, end, args) {
     if (!(name in nodes)) {
-        console.log(name, Object.keys(nodes));
+        throw new Error('Could not find node type "' + name + '"');
     }
     return new (nodes[name])(start, end, args);
 }

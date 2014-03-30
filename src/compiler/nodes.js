@@ -280,7 +280,6 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             var context = this.__context;
-            console.log(this, 'asdf');
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(context);
             });

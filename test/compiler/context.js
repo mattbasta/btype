@@ -132,6 +132,8 @@ describe('context', function() {
             ]));
 
             assert.equal(ctx.functions[0].__context.vars.bar.name, 'func', '"bar" should be declared as a variable in the function context');
+            assert.ok(ctx.hasVar('test'), '"test" is declared in the global context');
+            assert.ok(ctx.functions[0].__context.hasVar('bar'), '"bar" is declared in the inner function context');
         });
     });
 
@@ -140,7 +142,7 @@ describe('context', function() {
             assert.throws(function() {
                 context(env(), parse([
                     'var x = 1;',
-                    'var x = 2;',
+                    'var x = 2;'
                 ]));
             });
         });
@@ -188,6 +190,80 @@ describe('context', function() {
                     '}'
                 ]));
             });
+        });
+    });
+
+    describe('variable lookup', function() {
+        it('should return the context that a variable is defined in', function() {
+            var ctx = context(env(), parse([
+                'var test1 = 0;',
+                'func int:foo(int:test2) {',
+                '    var test3 = 0;',
+                '    func int:bar() {',
+                '        var test4 = 0;',
+                '        return test4;',
+                '    }',
+                '}'
+            ]));
+
+            var fooctx = ctx.functions[0].__context;
+            var barctx = fooctx.functions[0].__context;
+
+            assert.ok(barctx.hasVar('test4'), 'Sanity test that "bar" recognizes "test4"');
+            assert.ok(!barctx.hasVar('test3'), 'Sanity test that "bar" does not recognize "test3"');
+            assert.ok(!barctx.hasVar('test2'), 'Sanity test that "bar" does not recognize "test2"');
+            assert.ok(!barctx.hasVar('test1'), 'Sanity test that "bar" does not recognize "test1"');
+
+            assert.ok(!fooctx.hasVar('test4'), 'Sanity test that "foo" does not recognize "test4"');
+            assert.ok(fooctx.hasVar('test3'), 'Sanity test that "foo" recognizes "test3"');
+            assert.ok(fooctx.hasVar('test2'), 'Sanity test that "foo" recognizes "test2"');
+            assert.ok(!fooctx.hasVar('test1'), 'Sanity test that "foo" does not recognize "test1"');
+
+            assert.ok(!ctx.hasVar('test4'), 'Sanity test that "ctx" does not recognize "test4"');
+            assert.ok(!ctx.hasVar('test3'), 'Sanity test that "ctx" does not recognize "test3"');
+            assert.ok(!ctx.hasVar('test2'), 'Sanity test that "ctx" does not recognize "test2"');
+            assert.ok(ctx.hasVar('test1'), 'Sanity test that "ctx" recognizes "test1"');
+
+            assert.equal(barctx.lookupVar('test4'), barctx, 'Looking up "test4" in barctx should return itself');
+            assert.equal(barctx.lookupVar('test3'), fooctx, 'Looking up "test3" in barctx should return its parent, "fooctx"');
+            assert.equal(barctx.lookupVar('test2'), fooctx, 'Looking up "test2" in barctx should return its parent, "fooctx"');
+            assert.equal(barctx.lookupVar('test1'), ctx, 'Looking up "test1" in barctx should return the global context');
+            assert.equal(fooctx.lookupVar('test3'), fooctx, 'Looking up "test3" in fooctx should return itself');
+            assert.equal(fooctx.lookupVar('test2'), fooctx, 'Looking up "test2" in fooctx should return itself');
+            assert.equal(fooctx.lookupVar('test1'), ctx, 'Looking up "test1" in fooctx should return the global context');
+            assert.equal(ctx.lookupVar('test1'), ctx, 'Looking up "test1" in ctx should return itself');
+
+            assert.throws(function() {
+                ctx.lookupVar('test3');
+            }, 'Global scope cannot lookup variables declared in child functions');
+
+            assert.throws(function() {
+                ctx.lookupVar('test2');
+            }, 'Global scope cannot lookup parameters in child functions');
+
+            assert.throws(function() {
+                ctx.lookupVar('bar');
+            }, 'Global scope cannot lookup nested functions');
+        });
+    });
+
+    describe('name assignment', function() {
+        it('should store mapped names', function() {
+            var ctx = context(env(), parse([
+                'var test1 = 0;',
+                'func int:foo(int:test2) {',
+                '}'
+            ]));
+
+            assert.ok('test1' in ctx.nameMap, '"test1" is assigned a name');
+            assert.equal(ctx.nameMap.test1, 'named', 'Test that a name was assigned to "test1"');
+            assert.ok('foo' in ctx.nameMap, '"foo" is assigned a name');
+            assert.equal(ctx.nameMap.foo, 'named', 'Test that a name was assigned to "foo"');
+
+            var fooctx = ctx.functions[0].__context;
+            assert.ok('test2' in fooctx.nameMap, '"test2" is assigned a name');
+            assert.equal(fooctx.nameMap.test2, 'named', 'Test that a name was assigned to "test2"');
+
         });
     });
 });

@@ -1,7 +1,6 @@
 var nodes = require('./nodes');
 
 var traverse = module.exports.traverse = function(tree, callback, afterCallback) {
-    console.log(tree.type);
     if (tree.type in nodes) {
         tree.traverse.call(tree, function(node) {
             var ret = callback(node);
