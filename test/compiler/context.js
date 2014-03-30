@@ -32,6 +32,28 @@ describe('context', function() {
         });
     });
 
+    describe('exports', function() {
+        it('should export functions', function() {
+            var ctx = context(env(), parse([
+                'func int:foo() {}',
+                'export foo;'
+            ]));
+
+            assert.ok(ctx.exports.foo, '`foo` should have been exported.');
+            assert.equal(ctx.exports.foo, 'named', 'The export should be associated with the assigned name');
+        });
+
+        it('should not all exports from nested scopes', function() {
+            assert.throws(function() {
+                context(env(), parse([
+                    'func int:foo() {',
+                    '    export foo;',
+                    '}'
+                ]));
+            });
+        });
+    });
+
     describe('functions', function() {
         it('should list each function in the global scope', function() {
             var ctx = context(env(), parse([
@@ -264,6 +286,124 @@ describe('context', function() {
             assert.ok('test2' in fooctx.nameMap, '"test2" is assigned a name');
             assert.equal(fooctx.nameMap.test2, 'named', 'Test that a name was assigned to "test2"');
 
+        });
+    });
+
+    describe('scope analysis', function() {
+        function prep(code) {
+            return context(env(), parse(code)).functions[0].__context;
+        }
+
+        it('should not mark functions as accessing scopes by default', function() {
+            var ctx = prep([
+                'var globalVar = 0;',
+                'func int:foo(int:bar) {',
+                '    return 0;',
+                '}'
+            ]);
+
+            assert.ok(!ctx.accessesGlobalScope, 'The function does not access the global scope');
+        });
+
+        it('should mark functions when they access global scope', function() {
+            var ctx = prep([
+                'var globalVar = 0;',
+                'func int:foo(int:bar) {',
+                '    return globalVar;',
+                '}'
+            ]);
+
+            assert.ok(ctx.accessesGlobalScope, 'The function accesses the global scope');
+        });
+
+        it('should mark functions when they access lexical scope', function() {
+            var ctx = prep([
+                'var globalVar = 0;',
+                'func int:foo(int:param1) {',
+                '    func int:bar(int:param2) {',
+                '        return param1 + param2;',
+                '    }',
+                '    return bar(globalVar);',
+                '}'
+            ]);
+            var innerctx = ctx.functions[0].__context;
+
+            assert.ok(innerctx.accessesLexicalScope, 'The inner function accesses the lexical scope');
+            assert.ok(!innerctx.accessesGlobalScope, 'The inner function does not access the global scope');
+
+            assert.ok(!ctx.accessesLexicalScope, 'The function does not access the lexical scope');
+            assert.ok(ctx.accessesGlobalScope, 'The function accesses the global scope');
+        });
+
+        it('should store contexts for lexical scope lookups', function() {
+            var ctx = prep([
+                'func int:foo(int:param1) {',
+                '    func int:bar(int:param2) {',
+                '        return param1 + param2;',
+                '    }',
+                '    return bar(123);',
+                '}'
+            ]);
+            var innerctx = ctx.functions[0].__context;
+
+            assert.equal(innerctx.lexicalLookups.param1, ctx, 'The referenced context for "param1" in the inner function is the outer function');
+        });
+    });
+
+    describe('side effect analysis', function() {
+        function prep(code) {
+            return context(env(), parse(code)).functions[0].__context;
+        }
+
+        it('should not mark functions as having side effects by default', function() {
+            var ctx = prep([
+                'func int:foo(int:bar) {',
+                '    return bar;',
+                '}'
+            ]);
+
+            assert.ok(ctx.sideEffectFree, 'The function should be side effect-free if it has no side effects');
+            assert.ok(ctx.lexicalSideEffectFree, 'The function should be lexically side effect-free if it has no side effects');
+        });
+
+        it('should not mark functions as having side effects for read-only access', function() {
+            var ctx = prep([
+                'var global = 0;',
+                'func int:foo() {',
+                '    return global;',
+                '}'
+            ]);
+
+            assert.ok(ctx.sideEffectFree, 'The function has no side effects');
+            assert.ok(ctx.lexicalSideEffectFree, 'The function has no lexical side effects');
+        });
+
+        it('should mark funcions that have side effects', function() {
+            var ctx = prep([
+                'var global = 0;',
+                'func int:foo(int:bar) {',
+                '    global = global + 1;',
+                '    return bar;',
+                '}'
+            ]);
+
+            assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has side effects');
+            assert.ok(ctx.lexicalSideEffectFree, 'The function should be lexically side effect-free since it is not nested');
+        });
+
+        it('should mark functions that have lexical side effects as such', function() {
+            var ctx = prep([
+                'func int:outer() {',
+                '    var local = 1;',
+                '    func int:inner() {',
+                '        local = local + 1;',
+                '    }',
+                '    return local;',
+                '}'
+            ]).functions[0].__context;
+
+            assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has side effects');
+            assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since it modifies "local"');
         });
     });
 });

@@ -30,7 +30,7 @@ function Context(env, scope, parent) {
     Lexical side effect-free
         The function does not modify the values of any variables in the lexical
         scope. It may modify members of objects referenced by pointers in the
-        lexical scope.
+        lexical scope or variables in the global scope.
     */
 
     // Boolean representing whether the context is side effect-free.
@@ -139,11 +139,11 @@ module.exports = function generateContext(env, tree) {
                         case 'Symbol':
                             // Assignments to symbols outside the current scope
                             // makes the function NOT side effect-free.
-                            if (node.__refContext !== contexts[0]) {
+                            if (node.__refContext !== rootContext &&
+                                node.__refContext !== contexts[0]) {
                                 contexts[0].lexicalSideEffectFree = false;
-                                return true;
                             }
-                            break;
+                            return true;
                         // x.y = foo;
                         case 'Member':
                             return follow(node.base);
@@ -156,27 +156,12 @@ module.exports = function generateContext(env, tree) {
 
                 // Determine whether the current context is side effect-free.
                 var hasSideEffects = follow(node.base);
+
                 if (hasSideEffects) {
                     contexts[0].sideEffectFree = false;
                 }
                 break;
         }
-
-        /*
-        TODO: Conditions where Symbol nodes pointing at functions constitute
-        the function being used in a first-class manner:
-
-        - Must be accessed as an expression
-        - Is not the callee of a Call node
-        - Is not the l-value of an expression
-        - If it is the child of a member expression, the member expression
-          meets these conditions.
-
-        Valid test cases:
-        - Passed as parameter to Call
-        - Returned
-        - R-value of assignment or declaration
-        */
     });
     return rootContext;
 };
