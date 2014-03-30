@@ -97,7 +97,97 @@ describe('context', function() {
             assert.equal(type.traits[2].traits[0].name, 'null', 'The return type of the second param should be void');
             assert.equal(type.traits[2].traits[1].name, 'int', 'The first param of the second param is "int"');
         });
+
+        it('should declare the parameters in the internal function context', function() {
+            var ctx = context(env(), parse([
+                'func int:test(str:foo) {',
+                '}'
+            ]));
+
+            // Some sanity checking
+            var type = ctx.functions[0].getType(ctx);
+            assert.equal(type.name, 'func', 'The base type should be "func"');
+            assert.equal(type.traits.length, 2, 'There should be two traits: return type and one param');
+            assert.equal(type.traits[1].name, 'str', 'The first param should be "str"');
+
+            var vars = ctx.functions[0].__context.vars;
+            assert.equal(vars.foo.name, 'str', 'The type of the param declared as a variable in the scope should be "str"');
+        });
+
+        it('should declare nested functions as variables in the global scope', function() {
+            var ctx = context(env(), parse([
+                'func int:test(str:foo) {',
+                '}'
+            ]));
+
+            assert.equal(ctx.vars.test.name, 'func', '"test" should be declared as a variable in the global scope');
+        });
+
+        it('should declare nested functions as variables in function contexts', function() {
+            var ctx = context(env(), parse([
+                'func int:test(str:foo) {',
+                '    func int:bar(str:foo) {',
+                '    }',
+                '}'
+            ]));
+
+            assert.equal(ctx.functions[0].__context.vars.bar.name, 'func', '"bar" should be declared as a variable in the function context');
+        });
     });
 
+    describe('variable redefinition prevention', function() {
+        it('should prevent variables from being redeclared', function() {
+            assert.throws(function() {
+                context(env(), parse([
+                    'var x = 1;',
+                    'var x = 2;',
+                ]));
+            });
+        });
 
+        it('should prevent conflicts between declarations and functions', function() {
+            assert.throws(function() {
+                context(env(), parse([
+                    'var x = 1;',
+                    'func int:x() {}'
+                ]));
+            });
+
+            assert.throws(function() {
+                context(env(), parse([
+                    'func int:x() {}',
+                    'var x = 1;'
+                ]));
+            });
+        });
+
+        it('should not prevent shadowing', function() {
+            assert.doesNotThrow(function() {
+                context(env(), parse([
+                    'var x = 1;',
+                    'func int:foobar() {',
+                    '    var x = 2;',
+                    '}'
+                ]));
+            });
+        });
+
+        it('should prevent overriding parameters', function() {
+            assert.throws(function() {
+                context(env(), parse([
+                    'func int:foobar(int:x) {',
+                    '    var x = 2;',
+                    '}'
+                ]));
+            });
+
+            assert.throws(function() {
+                context(env(), parse([
+                    'func int:foobar(int:x) {',
+                    '    func int:x() {}',
+                    '}'
+                ]));
+            });
+        });
+    });
 });
