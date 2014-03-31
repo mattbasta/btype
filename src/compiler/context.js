@@ -6,12 +6,10 @@ function Context(env, scope, parent) {
     this.env = env;
     // a reference to an AST node that this context corresponds to.
     this.scope = scope;
+    // Create a reference from the corresponding node back to this context.
+    scope.__context = this;
     // `null` or a reference to the parent context of this context.
     this.parent = parent || null;
-    if (scope) {
-        // Create a reference from the corresponding node back to this context.
-        scope.__context = this;
-    }
     // A collection of functions directly within this context.
     this.functions = [];
     this.functionDeclarations = {};
@@ -75,11 +73,18 @@ module.exports = function generateContext(env, tree) {
     var rootContext = new Context(env, tree);
     var contexts = [rootContext];
 
-    traverser.traverse(tree, function(node) {
+    // This is used to keep track of nested functions so that they can be
+    // processed after each context has been completely defined. This allows
+    // nested functions to access variables and functions declared lexically
+    // after themselves in the current scope.
+    var innerFunctions = [];
+
+    function before(node) {
         node.__context = contexts[0];
         switch (node.type) {
             case 'Import':
-                env.import(node.base);
+                var imp = env.import(node.base);
+                contexts[0].addVar(node.alias ? node.alias.name : node.base, imp.getType(contexts[0]));
                 return;
             case 'Function':
                 // Remember the function in the function hierarchy.
@@ -95,13 +100,15 @@ module.exports = function generateContext(env, tree) {
                 }
 
                 var newContext = new Context(env, node, contexts[0]);
-                contexts.unshift(newContext);
                 // Add all the parameters of the nested function to the new scope.
                 node.params.forEach(function(param) {
                     newContext.addVar(param.name, param.getType(newContext));
                     newContext.nameMap[param.name] = env.namer();
                 });
-                return;
+
+                innerFunctions[0].push(node);
+
+                return false;
             case 'Declaration':
                 contexts[0].addVar(node.identifier, node.value.getType(contexts[0]));
                 contexts[0].nameMap[node.identifier] = env.namer();
@@ -126,11 +133,10 @@ module.exports = function generateContext(env, tree) {
                 node.__assignedName = rootContext.exports[node.value.name] = rootContext.nameMap[node.value.name] = env.namer();
                 return;
         }
-    }, function(node) {
+    }
+
+    function after(node) {
         switch (node.type) {
-            case 'Function':
-                contexts.shift();
-                break;
             case 'Assignment':
                 // TODO: Check that function declarations are not overwritten.
                 function follow(node) {
@@ -162,6 +168,18 @@ module.exports = function generateContext(env, tree) {
                 }
                 break;
         }
-    });
+    }
+
+    function doTraverse(tree) {
+        innerFunctions.unshift([]);
+        traverser.traverse(tree, before, after);
+        innerFunctions.shift().forEach(function(node) {
+            contexts.unshift(node.__context);
+            doTraverse(node);
+            contexts.shift();
+        });
+    }
+    doTraverse(tree);
+
     return rootContext;
 };

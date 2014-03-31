@@ -267,7 +267,7 @@ var NODES = {
     'Function': {
         traverse: function(cb) {
             cb(this.returnType, 'return');
-            this.params.forEach(cb);
+            // this.params.forEach(cb);
             this.body.forEach(cb);
         },
         getType: function(ctx) {

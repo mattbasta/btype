@@ -19,16 +19,19 @@ function env() {
 
 describe('context', function() {
     describe('imports', function() {
-        it('should import from the environment', function(done) {
+        it('should import from the environment', function() {
             var env = {
                 import: function(name) {
                     assert.equal(name, 'foo', '`foo` should be imported.');
-                    done();
+                    return {
+                        getType: function() {return {test: 'bar'};}
+                    };
                 }
             };
-            context(env, parse([
+            var ctx = context(env, parse([
                 'import foo;'
             ]));
+            assert.equal(ctx.vars.foo.test, 'bar', 'Import should have been assigned the proper type');
         });
     });
 
@@ -156,6 +159,66 @@ describe('context', function() {
             assert.equal(ctx.functions[0].__context.vars.bar.name, 'func', '"bar" should be declared as a variable in the function context');
             assert.ok(ctx.hasVar('test'), '"test" is declared in the global context');
             assert.ok(ctx.functions[0].__context.hasVar('bar'), '"bar" is declared in the inner function context');
+        });
+
+        it('should be able to access declarations that are declared after themselves', function() {
+            assert.doesNotThrow(function() {
+                context(env(), parse([
+                    'func int:test() {',
+                    '    func int:bar() {',
+                    '        return x;',
+                    '    }',
+                    '    int:x = 0;',
+                    '    return bar();',
+                    '}'
+                ]));
+            });
+        });
+
+        it('should be able to access other functions that are declared after themselves', function() {
+            assert.doesNotThrow(function() {
+                context(env(), parse([
+                    'func int:test() {',
+                    '    func int:foo() {',
+                    '        return bar();',
+                    '    }',
+                    '    func int:bar() {',
+                    '        return 123;',
+                    '    }',
+                    '    return foo();',
+                    '}'
+                ]));
+            });
+
+            // Check the reverse as well.
+            assert.doesNotThrow(function() {
+                context(env(), parse([
+                    'func int:test() {',
+                    '    func int:foo() {',
+                    '        return 123;',
+                    '    }',
+                    '    func int:bar() {',
+                    '        return foo();',
+                    '    }',
+                    '    return bar();',
+                    '}'
+                ]));
+            });
+        });
+
+        it('should be inaccessible by expressions that are lexically before themselves', function() {
+            // Note that this behavior differs from JavaScript.
+
+            assert.throws(function() {
+                context(env(), parse([
+                    'func int:test() {',
+                    '    return bar();',
+                    '    func int:bar() {',
+                    '        return 1;',
+                    '    }',
+                    '}'
+                ]));
+            });
         });
     });
 
