@@ -182,6 +182,9 @@ var INCLUDED_TYPES = {
     },
     func: {
 
+    },
+    _module: {
+
     }
 };
 

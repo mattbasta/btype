@@ -1,3 +1,11 @@
+var fs = require('fs');
+var path = require('path');
+var util = require('util');
+
+var context = require('./context');
+var types = require('./types');
+
+
 // TODO: Make these customizable.
 const LOWEST_ORDER = 128;
 const HEAP_SIZE = 128 * 1024 * 1024;
@@ -10,7 +18,55 @@ function Environment(name) {
     this.requested = null;
     this.modules = {};
     this.inits = [];
+
+    this.moduleCache = {};
 }
+
+Environment.prototype.loadFile = function(filename, tree) {
+    if (filename in this.moduleCache) return this.moduleCache[filename];
+
+    if (!tree) {
+        var lexer = require('../lexer');
+        var parser = require('../parser');
+        tree = parser(lexer(fs.readFileSync(filename).toString()));
+    }
+
+    var ctx = context(this, tree, filename);
+    console.log(util.inspect(ctx, false, null));
+
+    // Perform simple inline type checking.
+    tree.validateTypes(ctx);
+
+    this.addContext(ctx);
+    this.moduleCache[filename] = ctx;
+    return ctx;
+};
+
+Environment.prototype.import = function(importNode, requestingContext) {
+    // TODO: Add some sort of system to resolve stdlib imports with the same
+    // name
+
+    var baseDir = path.dirname(requestingContext.filename);
+
+    var target;
+    // TODO: Make this handle multiple levels of nesting.
+    if (importNode.member) {
+        target = path.resolve(baseDir, importNode.base, importNode.member);
+    } else {
+        target = path.resolve(baseDir, importNode.base);
+    }
+    target += '.bt';
+
+    if (!fs.existsSync(target)) {
+        throw new Error('Could not find imported module: ' + target);
+    }
+
+    var importedContext = this.loadFile(target);
+
+    var ret = new types('_module');
+    ret.memberTypes = importedContext.exports;
+    // TODO: fill out ret.members
+};
 
 Environment.prototype.addModule = function(module, context) {
     this.modules[module] = context;

@@ -134,17 +134,17 @@ describe('Parser', function() {
                 ])
             );
         });
-        it('should parse empty unnamed functions', function() {
+        it('should parse empty void functions', function() {
             compareTree(
-                'func retType() {}',
+                'func nameNotRetType() {}',
                 _root([
                     node(
                         'Function',
                         0,
-                        17,
+                        24,
                         {
-                            returnType: _type('retType'),
-                            name: null,
+                            returnType: null,
+                            name: 'nameNotRetType',
                             params: [],
                             body: []
                         }
@@ -155,15 +155,15 @@ describe('Parser', function() {
 
         it('should parse unnamed functions with params', function() {
             compareTree(
-                'func retType(int:x, str:y) {}',
+                'func funName(int:x, str:y) {}',
                 _root([
                     node(
                         'Function',
                         0,
                         29,
                         {
-                            returnType: _type('retType'),
-                            name: null,
+                            returnType: null,
+                            name: 'funName',
                             params: [
                                 _typed('x', _type('int')),
                                 _typed('y', _type('str'))
@@ -178,22 +178,22 @@ describe('Parser', function() {
         it('should parse types with non-identifier tokens', function() {
             compareTree(
                 // Neither null and func are identifiers
-                'func retType(func<null, int>:x) {}',
+                'func funName(func<null, int>:x) {}',
                 _root([
                     node(
                         'Function',
                         0,
                         34,
                         {
-                            returnType: _type('retType'),
-                            name: null,
+                            returnType: null,
+                            name: 'funName',
                             params: [
                                 _typed(
                                     'x',
                                     _type(
                                         'func',
                                         [
-                                            _type('null'),
+                                            null,
                                             _type('int')
                                         ]
                                     )
@@ -204,11 +204,35 @@ describe('Parser', function() {
                     )
                 ])
             );
+            compareTree(
+                // Neither null and func are identifiers
+                'func<null> x = null;',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        20,
+                        {
+                            declType: _type('func', [null]),
+                            identifier: 'x',
+                            value: node(
+                                'Literal',
+                                14,
+                                18,
+                                {
+                                    litType: 'null',
+                                    value: null
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
         });
 
         it('should parse nested functions', function() {
             compareTree(
-                'func int:foo(int:x, str:y) {func str(bool:z){}}',
+                'func int:foo(int:x, str:y) {func bar(bool:z){}}',
                 _root([
                     node(
                         'Function',
@@ -227,8 +251,8 @@ describe('Parser', function() {
                                     28,
                                     46,
                                     {
-                                        returnType: _type('str'),
-                                        name: null,
+                                        returnType: null,
+                                        name: 'bar',
                                         params: [
                                             _typed('z', _type('bool'))
                                         ],

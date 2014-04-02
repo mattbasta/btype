@@ -2,6 +2,9 @@ var traverser = require('./traverser');
 
 
 function Context(env, scope, parent) {
+    // Null by default, since most contexts don't represent a file.
+    this.filename = null;
+
     // A reference to the containing environment.
     this.env = env;
     // a reference to an AST node that this context corresponds to.
@@ -39,8 +42,10 @@ function Context(env, scope, parent) {
     // A mapping of names of referenced variables to the contexts that contain
     // the definition of those variables.
     this.lexicalLookups = {};
-    // A mapping of exported names to their generated namees.
+    // A mapping of exported names to their types.
     this.exports = {};
+    // A mapping of exported names to their generated namees.
+    this.exportMap = {};
     // `null` or a reference to a Function node that is necessary to be run on
     // initialization.
     this.initializer = null;
@@ -69,7 +74,7 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
-module.exports = function generateContext(env, tree) {
+module.exports = function generateContext(env, tree, filename) {
     var rootContext = new Context(env, tree);
     var contexts = [rootContext];
 
@@ -80,10 +85,12 @@ module.exports = function generateContext(env, tree) {
     var innerFunctions = [];
 
     function before(node) {
+        if (!node) return false;
+
         node.__context = contexts[0];
         switch (node.type) {
             case 'Import':
-                var imp = env.import(node.base);
+                var imp = env.import(node, rootContext);
                 contexts[0].addVar(node.alias ? node.alias.name : node.base, imp.getType(contexts[0]));
                 return;
             case 'Function':
@@ -110,7 +117,7 @@ module.exports = function generateContext(env, tree) {
 
                 return false;
             case 'Declaration':
-                contexts[0].addVar(node.identifier, node.value.getType(contexts[0]));
+                contexts[0].addVar(node.identifier, node.declType || node.value.getType(contexts[0]));
                 contexts[0].nameMap[node.identifier] = env.namer();
                 return;
             case 'Symbol':
@@ -130,7 +137,8 @@ module.exports = function generateContext(env, tree) {
                 if (contexts.length > 1) {
                     throw new Error('Unexpected export: all exports must be in the global scope');
                 }
-                node.__assignedName = rootContext.exports[node.value.name] = rootContext.nameMap[node.value.name] = env.namer();
+                rootContext.exports[node.value.name] = node.value.getType(rootContext);
+                node.__assignedName = rootContext.exportMap[node.value.name] = rootContext.nameMap[node.value.name];
                 return;
         }
     }

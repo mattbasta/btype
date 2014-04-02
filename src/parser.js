@@ -43,10 +43,15 @@ module.exports = function(tokenizer) {
     function parseFunction() {
         var func;
         if (!(func = accept('func'))) return;
+
+        if (peek().type === '<') {
+            return parseDeclaration(func);
+        }
+
         var returnType = parseType();
         var identifier = null;
         if (returnType && accept(':')) {
-            identifier = assert('identifier');
+            identifier = assert('identifier').text;
         }
         var parameters = [];
         var param_type;
@@ -58,6 +63,12 @@ module.exports = function(tokenizer) {
             assert(')');
         }
         assert('{');
+
+        if (returnType && !identifier) {
+            identifier = returnType.name;
+            returnType = null;
+        }
+
         var body = parseStatements('}');
         var end = assert('}');
 
@@ -67,7 +78,7 @@ module.exports = function(tokenizer) {
             end.end,
             {
                 returnType: returnType,
-                name: identifier ? identifier.text : null,
+                name: identifier,
                 params: parameters,
                 body: body
             }
@@ -527,13 +538,17 @@ module.exports = function(tokenizer) {
         return next;
     }
 
-    function parseType(base) {
-        var type = base || accept('func') || accept('null') || assert('identifier');
+    function parseType(base, isTrait) {
+        if (isTrait && accept('null')) {
+            return null;
+        }
+
+        var type = base || accept('func') || assert('identifier');
         var typeEnd = type;
         var traits = [];
         if (type.type !== 'null' && accept('<')) {
             do {
-                traits.push(parseType());
+                traits.push(parseType(null, true));
             } while (accept(','));
             typeEnd = assert('>');
         }

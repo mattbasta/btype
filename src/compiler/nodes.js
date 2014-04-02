@@ -129,8 +129,10 @@ var NODES = {
         },
         getType: function(ctx) {
             var base = this.base.getType(ctx);
-            // TODO: Once static member lookups are implemented, do this.
-            throw new Error('Not implemented');
+            if (!this.child in base.members) {
+                throw new Error('Member not found for type "' + base.name + '": ' + this.child);
+            }
+            return base.members[this.child];
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
@@ -271,9 +273,10 @@ var NODES = {
             this.body.forEach(cb);
         },
         getType: function(ctx) {
+            var returnType = this.returnType;
             return new type(
                 'func',
-                [this.returnType].concat(this.params.map(function(p) {
+                [returnType].concat(this.params.map(function(p) {
                     return p.getType(ctx);
                 }))
             );

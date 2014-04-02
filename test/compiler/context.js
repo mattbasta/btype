@@ -3,6 +3,7 @@ var assert = require('assert');
 var context = require('../../src/compiler/context');
 var lexer = require('../../src/lexer');
 var parser = require('../../src/parser');
+var types = require('../../src/compiler/types');
 
 
 function parse(script) {
@@ -21,8 +22,8 @@ describe('context', function() {
     describe('imports', function() {
         it('should import from the environment', function() {
             var env = {
-                import: function(name) {
-                    assert.equal(name, 'foo', '`foo` should be imported.');
+                import: function(node) {
+                    assert.equal(node.base, 'foo', '`foo` should be imported.');
                     return {
                         getType: function() {return {test: 'bar'};}
                     };
@@ -33,6 +34,21 @@ describe('context', function() {
             ]));
             assert.equal(ctx.vars.foo.test, 'bar', 'Import should have been assigned the proper type');
         });
+
+        it('should import from the environment with an alias', function() {
+            var env = {
+                import: function(node) {
+                    assert.equal(node.base, 'foo', '`foo` should be imported.');
+                    return {
+                        getType: function() {return {test: 'bar'};}
+                    };
+                }
+            };
+            var ctx = context(env, parse([
+                'import foo as zip;'
+            ]));
+            assert.equal(ctx.vars.zip.test, 'bar', 'Import should have been assigned the proper type');
+        });
     });
 
     describe('exports', function() {
@@ -42,8 +58,10 @@ describe('context', function() {
                 'export foo;'
             ]));
 
-            assert.ok(ctx.exports.foo, '`foo` should have been exported.');
-            assert.equal(ctx.exports.foo, 'named', 'The export should be associated with the assigned name');
+            assert.ok(ctx.exports.foo.name, 'func', '`foo` should have been exported with the correct type');
+            assert.ok(ctx.exports.foo.traits.length, 1, '`foo` should have been exported with the correct number of traits');
+            assert.ok(ctx.exports.foo.traits[0].name, 'int', '`foo` should have been exported with the correct return type');
+            assert.equal(ctx.exportMap.foo, 'named', 'The export should be associated with the assigned name');
         });
 
         it('should not all exports from nested scopes', function() {
@@ -119,7 +137,7 @@ describe('context', function() {
             assert.equal(type.traits[1].name, 'str', 'The first param should be "int"');
             assert.equal(type.traits[2].name, 'func', 'The second param should be "func"');
             assert.equal(type.traits[2].traits.length, 2, 'There should be two traits for the second param');
-            assert.equal(type.traits[2].traits[0].name, 'null', 'The return type of the second param should be void');
+            assert.equal(type.traits[2].traits[0], null, 'The return type of the second param should be void');
             assert.equal(type.traits[2].traits[1].name, 'int', 'The first param of the second param is "int"');
         });
 
