@@ -76,4 +76,22 @@ describe('transformer', function() {
 
         });
     });
+
+    describe('class 1: side-effect free transformations', function() {
+        it('should be uplifted with no other changes', function() {
+            // None of these functions are acessed in a first-class way.
+            var ctx = getCtx([
+                'func outer() {',
+                '    func inner() {}',
+                '}'
+            ]);
+
+            transformer(ctx);
+
+            assert.equal(ctx.functions.length, 2, 'There should be two functions in the global scope');
+            assert.equal(ctx.functions[0].name, 'outer');
+            assert.equal(ctx.functions[1].name, 'inner');
+
+        });
+    });
 });

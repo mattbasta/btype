@@ -71,6 +71,7 @@ function removeItem(array, item) {
 function updateSymbolReferences(funcNode, tree, rootContext) {
     var targetContext = funcNode.__context.parent;
     traverser.findAll(tree, function(node) {
+        if (!node) return false;
         // Target every Symbol that references the function that's passed
         // (lives in the function's parent's context and references the
         // function's name).
@@ -86,7 +87,7 @@ function updateSymbolReferences(funcNode, tree, rootContext) {
 var transform = module.exports = function(rootContext) {
 
     // First step: mark all first class functions as such.
-    markFirstClassFunctions(context);
+    markFirstClassFunctions(rootContext);
 
     var resultingFuncs = [];
 
@@ -122,6 +123,8 @@ var transform = module.exports = function(rootContext) {
         ctx.functions.forEach(function(funcNode) {
             processContext(funcNode.__context);
         });
+
+        if (ctx === rootContext) return;
 
         // Process this individual context's function.
         tree = tree || ctx.scope;
