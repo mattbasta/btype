@@ -206,7 +206,7 @@ describe('Parser', function() {
             );
             compareTree(
                 // Neither null and func are identifiers
-                'func<null> x = null;',
+                'func<null>:x = null;',
                 _root([
                     node(
                         'Declaration',
@@ -484,6 +484,23 @@ describe('Parser', function() {
                         10,
                         {
                             declType: _type('int'),
+                            identifier: 'x',
+                            value: _i('y')
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse complex typed declarations', function() {
+            compareTree(
+                'func<null>:x = y;',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        17,
+                        {
+                            declType: _type('func', [null]),
                             identifier: 'x',
                             value: _i('y')
                         }

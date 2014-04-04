@@ -84,6 +84,24 @@ function updateSymbolReferences(funcNode, tree, rootContext) {
     });
 }
 
+function removeNode(target, tree) {
+    var stack = [tree];
+    traverser.traverse(tree, function(node, marker) {
+        if (!node) return false;
+
+        if (node === target) {
+            marker = marker || 'body';
+            stack[0][marker] = removeItem(stack[0][marker], node);
+            return false;
+        }
+
+        stack.unshift(node);
+    }, function(node) {
+        if (!node) return false;
+        stack.shift();
+    });
+}
+
 var transform = module.exports = function(rootContext) {
 
     // First step: mark all first class functions as such.
@@ -113,6 +131,10 @@ var transform = module.exports = function(rootContext) {
 
             // Update all references to the function to point to the global scope.
             updateSymbolReferences(node, ctxparent.scope, rootContext);
+            // Remove the AST node from the original location in the tree.
+            removeNode(node, ctxparent.scope);
+            // Add the node to the root of the AST.
+            rootContext.scope.body.push(node);
 
         } else if (false) {
         } else {}

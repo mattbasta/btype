@@ -35,7 +35,7 @@ module.exports = function(tokenizer) {
     function assert(type) {
         var temp = lastSeen = pop();
         if (!temp || temp.type !== type) {
-            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen.type + '".');
+            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen.type + '" at ' + temp.start);
         }
         return temp;
     }
@@ -282,8 +282,14 @@ module.exports = function(tokenizer) {
         );
     }
     function parseDeclaration(type, start) {
-        if (type && type.type !== 'Type')
+        var origType = type;
+        if (type && type.type !== 'Type') {
             type = parseType(type);
+            if (origType.type === 'func') {
+                assert(':');
+            }
+        }
+
         var identifier = assert('identifier');
         assert('=');
         var value = parseExpression();
