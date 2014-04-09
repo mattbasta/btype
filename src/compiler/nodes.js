@@ -5,9 +5,19 @@ function binop_traverser(cb) {
     cb(this.left, 'left');
     cb(this.right, 'right');
 }
+function binop_substitution(cb) {
+    this.left = cb(this.left, 'left') || this.left;
+    this.right = cb(this.right, 'right') || this.right;
+}
 function loop_traverser(cb) {
     cb(this.condition, 'condition');
     this.loop.forEach(cb);
+}
+function loop_substitution(cb) {
+    this.condition = cb(this.condition, 'condition') || this.condition;
+    this.loop = this.loop.map(function(stmt) {
+        return cb(stmt, 'body');
+    }).filter(ident);
 }
 function boolType() {
     return new type('bool');
@@ -17,10 +27,17 @@ function loopValidator(ctx) {
     this.loop.forEach(function(stmt) {stmt.validateTypes(ctx);});
 }
 
+function ident(arg) {return arg;}
+
 var NODES = {
     Root: {
         traverse: function(cb) {
             this.body.forEach(cb);
+        },
+        substitute: function(cb) {
+            this.body = this.body.map(function(stmt) {
+                return cb(stmt, 'body');
+            }).filter(ident);
         },
         validateTypes: function(ctx) {
             this.body.forEach(function(stmt) {
@@ -31,6 +48,9 @@ var NODES = {
     Unary: {
         traverse: function(cb) {
             cb(this.base);
+        },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
             return this.operator === '-' ? this.base.getType(ctx) : new type('bool');
@@ -47,6 +67,7 @@ var NODES = {
     },
     LogicalBinop: {
         traverse: binop_traverser,
+        substitute: binop_substitution,
         getType: boolType,
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
@@ -55,6 +76,7 @@ var NODES = {
     },
     EqualityBinop: {
         traverse: binop_traverser,
+        substitute: binop_substitution,
         getType: boolType,
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
@@ -66,6 +88,7 @@ var NODES = {
     },
     RelativeBinop: {
         traverse: binop_traverser,
+        substitute: binop_substitution,
         getType: boolType,
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
@@ -77,6 +100,7 @@ var NODES = {
     },
     Binop: {
         traverse: binop_traverser,
+        substitute: binop_substitution,
         getType: function(ctx) {
             // TODO: implement basic casting
             return this.left.getType(ctx);
@@ -96,6 +120,12 @@ var NODES = {
         traverse: function(cb) {
             cb(this.callee, 'callee');
             this.params.forEach(cb);
+        },
+        substitute: function(cb) {
+            this.callee = cb(this.callee, 'callee') || this.callee;
+            this.params = this.params.map(function(stmt) {
+                return cb(stmt, 'params');
+            }).filter(ident);
         },
         getType: function(ctx) {
             return this.callee.getType(ctx).traits[0];
@@ -125,7 +155,9 @@ var NODES = {
     Member: {
         traverse: function(cb) {
             cb(this.base, 'base');
-            cb(this.child, 'child');
+        },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
             var base = this.base.getType(ctx);
@@ -144,6 +176,10 @@ var NODES = {
             cb(this.base, 'base');
             cb(this.value, 'value');
         },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
+            this.value = cb(this.value, 'value') || this.value;
+        },
         getType: function(ctx) {
             // TODO: Check that base and value are the same type.
             return this.value.getType(ctx);
@@ -161,6 +197,9 @@ var NODES = {
                 cb(this.declType, 'type');
             cb(this.value, 'value');
         },
+        substitute: function(cb) {
+            this.value = cb(this.value, 'value') || this.value;
+        },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
             if (!this.declType) return;
@@ -174,6 +213,10 @@ var NODES = {
         traverse: function(cb) {
             if (this.value)
                 cb(this.value);
+        },
+        substitute: function(cb) {
+            if (!this.value) return;
+            this.value = cb(this.value, 'value') || this.value;
         },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
@@ -191,6 +234,7 @@ var NODES = {
         traverse: function(cb) {
             cb(this.value);
         },
+        substitute: function() {},
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
             var valueType = this.value.getType(ctx);
@@ -205,6 +249,7 @@ var NODES = {
             if (this.member) cb(this.member, 'member');
             if (this.alias) cb(this.alias, 'alias');
         },
+        substitute: function() {},
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
             if (this.member) this.member.validateTypes(ctx);
@@ -213,20 +258,29 @@ var NODES = {
     },
     For: {
         traverse: loop_traverser,
+        substitute: loop_substitution,
         validateTypes: loopValidator
     },
     DoWhile: {
         traverse: loop_traverser,
+        substitute: loop_substitution,
         validateTypes: loopValidator
     },
     While: {
         traverse: loop_traverser,
+        substitute: loop_substitution,
         validateTypes: loopValidator
     },
     Switch: {
         traverse: function(cb) {
             cb(this.condition, 'condition');
             this.cases.forEach(cb);
+        },
+        substitute: function(cb) {
+            this.condition = cb(this.condition, 'condition') || this.condition;
+            this.cases = this.cases.map(function(case_) {
+                return cb(case_, 'case');
+            }).filter(ident);
         },
         validateTypes: function(ctx) {
             this.cases.forEach(function(c) {
@@ -238,6 +292,12 @@ var NODES = {
         traverse: function(cb) {
             cb(this.value, 'value');
             this.body.forEach(cb);
+        },
+        substitute: function(cb) {
+            this.value = cb(this.value, 'value') || this.value;
+            this.body = this.body.map(function(stmt) {
+                return cb(stmt, 'stmt');
+            }).filter(ident);
         },
         validateTypes: function(ctx) {
             this.body.forEach(function(stmt) {
@@ -251,6 +311,16 @@ var NODES = {
             this.consequent.forEach(cb);
             if (this.alternate)
                 this.alternate.forEach(cb);
+        },
+        substitute: function(cb) {
+            this.condition = cb(this.condition, 'condition') || this.condition;
+            this.consequent = this.consequent.map(function(stmt) {
+                return cb(stmt, 'consequent');
+            }).filter(ident);
+            if (!this.alternate) return;
+            this.alternate = this.alternate.map(function(stmt) {
+                return cb(stmt, 'alternate');
+            }).filter(ident);
         },
         validateTypes: function(ctx) {
             this.condition.validateTypes(ctx);
@@ -273,6 +343,11 @@ var NODES = {
             // this.params.forEach(cb);
             this.body.forEach(cb);
         },
+        substitute: function(cb) {
+            this.body = this.body.map(function(stmt) {
+                return cb(stmt, 'stmt');
+            }).filter(ident);
+        },
         getType: function(ctx) {
             var returnType = this.returnType;
             return new type(
@@ -293,6 +368,7 @@ var NODES = {
         traverse: function(cb) {
             this.traits.forEach(cb);
         },
+        substitute: function() {},
         getType: function() {
             return new type(this.name, this.traits);
         },
@@ -302,6 +378,7 @@ var NODES = {
         traverse: function(cb) {
             cb(this.idType);
         },
+        substitute: function() {},
         getType: function() {
             return this.idType;
         },
@@ -309,6 +386,7 @@ var NODES = {
     },
     Literal: {
         traverse: function(cb) {},
+        substitute: function() {},
         getType: function() {
             return new type(this.litType);
         },
@@ -316,11 +394,30 @@ var NODES = {
     },
     Symbol: {
         traverse: function(cb) {},
+        substitute: function() {},
         getType: function(ctx) {
             var objContext = ctx.lookupVar(this.name);
             return objContext.vars[this.name];
         },
         validateTypes: function() {}
+    },
+    New: {
+        traverse: function(cb) {
+            cb(this.newType);
+            this.params.forEach(cb);
+        },
+        substitute: function(cb) {
+            this.callee = cb(this.callee, 'callee') || this.callee;
+            this.params = this.params.map(function(stmt) {
+                return cb(stmt, 'params');
+            }).filter(ident);
+        },
+        getType: function(ctx) {
+            return this.newType;
+        },
+        validateTypes: function() {
+            // TODO: Check that the params match the params of the constructor
+        }
     }
 };
 

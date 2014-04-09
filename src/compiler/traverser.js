@@ -19,3 +19,16 @@ module.exports.findAll = function(tree, filter) {
     });
     return output;
 };
+
+var findAndReplace = module.exports.findAndReplace = function(tree, filter) {
+    tree.traverse.call(tree, function(node, member) {
+        var replacer;
+        if (filter && (replacer = filter(node, member))) {
+            tree.substitute.call(tree, function(sNode, member) {
+                if (node !== sNode) return sNode;
+                return replacer(sNode, member);
+            });
+        }
+        findAndReplace(node, filter, replacer);
+    });
+};

@@ -473,6 +473,7 @@ describe('context', function() {
         });
 
         it('should mark functions that have lexical side effects as such', function() {
+            // `ctx` will be the context for `inner`.
             var ctx = prep([
                 'func int:outer() {',
                 '    var local = 1;',
@@ -484,6 +485,32 @@ describe('context', function() {
             ]).functions[0].__context;
 
             assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has side effects');
+            assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since it modifies "local"');
+        });
+
+        it('should mark lexical side effects when lookups cross multiple scopes', function() {
+            // `ctx` will be the context for `middle`.
+            var ctx = prep([
+                'func int:bottom() {',
+                '    var local = 1;',
+                '    func int:middle() {',
+                '        func int:top() {',
+                '            local = local + 1;',
+                '            return local;',
+                '        }',
+                '        return top();',
+                '    }',
+                '    return middle();',
+                '}'
+            ]).functions[0].__context;
+
+            // console.log(ctx);
+            assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if a lexical lookup that runs through it has side effects');
+            assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since a nested function modifies "local"');
+
+            ctx = ctx.functions[0].__context;
+
+            assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has lexical side effects');
             assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since it modifies "local"');
         });
     });
