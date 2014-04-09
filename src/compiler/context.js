@@ -128,7 +128,7 @@ module.exports = function generateContext(env, tree, filename) {
                     contexts[0].accessesGlobalScope = true;
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
                     for (var i = 0; i < contexts.length && contexts[i] !== node.__refContext; i++) {
-                        contexts[0].accessesLexicalScope = true;
+                        contexts[i].accessesLexicalScope = true;
                         contexts[i].lexicalLookups[node.name] = node.__refContext;
                     }
                 }
@@ -147,23 +147,30 @@ module.exports = function generateContext(env, tree, filename) {
         switch (node.type) {
             case 'Assignment':
                 // TODO: Check that function declarations are not overwritten.
-                function follow(node) {
+                function follow(node, called) {
                     switch (node.type) {
                         // x = foo;
                         case 'Symbol':
                             // Assignments to symbols outside the current scope
                             // makes the function NOT side effect-free.
-                            if (node.__refContext !== rootContext &&
+                            if (!called &&
+                                node.__refContext !== rootContext &&
                                 node.__refContext !== contexts[0]) {
-                                contexts[0].lexicalSideEffectFree = false;
+
+                                var i = 0;
+                                while (contexts[i] && contexts[i] !== node.__refContext) {
+                                    contexts[i].lexicalSideEffectFree = false;
+                                    contexts[i].sideEffectFree = false;
+                                    i++;
+                                }
                             }
                             return true;
                         // x.y = foo;
                         case 'Member':
-                            return follow(node.base);
+                            return follow(node.base, called);
                         // x().y = foo;
                         case 'Call':
-                            return follow(node.callee);
+                            return follow(node.callee, true);
                     }
                     return false;
                 }

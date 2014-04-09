@@ -35,6 +35,7 @@ var Type = module.exports = function type(name, traits) {
         // use uint32 (pointer type).
         this.ghost = base.ghost || 'uint32';
         this.primitive = base.primitive || false;
+        this.fullSize = base.fullSize || this.baseSize.bind(this);
     }
     apply.call(this, lookupType(name));
 
@@ -53,6 +54,10 @@ Type.prototype.lookupContent = function(base) {
         pointer: base,
         offset: 0
     });
+};
+
+Type.prototype.getHeap = function() {
+    return GHOST_TYPES[this.ghost].heap;
 };
 
 Type.prototype.baseSize = function() {
@@ -83,16 +88,20 @@ There are four classifications of types in BType:
 
 var GHOST_TYPES = {
     int32: {
-        bytes: 4
+        bytes: 4,
+        heap: 'intheap'
     },
     float64: {
-        bytes: 8
+        bytes: 8,
+        heap: 'floatheap'
     },
     uint32: {  // Pointer type
-        bytes: 4
+        bytes: 4,
+        heap: 'ptrheap'
     },
     uint8: {  // Normally for memory management, but also bools
-        bytes: 1
+        bytes: 1,
+        heap: 'memheap'
     }
 };
 
@@ -181,8 +190,11 @@ var INCLUDED_TYPES = {
         }
     },
     func: {
+        call: function(instance, paramList) {
 
+        }
     },
+    funcctx: {},
     _module: {
 
     }

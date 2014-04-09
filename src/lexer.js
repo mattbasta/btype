@@ -57,7 +57,7 @@ var tokens = [
     [/^import(?!\w)/, 'import'],
     [/^export(?!\w)/, 'export'],
 
-    [/^[a-zA-Z]\w*/, 'identifier'],
+    [/^[a-zA-Z_][\w\-_]*/, 'identifier'],
 ];
 
 function Token(text, type, start, end) {
