@@ -397,4 +397,5 @@ var transform = module.exports = function(rootContext) {
     });
 };
 
+transform.willFunctionNeedContext = willFunctionNeedContext;
 transform.markFirstClassFunctions = markFirstClassFunctions;

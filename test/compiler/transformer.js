@@ -89,6 +89,44 @@ describe('transformer', function() {
         });
     });
 
+    describe('willFunctionNeedContext', function() {
+        it('should not mark any functions by default', function() {
+            var ctx = getCtx([
+                'var x = 0;',
+                'func foo() {x = x + 1;}',
+                'func bar() {',
+                '    func inner() {x = x + 1;}',
+                '}'
+            ]);
+
+            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context));
+            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[1].__context));
+            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[1].__context.functions[0].__context));
+        });
+        it('should not mark any functions that only read lexical scope', function() {
+            var ctx = getCtx([
+                'func bar() {',
+                '    var x = 0;',
+                '    func int:inner() {return x;}',
+                '}'
+            ]);
+
+            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context));
+            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context.functions[0].__context));
+        });
+        it('should mark functions that have their scope written to lexically', function() {
+            var ctx = getCtx([
+                'func bar() {',
+                '    var x = 0;',
+                '    func inner() {x = x + 1;}',
+                '}'
+            ]);
+
+            assert.ok(transformer.willFunctionNeedContext(ctx.functions[0].__context));
+            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context.functions[0].__context));
+        });
+    });
+
     describe('class 1: side-effect free transformations', function() {
         it('should uplift functions with no other changes', function() {
             // None of these functions are acessed in a first-class way.
