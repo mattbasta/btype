@@ -231,9 +231,16 @@ module.exports = function(tokenizer) {
         assert('(');
         var condition = parseExpression();
         assert(')');
-        assert('{');
-        var body = parseStatements('}');
-        var end = assert('}');
+        var hasBraces = !!accept('{');
+        var body;
+        var end;
+        if (hasBraces) {
+            body = parseStatements('}');
+            end = assert('}');
+        } else {
+            body = [parseStatement()];
+            end = body[0];
+        }
         return node(
             'While',
             head.start,
@@ -266,19 +273,31 @@ module.exports = function(tokenizer) {
         // TODO: Add ForOf support.
         var assignment = parseAssignment();
         var condition = parseExpression();
+        assert(';');
         var iteration;
         if (!accept(')')) {
-            iteration = parseExpression();
+            iteration = parseAssignment();
             assert(')');
         }
-        assert('{');
-        var body = parseStatements('}');
-        var end = assert('}');
+        var end;
+        var body;
+        if (!!accept('{')) {
+            body = parseStatements('}');
+            end = assert('}');
+        } else {
+            body = [parseStatement()];
+            end = body[0];
+        }
         return node(
             'For',
             head.start,
             end.end,
-            {condition: condition, loop: body}
+            {
+                assignment: assignment,
+                condition: condition,
+                iteration: iteration || null,
+                loop: body
+            }
         );
     }
     function parseDeclaration(type, start) {
@@ -409,7 +428,7 @@ module.exports = function(tokenizer) {
     };
     function parseOperator(left, newPrec) {
         var operator = pop();
-        var precedence = newPrec || OPERATOR_PRECEDENCE[operator.type];
+        var precedence = newPrec;
         var right = parseExpression(null, precedence);
         return node(
             OPERATOR_NODE[operator.type],
