@@ -134,6 +134,24 @@ describe('Parser', function() {
                 ])
             );
         });
+        it('should parse empty named functions without param lists', function() {
+            compareTree(
+                'func retType:foo {}',
+                _root([
+                    node(
+                        'Function',
+                        0,
+                        19,
+                        {
+                            returnType: _type('retType'),
+                            name: 'foo',
+                            params: [],
+                            body: []
+                        }
+                    )
+                ])
+            );
+        });
         it('should parse empty void functions', function() {
             compareTree(
                 'func nameNotRetType() {}',
@@ -639,6 +657,33 @@ describe('Parser', function() {
         });
     });
 
+    describe('floats', function() {
+        it('should parse properly', function() {
+            compareTree(
+                'x = 1.23456;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        12,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Literal',
+                                5,
+                                10,
+                                {
+                                    litType: 'float',
+                                    value: 1.23456
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
     describe('null', function() {
         it('should be parsed properly', function() {
             compareTree(
@@ -1008,6 +1053,321 @@ describe('Parser', function() {
                                         }
                                     )],
                                     alternate: null
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
+    describe('while loops', function() {
+        it('should parse while loops', function() {
+            compareTree(
+                'while(x) {foo();}',
+                _root([
+                    node(
+                        'While',
+                        0,
+                        17,
+                        {
+                            condition: _i('x'),
+                            loop: [node(
+                                'Call',
+                                10,
+                                16,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse while loops without braces', function() {
+            compareTree(
+                'while(x) foo();',
+                _root([
+                    node(
+                        'While',
+                        0,
+                        15,
+                        {
+                            condition: _i('x'),
+                            loop: [node(
+                                'Call',
+                                8,
+                                15,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
+    describe('do/while loops', function() {
+        it('should parse do/while loops', function() {
+            compareTree(
+                'do {foo();} while(x);',
+                _root([
+                    node(
+                        'DoWhile',
+                        0,
+                        21,
+                        {
+                            condition: _i('x'),
+                            loop: [node(
+                                'Call',
+                                4,
+                                10,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
+    describe('for loops', function() {
+        it('should parse for loops', function() {
+            compareTree(
+                'for (x = 0; x < 10; x = x + 1;) {foo();}',
+                _root([
+                    node(
+                        'For',
+                        0,
+                        40,
+                        {
+                            assignment: node(
+                                'Assignment',
+                                5,
+                                11,
+                                {
+                                    base: _i('x'),
+                                    value: _int(0)
+                                }
+                            ),
+                            condition: node(
+                                'RelativeBinop',
+                                11,
+                                18,
+                                {
+                                    operator: '<',
+                                    left: _i('x'),
+                                    right: _int(10)
+                                }
+                            ),
+                            iteration: node(
+                                'Assignment',
+                                19,
+                                30,
+                                {
+                                    base: _i('x'),
+                                    value: node(
+                                        'Binop',
+                                        23,
+                                        29,
+                                        {
+                                            operator: '+',
+                                            left: _i('x'),
+                                            right: _int(1)
+                                        }
+                                    )
+                                }
+                            ),
+                            loop: [node(
+                                'Call',
+                                33,
+                                39,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse for loops without an iteration', function() {
+            compareTree(
+                'for (x = 0; x < 10;) {foo();}',
+                _root([
+                    node(
+                        'For',
+                        0,
+                        29,
+                        {
+                            assignment: node(
+                                'Assignment',
+                                5,
+                                11,
+                                {
+                                    base: _i('x'),
+                                    value: _int(0)
+                                }
+                            ),
+                            condition: node(
+                                'RelativeBinop',
+                                11,
+                                18,
+                                {
+                                    operator: '<',
+                                    left: _i('x'),
+                                    right: _int(10)
+                                }
+                            ),
+                            iteration: null,
+                            loop: [node(
+                                'Call',
+                                22,
+                                28,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse for loops without braces', function() {
+            compareTree(
+                'for (x = 0; x < 10;) foo();',
+                _root([
+                    node(
+                        'For',
+                        0,
+                        27,
+                        {
+                            assignment: node(
+                                'Assignment',
+                                5,
+                                11,
+                                {
+                                    base: _i('x'),
+                                    value: _int(0)
+                                }
+                            ),
+                            condition: node(
+                                'RelativeBinop',
+                                11,
+                                18,
+                                {
+                                    operator: '<',
+                                    left: _i('x'),
+                                    right: _int(10)
+                                }
+                            ),
+                            iteration: null,
+                            loop: [node(
+                                'Call',
+                                20,
+                                27,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
+    describe('switch statements', function() {
+        it('should parse switches', function() {
+            compareTree(
+                'switch (x) {case a: return 1; case b: return 2;}',
+                _root([
+                    node(
+                        'Switch',
+                        0,
+                        48,
+                        {
+                            condition: _i('x'),
+                            cases: [node(
+                                'Case',
+                                12,
+                                29,
+                                {
+                                    value: _i('a'),
+                                    body: [node(
+                                        'Return',
+                                        19,
+                                        29,
+                                        {
+                                            value: _int(1)
+                                        }
+                                    )]
+                                }
+                            ), node(
+                                'Case',
+                                29,
+                                47,
+                                {
+                                    value: _i('b'),
+                                    body: [node(
+                                        'Return',
+                                        37,
+                                        47,
+                                        {
+                                            value: _int(2)
+                                        }
+                                    )]
+                                }
+                            )]
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse switches with empty bodies', function() {
+            compareTree(
+                'switch (x) {case a: case b: return 2;}',
+                _root([
+                    node(
+                        'Switch',
+                        0,
+                        38,
+                        {
+                            condition: _i('x'),
+                            cases: [node(
+                                'Case',
+                                12,
+                                19,
+                                {
+                                    value: _i('a'),
+                                    body: []
+                                }
+                            ), node(
+                                'Case',
+                                19,
+                                37,
+                                {
+                                    value: _i('b'),
+                                    body: [node(
+                                        'Return',
+                                        27,
+                                        37,
+                                        {
+                                            value: _int(2)
+                                        }
+                                    )]
                                 }
                             )]
                         }
