@@ -104,9 +104,7 @@ module.exports = function generateContext(env, tree, filename) {
                 // Mark the generated name for the function.
                 contexts[0].nameMap[node.name] = node.__assignedName = env.namer();
 
-                if (!('__firstClass' in node)) {
-                    node.__firstClass = false;
-                }
+                node.__firstClass = false;
 
                 var newContext = new Context(env, node, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
@@ -159,9 +157,9 @@ module.exports = function generateContext(env, tree, filename) {
                                 node.__refContext !== rootContext &&
                                 node.__refContext !== contexts[0]) {
 
-                                contexts[0].lexicalModifications[node.__refName] = true;
                                 var i = 0;
                                 while (contexts[i] && contexts[i] !== node.__refContext) {
+                                    contexts[i].lexicalModifications[node.__refName] = true;
                                     contexts[i].lexicalSideEffectFree = false;
                                     contexts[i].sideEffectFree = false;
                                     i++;

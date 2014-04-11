@@ -1,7 +1,7 @@
 var nodes = require('./nodes');
 
 var traverse = module.exports.traverse = function(tree, callback, afterCallback) {
-    if (tree.type in nodes) {
+    if (tree && tree.type in nodes) {
         tree.traverse.call(tree, function(node) {
             var ret = callback(node);
             if (ret === false) return;
@@ -22,6 +22,7 @@ module.exports.findAll = function(tree, filter) {
 
 var findAndReplace = module.exports.findAndReplace = function(tree, filter) {
     tree.traverse.call(tree, function(node, member) {
+        if (!node) return;
         var replacer;
         if (filter && (replacer = filter(node, member))) {
             tree.substitute.call(tree, function(sNode, member) {

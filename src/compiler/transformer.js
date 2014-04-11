@@ -72,6 +72,14 @@ function markFirstClassFunctions(context) {
 function removeItem(array, item) {
     return array.filter(function(x) {return x !== item;});
 }
+function removeElement(obj, key) {
+    var out = {};
+    for (var k in obj) {
+        if (k === key) continue;
+        out[k] = obj[k];
+    }
+    return out;
+}
 
 function updateSymbolReferences(funcNode, tree, rootContext, refName) {
     var targetContext = funcNode.__context.parent;
@@ -193,6 +201,7 @@ var transform = module.exports = function(rootContext) {
         // These have to be done on the parent context, since the variables
         // that are accessed lexically need to be moved into a funcctx.
         if (willFunctionNeedContext(context)) {
+
             var funcctx = getFunctionContext(context);
             context.vars['$ctx'] = funcctx.declType;
             context.nameMap['$ctx'] = funcctx.__assignedName;
@@ -202,6 +211,18 @@ var transform = module.exports = function(rootContext) {
 
             traverser.findAndReplace(node, function(node) {
 
+                function getReference(name) {
+                    return new nodes.Member(0, 0, {
+                        base: new nodes.Symbol(0, 0, {
+                            name: '$ctx',
+                            __refContext: context,
+                            __refType: funcctx.declType,
+                            __refName: funcctx.__assignedName
+                        }),
+                        child: name
+                    });
+                }
+
                 // Replace symbols referencing declarations that are now inside
                 // the funcctx with member expressions
                 if (node.type === 'Symbol' &&
@@ -209,27 +230,24 @@ var transform = module.exports = function(rootContext) {
                     node.name in ctxMapping) {
 
                     return function(node) {
-                        return new nodes.Member(0, 0, {
-                            base: new nodes.Symbol(0, 0, {
-                                name: '$ctx',
-                                __refContext: context,
-                                __refType: funcctx.declType,
-                                __refName: funcctx.__assignedName
-                            }),
-                            child: node.name
-                        });
+                        return getReference(node.name);
                     };
                 }
 
                 if (node.type === 'Declaration' &&
                     node.identifier in ctxMapping) {
                     // Delete the node.
-                    return function() {
-                        return null;
+                    return function(node) {
+                        return new nodes.Assignment(
+                            node.start,
+                            node.end,
+                            {
+                                base: getReference(node.name),
+                                value: node.value
+                            }
+                        );
                     };
                 }
-
-                return node;
             });
 
             // Find all of the functions that reference any of those variables
@@ -249,6 +267,13 @@ var transform = module.exports = function(rootContext) {
                     ctx.lexicalLookups['$ctx'] = context;
                     hasChanged = true;
                 });
+            });
+
+            // Remove all of the converted variables from the `vars` and
+            // `nameMap` fields.
+            funcctx.__mappingOrder.forEach(function(name) {
+                context.vars = removeElement(context.vars, name);
+                context.nameMap = removeElement(context.nameMap, name);
             });
 
             // TODO: If the function's params are used lexically, copy their
@@ -385,6 +410,8 @@ var transform = module.exports = function(rootContext) {
         rootContext.functions.push(node);
 
         ctxparent.functions = removeItem(ctxparent.functions, node);
+        ctxparent.vars = removeElement(ctxparent.vars, node.name);
+        ctxparent.nameMap = removeElement(ctxparent.nameMap, node.name);
         updateSymbolReferences(node, ctxparent.scope, rootContext);
         ctxparent.accessesGlobalScope = true;
         removeNode(node, ctxparent.scope);

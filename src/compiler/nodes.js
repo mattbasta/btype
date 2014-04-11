@@ -193,7 +193,7 @@ var NODES = {
     },
     Declaration: {
         traverse: function(cb) {
-            if (this.declType)
+            if (this.declType && this.declType.type)
                 cb(this.declType, 'type');
             cb(this.value, 'value');
         },
@@ -403,7 +403,8 @@ var NODES = {
     },
     New: {
         traverse: function(cb) {
-            cb(this.newType);
+            if (this.newType && this.newType.type)
+                cb(this.newType);
             this.params.forEach(cb);
         },
         substitute: function(cb) {
