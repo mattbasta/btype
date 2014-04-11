@@ -112,13 +112,7 @@ function removeNode(target, tree) {
 }
 
 function objectSize(obj) {
-    var count = 0;
-    for (var key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            count++;
-        }
-    }
-    return count;
+    return Object.keys(obj).length;
 }
 
 function willFunctionNeedContext(ctx) {
@@ -134,9 +128,12 @@ function getFunctionContext(ctx) {
     traverser.traverse(ctx.scope, function(node) {
         if (!node) return;
         if (node.type === 'Function') {
+            if (node.sideEffectFree || node.lexicalSideEffectFree) return false;
+
             for (var lookup in node.__context.lexicalLookups) {
                 if (lookup in mapping) continue;
-                if (node.__context.lexicalLookups[lookup] === ctx) {
+                if (node.__context.lexicalLookups[lookup] === ctx &&
+                    ctx.nameMap[lookup] in node.__context.lexicalModifications) {
                     mapping[lookup] = ctx.vars[lookup];
                 }
             }
@@ -178,8 +175,7 @@ function getFunctionContext(ctx) {
     funcctx.__mapping = mapping;
     funcctx.__mappingOrder = mappingOrder;
 
-    context.vars['$ctx'] = funcctxType;
-    funcctx.__assignedName = context.nameMap['$ctx'] = ctx.env.namer();
+    funcctx.__assignedName = ctx.env.namer();
 
     return funcctx;
 }
@@ -198,6 +194,9 @@ var transform = module.exports = function(rootContext) {
         // that are accessed lexically need to be moved into a funcctx.
         if (willFunctionNeedContext(context)) {
             var funcctx = getFunctionContext(context);
+            context.vars['$ctx'] = funcctx.declType;
+            context.nameMap['$ctx'] = funcctx.__assignedName;
+
             var ctxMapping = funcctx.__mapping;
             node.body.unshift(funcctx);
 
@@ -312,7 +311,7 @@ var transform = module.exports = function(rootContext) {
                 traverser.findAll(ctxparent.scope, function(node) {
                     return node && node.type === 'Symbol' &&
                         node.name === lexicalLookup &&
-                        node.__refContext = lookupOrigContext;
+                        node.__refContext === lookupOrigContext;
                 }).forEach(function(symbol) {
                     symbol.__refContext = context;
                     symbol.__refName - newAssignedName;
@@ -397,5 +396,6 @@ var transform = module.exports = function(rootContext) {
     });
 };
 
+transform.getFunctionContext = getFunctionContext;
 transform.willFunctionNeedContext = willFunctionNeedContext;
 transform.markFirstClassFunctions = markFirstClassFunctions;

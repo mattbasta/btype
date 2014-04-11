@@ -6,9 +6,9 @@ var parser = require('../../src/parser');
 var transformer = require('../../src/compiler/transformer');
 
 
-function getCtx(script) {
+function getCtx(script, environment) {
     if (script instanceof Array) script = script.join('\n');
-    return context(env(), parser(lexer(script)));
+    return context(environment || env(), parser(lexer(script)));
 }
 
 function env() {
@@ -124,6 +124,44 @@ describe('transformer', function() {
 
             assert.ok(transformer.willFunctionNeedContext(ctx.functions[0].__context));
             assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context.functions[0].__context));
+        });
+    });
+
+    describe('getFunctionContext', function() {
+        var x = 0;
+        var env = {
+            namer: function() {
+                return 'foo' + ++x;
+            }
+        };
+
+        it('should retrieve a basic funcctx', function() {
+            var ctx = getCtx([
+                'func bar() {',
+                '    var x = 0;',
+                '    func inner() {x = x + 1;}',
+                '}'
+            ]);
+
+            var fc = transformer.getFunctionContext(ctx.functions[0].__context);
+            assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
+            assert.equal(fc.__mapping.x.name, 'int', 'Mapping should preserve types');
+            assert.ok(fc.__assignedName, 'Mapping should have an assigned name');
+            assert.ok(fc.declType.fullSize() > 0, 'Generated funcctx type should have a size greater than zero');
+        });
+        it('should retrieve a funcctx that does not include irrelevant variables', function() {
+            var ctx = getCtx([
+                'func bar() {',
+                '    var x = 0;',
+                '    var y = 0;',
+                '    func int:inner() {x = x + 1; return y;}',
+                '}'
+            ], env);
+
+            var fc = transformer.getFunctionContext(ctx.functions[0].__context);
+            assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
+            assert.ok(fc.__mapping.x, 'Mapping should only have the correct member');
+            assert.equal(Object.keys(fc.declType.members).length, 1, 'Generated funcctx type should have the correct number of members');
         });
     });
 

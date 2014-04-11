@@ -39,9 +39,11 @@ function Context(env, scope, parent) {
     // Boolean representing whether the context is lexically side effect-free.
     this.lexicalSideEffectFree = true;
 
-    // A mapping of names of referenced variables to the contexts that contain
-    // the definition of those variables.
+    // A mapping of assigned names of referenced variables to the contexts
+    // that contain the definition of those variables.
     this.lexicalLookups = {};
+    // A set of assigned names that the context modifies in the lexical scope.
+    this.lexicalModifications = {};
     // A mapping of exported names to their types.
     this.exports = {};
     // A mapping of exported names to their generated namees.
@@ -157,6 +159,7 @@ module.exports = function generateContext(env, tree, filename) {
                                 node.__refContext !== rootContext &&
                                 node.__refContext !== contexts[0]) {
 
+                                contexts[0].lexicalModifications[node.__refName] = true;
                                 var i = 0;
                                 while (contexts[i] && contexts[i] !== node.__refContext) {
                                     contexts[i].lexicalSideEffectFree = false;
