@@ -220,11 +220,84 @@ describe('transformer', function() {
         });
     });
 
+    describe('class 2: read-only transformations', function() {
+        it('should perform transformations on read-only functions', function() {
+            var ctx = getCtx([
+                'func int:outer() {',
+                '    var i = 0;',
+                '    func int:inner() {',
+                '        return i;',
+                '    }',
+                '    return inner();',
+                '}'
+            ]);
+
+            transformer(ctx);
+
+            // Test that everything was flattened:
+
+            assert.equal(ctx.functions.length, 2, 'There should be two functions in the global scope');
+            assert.equal(ctx.functions[0].name, 'outer');
+            assert.equal(ctx.functions[1].name, 'inner');
+
+            assert.equal(ctx.functions[0].__context.functions.length, 0, 'The outer function should have no nested functions');
+            assert.equal(ctx.functions[1].__context.functions.length, 0, 'The inner function should have no nested functions');
+
+            assert.equal(ctx.functions[0].params.length, 0, 'No params should have been added to the outer function');
+            assert.equal(ctx.functions[1].params.length, 1, 'One param should have been added to the inner function');
+            assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The inner function should have an integer param');
+            assert.equal(ctx.functions[1].params[0].name, '$$i', 'The inner function should have an integer param');
+            assert.equal(ctx.functions[1].body.length, 1, 'The inner function should have only one statement');
+            assert.equal(ctx.functions[1].body[0].type, 'Return', 'The statement should be a return statement');
+            assert.equal(ctx.functions[1].body[0].value.type, 'Symbol', 'The return should be pointing to a symbol');
+            assert.equal(ctx.functions[1].body[0].value.name, ctx.functions[1].params[0].name, 'The symbol should reference the param');
+
+            // Test that calls to the inner function were updated appropriately:
+            assert.equal(ctx.functions[0].body.length, 2, 'The outer function should have the declaration and the return');
+            assert.equal(ctx.functions[0].body[1].type, 'Return', 'The second node should be a return statement');
+            assert.equal(ctx.functions[0].body[1].value.type, 'Call', 'The return should return a call');
+            assert.equal(ctx.functions[0].body[1].value.params.length, 1, 'The call should have a single param');
+            assert.equal(ctx.functions[0].body[1].value.params[0].type, 'Symbol', 'The call should pass a symbol');
+            assert.equal(ctx.functions[0].body[1].value.params[0].name, '$$i', 'The symbol should reference the declaration');
+
+        });
+        it('should transform all references to transformed functions', function() {
+            var ctx = getCtx([
+                'func int:outer() {',
+                '    var i = 0;',
+                '    func int:caller() {',
+                '        return inner();',
+                '    }',
+                '    func int:inner() {',
+                '        return i;',
+                '    }',
+                '    return caller();',
+                '}'
+            ]);
+
+            transformer(ctx);
+
+            assert.equal(ctx.functions.length, 3, 'There should be three functions in the global scope');
+            assert.equal(ctx.functions[0].name, 'outer');
+            assert.equal(ctx.functions[1].name, 'caller');
+            assert.equal(ctx.functions[2].name, 'inner');
+
+            assert.equal(ctx.functions[1].body.length, 1, 'Caller function should have only a return statement');
+            assert.equal(ctx.functions[1].body[0].type, 'Return', 'Only statement should be return');
+            assert.equal(ctx.functions[1].body[0].value.type, 'Call', 'Should return a call');
+            assert.equal(ctx.functions[1].body[0].value.callee.name, 'inner', 'Should be calling `inner`');
+            assert.equal(ctx.functions[1].body[0].value.params.length, 1, 'Should be calling `inner` with one param');
+            assert.equal(ctx.functions[1].body[0].value.params[0].name, '$$i', 'Should be calling `inner` with `i`');
+            assert.equal(ctx.functions[1].params.length, 1, 'Caller function should have been updated with `i` as param');
+            assert.equal(ctx.functions[1].params[0].name, '$i', 'Caller function should have been updated with `i` as param');
+
+        });
+    });
+
     describe('class 3: complex transformations', function() {
         it('should perform complex transformations', function() {
-            // None of these functions are acessed in a first-class way.
             var ctx = getCtx([
-                'func func<null>:outer() {',
+                'func func<null, int>:outer() {',
                 '    var i = 0;',
                 '    func inner(int:j) {',
                 '        i = i + j;',

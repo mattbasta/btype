@@ -4,7 +4,7 @@
   "description": "A compiled JavaScript-like language",
   "main": "btype.js",
   "scripts": {
-    "test": "mocha `find test/ -name *.js`"
+    "test": "mocha --recursive"
   },
   "keywords": [
     "language",

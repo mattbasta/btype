@@ -295,6 +295,8 @@ var transform = module.exports = function(rootContext) {
             // Convert lexical scope lookups to function parameters
             var lookupType;
             var lookupOrigContext;
+            var lookupIdentifier;
+            var lookupOrder = [];
             var numChanges = 0;
             for (var lexicalLookup in context.lexicalLookups) {
                 lookupOrigContext = context.lexicalLookups[lexicalLookup];
@@ -311,12 +313,12 @@ var transform = module.exports = function(rootContext) {
                     // Do the same for nested functions.
                     traverser.findAll(context.scope, function(node) {
                         return node && node.type === 'Function' &&
-                            lexicalLookup in node.lexicalLookups &&
-                            node.lexicalLookups[lexicalLookup] === lookupOrigContext;
+                            lexicalLookup in node.__context.lexicalLookups &&
+                            node.__context.lexicalLookups[lexicalLookup] === lookupOrigContext;
                     }).forEach(function(scope) {
-                        delete node.lexicalLookups[lexicalLookup];
-                        if (node.lexicalSideEffectFree && !objectSize(node.lexicalLookups)) {
-                            node.accessesLexicalScope = false;
+                        delete node.__context.lexicalLookups[lexicalLookup];
+                        if (node.__context.lexicalSideEffectFree && !objectSize(node.__context.lexicalLookups)) {
+                            node.__context.accessesLexicalScope = false;
                         }
                     });
                     continue;
@@ -324,12 +326,19 @@ var transform = module.exports = function(rootContext) {
 
                 numChanges++;
 
-                node.params.push(new nodes.TypedIdentifier(0, 0, {  // TODO: Give this real position information.
-                    idType: lookupType,
-                    name: lexicalLookup
-                }));
                 context.vars[lexicalLookup] = lookupType;
                 var newAssignedName = context.nameMap[lexicalLookup] = rootContext.env.namer();
+
+                lookupIdentifier = new nodes.TypedIdentifier(0, 0, {
+                    idType: lookupType,
+                    name: '$$' + lexicalLookup,
+                    __origName: lexicalLookup,
+                    __assignedName: newAssignedName,
+                    __context: node.__context,
+                    __refContext: lookupOrigContext
+                })
+                node.params.push(lookupIdentifier);
+                lookupOrder.push(lookupIdentifier);
 
                 // Find all symbols that reference the lexical lookup from
                 // within our own scope and update them to use the param.
@@ -338,17 +347,20 @@ var transform = module.exports = function(rootContext) {
                         node.name === lexicalLookup &&
                         node.__refContext === lookupOrigContext;
                 }).forEach(function(symbol) {
+                    symbol.name = '$$' + symbol.name;
                     symbol.__refContext = context;
-                    symbol.__refName - newAssignedName;
+                    symbol.__refName = newAssignedName;
                 });
 
                 // Update any nested functions to use the parameter as well.
-                traverser.findAll(ctxparent.scope, function(node) {
-                    return node && node.type === 'Function' &&
-                        lexicalLookup in node.lexicalLookups &&
-                        node.lexicalLookups[lexicalLookup] === lookupOrigContext;
-                }).forEach(function(node) {
-                    node.lexicalLookups[lexicalLookup] = context;
+                traverser.traverse(ctxparent.scope, function(node) {
+                    if (node && node.type === 'Function' &&
+                        lexicalLookup in node.__context.lexicalLookups &&
+                        node.__context.lexicalLookups[lexicalLookup] === lookupOrigContext) {
+
+                        node.__context.lexicalLookups[lexicalLookup] = context;
+                        // node.__context.
+                    }
                 });
 
             }
@@ -357,20 +369,60 @@ var transform = module.exports = function(rootContext) {
             if (numChanges) {
                 // Find all function calls that point to the current function,
                 // then iterate over them and add the updated parameters.
-                traverser.findAll(ctxparent.scope, function(node) {
-                    return node && node.type === 'Call' &&
-                        node.callee.type === 'Symbol' &&
-                        node.callee.__refName === node.__assignedName;
-                }).forEach(function(node) {
-                    //
+                traverser.traverse(ctxparent.scope, function(travNode) {
+                    // Ignore functions which override the function.
+                    if (travNode && travNode.type === 'Function' && travNode.name in travNode.__context.vars) {
+                        return false;
+                    }
+
+                    if (travNode && travNode.type === 'Call' &&
+                        travNode.callee.type === 'Symbol' &&
+                        travNode.callee.__refName === node.__assignedName) {
+
+                        if (travNode.params.length === node.params.length) return;
+
+                        lookupOrder.forEach(function(param) {
+                            travNode.params.push(new nodes.Symbol(
+                                0,
+                                0,
+                                {
+                                    name: param.name,
+                                    __refContext: context,
+                                    __refName: param.__assignedName,
+                                    __refType: param.idType,
+                                    __context: travNode.__context
+                                }
+                            ));
+
+                            if (travNode.__context !== travNode.__refContext) {
+                                var currCtx = travNode.__context;
+                                while (currCtx && currCtx !== travNode.__refContext) {
+                                    currCtx.lexicalLookups[param.__assignedName] = travNode.__refContext;
+                                    currCtx = currCtx.parent;
+                                }
+                            }
+                        });
+
+                        // If we're causing a new lexical lookup for a node
+                        // that has already gone through the transformation
+                        // process, process it a second time. If we don't,
+                        // those lexical lookups won't get processed.
+                        console.log(travNode.callee.name, travNode.__context.scope.name);
+                        if (travNode.__context !== ctxparent &&
+                            travNode.__context.parent &&  // Don't do this on the global scope
+                            travNode.__context.__transformed) {
+
+                            processContext(travNode.__context, travNode.__context.scope);
+                        }
+
+                    }
                 });
-                // TODO: Update calls to the function to pass the new parameters
-                // TODO: Update the context and references with the new type
             }
 
-            // TODO: Do the standard uplifting
-
         }
+
+        // TODO: Handle Class 3 functions by replacing references to them with
+        // `New` nodes creating `func` types.
 
     }
 
@@ -389,8 +441,13 @@ var transform = module.exports = function(rootContext) {
             tree = tree || ctx.scope;
             processFunc(tree, ctx);
 
-            encounteredContexts.push(ctx);
+            // Don't count encountered contexts twice.
+            if (encounteredContexts.indexOf(ctx) === -1) {
+                encounteredContexts.push(ctx);
+            }
         }
+
+        ctx.__transformed = true;
 
         // Iterate over each child context.
         ctx.functions.forEach(function(funcNode) {
