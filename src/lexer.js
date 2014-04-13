@@ -20,6 +20,15 @@ var tokens = [
     [/^\]/, ']'],
     [/^\(/, '('],
     [/^\)/, ')'],
+
+    // Bitwise operators
+    [/^\|/, '|'],
+    [/^&/, '&'],
+    [/^\^/, '^'],
+    [/^~/, '~'],
+    [/^<</, '<<'],
+    [/^>>/, '>>'],
+
     [/^\+/, '+'],
     [/^\-/, '-'],
     [/^\//, '/'],
@@ -82,7 +91,7 @@ module.exports = function(data) {
             remainingData = remainingData.substr(match[0].length);
             currentLine += match[0].split(/(?:\r\n|\r|\n)/).length - 1;
             pointer += match[0].length;
-            if (!tokens[i][1]) {
+            if (!tokens[i][1] || tokens[i][1] === 'comment') {
                 i = -1;
                 continue;
             }

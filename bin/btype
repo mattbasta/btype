@@ -29,7 +29,7 @@ fs.readFile(process.argv[2], function(err, data) {
     }
 
     var parsed = parser(lexer(data + ''));
-    console.log(parsed);
+    // console.log(parsed);
     var compiled = compiler(
         path.basename(process.argv[2], '.bt'),
         parsed

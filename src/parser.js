@@ -425,6 +425,13 @@ module.exports = function(tokenizer) {
         '*': 'Binop',
         '/': 'Binop',
         '%': 'Binop',
+
+        '&': 'Binop',
+        '|': 'Binop',
+        '^': 'Binop',
+        '~': 'Binop',
+        '<<': 'Binop',
+        '>>': 'Binop',
     };
     function parseOperator(left, newPrec) {
         var operator = pop();

@@ -289,7 +289,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].body[0].value.params.length, 1, 'Should be calling `inner` with one param');
             assert.equal(ctx.functions[1].body[0].value.params[0].name, '$$i', 'Should be calling `inner` with `i`');
             assert.equal(ctx.functions[1].params.length, 1, 'Caller function should have been updated with `i` as param');
-            assert.equal(ctx.functions[1].params[0].name, '$i', 'Caller function should have been updated with `i` as param');
+            assert.equal(ctx.functions[1].params[0].name, '$$$$i', 'Caller function should have been updated with `i` as param');
 
         });
     });
@@ -320,6 +320,11 @@ describe('transformer', function() {
             // Test that the funcctx was created in the outer function:
             assert.equal(ctx.functions[0].body.length, 3, 'There should be three items in the body');
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
+            assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
+            assert.equal(ctx.functions[0].body[0].value.newType.name, 'funcctx', 'The new object should be a funcctx');
+            assert.equal(ctx.functions[0].body[0].value.newType.traits.length, 1, 'The funcctx should have one trait');
+            assert.equal(ctx.functions[0].body[0].value.newType.traits[0].name, 'int', 'The trait should be an int');
+            assert.equal(ctx.functions[0].body[0].value.newType.members.i.type.name, 'int', 'The trait should be an int');
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[2].type, 'Return', 'The third should be the return');
 
@@ -331,11 +336,15 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].body[0].base.type, 'Member', 'The assignment should now be to a member expression');
             assert.equal(ctx.functions[1].body[0].base.child, 'i', 'The member expression should be to an element "i"');
             assert.equal(ctx.functions[1].body[0].base.base.type, 'Symbol', 'The member expression should be based on a symbol');
-            //assert.equal(ctx.functions[1].params.length, 2, 'A new parameter should have been added');
-            // TODO: Test that the new parameter has the right type
+            var symname = ctx.functions[1].body[0].base.base.name;
 
-            // Test that calls to the inner function were updated appropriately:
+            assert.equal(ctx.functions[1].params.length, 2, 'A new parameter should have been added');
+            assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The first param should have remained an int');
+            assert.equal(ctx.functions[1].params[1].idType.name, 'funcctx', 'The second param should now be a funcctx');
+            assert.equal(ctx.functions[1].params[1].name, symname, 'The second param should be what is referenced in the body');
 
         });
+
+        // TODO: Test that first class function references are converted to `func` objects.
     });
 });

@@ -4,11 +4,6 @@ var traverser = require('./traverser');
 var types = require('./types');
 
 
-
-function node(name, start, end, args) {
-    return new (nodes[name])(start, end, args);
-}
-
 /*
 See the following URL for details on the implementation of this file:
 https://github.com/mattbasta/btype/wiki/Transformation
@@ -64,6 +59,21 @@ function markFirstClassFunctions(context) {
 
     result.forEach(function(func) {
         func.__firstClass = true;
+
+        // HACK: When a function is first class, it retains its original type
+        // signature (like func<null, foo, bar>), but may have bindings to
+        // things in the lexical scope that would otherwise be added as params.
+        // Since anything outside the parent context's scope have no knowledge
+        // of those bindings, EVERYTHING that the function touches needs to be
+        // included in the parent context's `funcctx` object. To accomplish
+        // this, we mark all lexical lookups as lexical modifications. They
+        // aren't [lexical modifications], but it makes the transformer put
+        // them into the `funcctx`.
+        Object.keys(func.__context.lexicalLookups).forEach(function(lookup) {
+            func.__context.lexicalModifications[
+                func.__context.lexicalLookups[lookup].nameMap[lookup]
+            ] = true;
+        });
     });
 
     return result;
@@ -154,17 +164,20 @@ function getFunctionContext(ctx) {
             return mapping[lookup];
         })
     );
-    var members = funcctxType.members = {};
+    var members = funcctxType.members;
     var offset = 0;
     mappingOrder.forEach(function(mem) {
         var type = mapping[mem];
         (function(offset) {
-            members[mem] = function(ptr) {
-                return generatorNodes.HeapLookup({
-                    heap: type.getHeap(),
-                    pointer: ptr,
-                    offset: generatorNodes.Literal({value: offset})
-                });
+            funcctxType.members[mem] = {
+                generator: function(ptr) {
+                    return generatorNodes.HeapLookup({
+                        heap: type.getHeap(),
+                        pointer: ptr,
+                        offset: generatorNodes.Literal({value: offset})
+                    });
+                },
+                type: type
             };
         })(offset);
         offset += type.baseSize();
@@ -172,11 +185,21 @@ function getFunctionContext(ctx) {
     funcctxType.fullSize = function() {
         return offset;
     };
+
+    function wrapType(baseType) {
+        return new nodes.Type(0, 0, {
+            __type: baseType,
+            traits: baseType.traits.map(wrapType),
+            name: baseType.name
+        });
+    }
+
+    var wrappedType = wrapType(funcctxType);
     var funcctx = new nodes.Declaration(0, 0, {
-        declType: funcctxType,
+        declType: wrappedType,
         identifier: '$ctx',
         value: new nodes.New(0, 0, {
-            newType: funcctxType,
+            newType: wrappedType,
             params: []
         })
     });
@@ -287,7 +310,8 @@ var transform = module.exports = function(rootContext) {
             // Class 1 transformations are no-op, so just return.
             return;
 
-        } else if (context.accessesLexicalScope && context.lexicalSideEffectFree && !node.__firstClass) {
+        } else {
+
 
             // If we're already in the global scope, no changes are needed.
             if (ctxparent === rootContext) return;
@@ -397,7 +421,9 @@ var transform = module.exports = function(rootContext) {
                             if (travNode.__context !== travNode.__refContext) {
                                 var currCtx = travNode.__context;
                                 while (currCtx && currCtx !== travNode.__refContext) {
-                                    currCtx.lexicalLookups[param.__assignedName] = travNode.__refContext;
+                                    currCtx.lexicalLookups[param.name] = travNode.callee.__refContext;
+                                    currCtx.vars[param.name] = travNode.callee.__refType;
+                                    currCtx.accessesLexicalScope = true;
                                     currCtx = currCtx.parent;
                                 }
                             }
@@ -407,7 +433,6 @@ var transform = module.exports = function(rootContext) {
                         // that has already gone through the transformation
                         // process, process it a second time. If we don't,
                         // those lexical lookups won't get processed.
-                        console.log(travNode.callee.name, travNode.__context.scope.name);
                         if (travNode.__context !== ctxparent &&
                             travNode.__context.parent &&  // Don't do this on the global scope
                             travNode.__context.__transformed) {

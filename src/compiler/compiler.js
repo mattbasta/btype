@@ -1,7 +1,3 @@
-var fs = require('fs');
-var path = require('path');
-
-var transformer = require('./transformer');
 var environment = require('./environment');
 
 
@@ -10,5 +6,5 @@ module.exports = function(filename, tree) {
     var ctx = env.loadFile(filename, tree);
     env.markRequested(ctx);
 
-    console.log(env.make('asm.js'));
+    console.log(env.make('js'));
 };

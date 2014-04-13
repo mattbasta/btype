@@ -1,0 +1,110 @@
+import foreign;
+
+
+func int:iabs(int:i) {
+    return foreign.Math.abs(i);
+}
+export iabs;
+
+func float:fabs(float:i) {
+    return foreign.Math.abs(i);
+}
+export fabs;
+
+
+# Trig functions
+
+func float:acos(float:i) {
+    return foreign.Math.acos(i);
+}
+export acos;
+
+func float:asin(float:i) {
+    return foreign.Math.asin(i);
+}
+export asin;
+
+func float:atan(float:i) {
+    return foreign.Math.atan(i);
+}
+export atan;
+
+func float:cos(float:i) {
+    return foreign.Math.cos(i);
+}
+export cos;
+
+func float:sin(float:i) {
+    return foreign.Math.sin(i);
+}
+export sin;
+
+func float:tan(float:i) {
+    return foreign.Math.tan(i);
+}
+export tan;
+
+
+# Int functions
+
+func int:ceil(float:i) {
+    return foreign.Math.ceil(i);
+}
+export ceil;
+
+func int:floor(float:i) {
+    return foreign.Math.floor(i);
+}
+export floor;
+
+
+# Float functions
+
+func float:exp(float:i) {
+    return foreign.Math.exp(i);
+}
+export exp;
+
+func float:log(float:i) {
+    return foreign.Math.log(i);
+}
+export log;
+
+func float:sqrt(float:i) {
+    return foreign.Math.sqrt(i);
+}
+export sqrt;
+
+func float:hypot(float:a, float:b) {
+    return sqrt(a * a + b * b);
+}
+export hypot;
+
+func float:atan2(float:y, float:x) {
+    return foreign.Math.atan2(y, x);
+}
+export atan2;
+
+func float:pow(float:y, float:x) {
+    return foreign.Math.pow(y, x);
+}
+export pow;
+
+
+# Constants
+var PI = 3.141592653589793;
+export PI;
+var E = 2.718281828459045;
+export E;
+var LN10 = 2.302585092994046;
+export LN10;
+var LN2 = 0.6931471805599453;
+export LN2;
+var LN10E = 0.4342944819032518;
+export LN10E;
+var LN2E = 1.4426950408889634;
+export LN2E;
+var SQRT1_2 = 0.7071067811865476;
+export SQRT1_2;
+var SQRT2 = 1.4142135623730951;
+export SQRT2;

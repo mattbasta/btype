@@ -50,12 +50,32 @@ nodeFactory(
         }
     }
 );
+nodeFactory(
+    'HeapAssignment',
+    {
+        validate: function(base) {
+            return 'heap' in base &&
+                   'pointer' in base &&
+                   'offset' in base &&
+                   'value' in base;
+        }
+    }
+);
 
 nodeFactory(
     'Literal',
     {
         validate: function(base) {
             return 'value' in base;
+        }
+    }
+);
+
+nodeFactory(
+    'Unaryop',
+    {
+        validate: function(base) {
+            return 'operator' in base && 'value' in base;
         }
     }
 );

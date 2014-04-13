@@ -1,4 +1,5 @@
 var type = require('./types');
+var irNodes = require('./generators/nodes');
 
 
 function binop_traverser(cb) {
@@ -8,6 +9,13 @@ function binop_traverser(cb) {
 function binop_substitution(cb) {
     this.left = cb(this.left, 'left') || this.left;
     this.right = cb(this.right, 'right') || this.right;
+}
+function binop_toIR(ctx, isExpression) {
+    return irNodes.Binop({
+        operator: this.operator,
+        left: this.left.toIR(ctx, true),
+        right: this.right.toIR(ctx, true)
+    });
 }
 function loop_traverser(cb) {
     cb(this.condition, 'condition');
@@ -43,6 +51,13 @@ var NODES = {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
             });
+        },
+        toIR: function(ctx) {
+            return irNodes.StatementList({
+                body: this.body.map(function(stmt) {
+                    return stmt.toIR(ctx, false);
+                })
+            });
         }
     },
     Unary: {
@@ -63,6 +78,12 @@ var NODES = {
                     throw new TypeError('Invalid type for unary minus');
                 }
             }
+        },
+        toIR: function(ctx) {
+            return node = irNodes.Unaryop({
+                operator: this.operator,
+                value: this.base.toIR(ctx, true)
+            });
         }
     },
     LogicalBinop: {
@@ -72,7 +93,8 @@ var NODES = {
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
-        }
+        },
+        toIR: binop_toIR
     },
     EqualityBinop: {
         traverse: binop_traverser,
@@ -84,7 +106,8 @@ var NODES = {
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Equality operations may only be performed against same types');
             }
-        }
+        },
+        toIR: binop_toIR
     },
     RelativeBinop: {
         traverse: binop_traverser,
@@ -96,7 +119,8 @@ var NODES = {
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Comparison operations may only be performed against same types');
             }
-        }
+        },
+        toIR: binop_toIR
     },
     Binop: {
         traverse: binop_traverser,
@@ -114,7 +138,8 @@ var NODES = {
                 // TODO: implement basic casting
                 throw new TypeError('Mismatched types in binop');
             }
-        }
+        },
+        toIR: binop_toIR
     },
     Call: {
         traverse: function(cb) {
@@ -150,6 +175,19 @@ var NODES = {
                     throw new TypeError('Wrong type passed as parameter to function call');
                 }
             }
+        },
+        toIR: function(ctx, isExpression) {
+            var base = {
+                callee: this.callee.toIR(ctx, true),
+                params: this.params.map(function(param) {
+                    return param.toIR(ctx, true)
+                })
+            };
+            if (!isExpression) {
+                return irNodes.Call(base);
+            } else {
+                return irNodes.CallExpression(base);
+            }
         }
     },
     Member: {
@@ -164,11 +202,16 @@ var NODES = {
             if (!this.child in base.members) {
                 throw new Error('Member not found for type "' + base.name + '": ' + this.child);
             }
-            return base.members[this.child];
+            return base.members[this.child].type;
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
-            // TODO: ???
+        },
+        toIR: function(ctx, isExpression, assigning) {
+            if (assigning) {
+                throw new Error('Not Implemented: Assignment to member expressions is not yet supported');
+            }
+            return this.base.getType(ctx).members[this.child].generator(this.base.toIR(true));
         }
     },
     Assignment: {
@@ -189,6 +232,18 @@ var NODES = {
             if (!baseType.equals(this.value.getType(ctx))) {
                 throw new TypeError('Mismatched types in assignment');
             }
+        },
+        toIR: function(ctx, isExpression) {
+            if (this.base.type === 'Symbol') {
+                return irNodes.Assignment({
+                    name: this.base.__refName,
+                    value: this.value.toIR(ctx, true)
+                });
+
+            } else if (this.base.type === 'Member') {
+                return this.base.toIR(ctx, false, this.value.toIR(ctx, true));
+            }
+            throw new Error('Unexpected IR requested');
         }
     },
     Declaration: {
@@ -222,10 +277,11 @@ var NODES = {
             this.value.validateTypes(ctx);
             var valueType = this.value.getType(ctx);
             var func = ctx.scope;
-            if (!!valueType !== !!func.returnType) {
+            var funcReturnType = func.returnType.getType(ctx);
+            if (!!valueType !== !!funcReturnType) {
                 throw new TypeError('Mismatched void/typed return type');
             }
-            if (!func.returnType.equals(valueType)) {
+            if (!funcReturnType.equals(valueType)) {
                 throw new TypeError('Mismatched return type');
             }
         }
@@ -369,8 +425,10 @@ var NODES = {
             this.traits.forEach(cb);
         },
         substitute: function() {},
-        getType: function() {
-            return new type(this.name, this.traits);
+        getType: function(ctx) {
+            return new type(this.name, this.traits.map(function(trait) {
+                return trait.getType(ctx);
+            }));
         },
         validateTypes: function() {}
     },
@@ -379,8 +437,8 @@ var NODES = {
             cb(this.idType);
         },
         substitute: function() {},
-        getType: function() {
-            return this.idType;
+        getType: function(ctx) {
+            return this.idType.getType(ctx);
         },
         validateTypes: function() {}
     },
@@ -414,7 +472,7 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            return this.newType;
+            return this.__type || this.newType.getType(ctx);
         },
         validateTypes: function() {
             // TODO: Check that the params match the params of the constructor

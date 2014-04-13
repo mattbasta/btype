@@ -39,7 +39,7 @@ function Context(env, scope, parent) {
     // Boolean representing whether the context is lexically side effect-free.
     this.lexicalSideEffectFree = true;
 
-    // A mapping of assigned names of referenced variables to the contexts
+    // A mapping of given names of referenced variables to the contexts
     // that contain the definition of those variables.
     this.lexicalLookups = {};
     // A set of assigned names that the context modifies in the lexical scope.
@@ -110,7 +110,7 @@ module.exports = function generateContext(env, tree, filename) {
                 // Add all the parameters of the nested function to the new scope.
                 node.params.forEach(function(param) {
                     newContext.addVar(param.name, param.getType(newContext));
-                    newContext.nameMap[param.name] = env.namer();
+                    newContext.nameMap[param.name] = param.__assignedName = env.namer();
                 });
 
                 innerFunctions[0].push(node);
@@ -118,7 +118,7 @@ module.exports = function generateContext(env, tree, filename) {
                 return false;
             case 'Declaration':
                 contexts[0].addVar(node.identifier, node.declType || node.value.getType(contexts[0]));
-                contexts[0].nameMap[node.identifier] = env.namer();
+                contexts[0].nameMap[node.identifier] = node.__assignedName = env.namer();
                 return;
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
@@ -133,18 +133,18 @@ module.exports = function generateContext(env, tree, filename) {
                     }
                 }
                 return;
-            case 'Export':
-                if (contexts.length > 1) {
-                    throw new Error('Unexpected export: all exports must be in the global scope');
-                }
-                rootContext.exports[node.value.name] = node.value.getType(rootContext);
-                node.__assignedName = rootContext.exportMap[node.value.name] = rootContext.nameMap[node.value.name];
-                return;
         }
     }
 
     function after(node) {
         switch (node.type) {
+            case 'Export':
+                if (contexts.length > 1) {
+                    throw new Error('Unexpected export: all exports must be in the global scope');
+                }
+                rootContext.exports[node.value.name] = node.value.__refName;
+                node.__assignedName = rootContext.exportMap[node.value.name] = rootContext.nameMap[node.value.name];
+                return;
             case 'Assignment':
                 // TODO: Check that function declarations are not overwritten.
                 function follow(node, called) {
