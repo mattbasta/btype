@@ -27,6 +27,9 @@ function Environment(name) {
     this.inits = [];
 
     this.moduleCache = {};
+
+    this.funcListMapping = {};  // Mapping of func types to func list assigned names
+    this.funcList = {};  // Mapping of func list assigned names to arrays of func assigned names
 }
 
 Environment.prototype.loadFile = function(filename, tree) {
@@ -87,6 +90,20 @@ Environment.prototype.addContext = function(context) {
 
 Environment.prototype.markRequested = function(context) {
     this.requested = context;
+};
+
+Environment.prototype.getFuncListName = function(funcType) {
+    var fts = funcType.toString();
+    return this.funcListMapping[fts] || (this.funcListMapping[fts] = this.namer());
+};
+
+Environment.prototype.registerFunc = function(funcNode) {
+    if ('__funclistIndex' in funcNode) return funcNode.__funclistIndex;
+    var ft = funcNode.getType(funcNode.__context);
+    var funcList = this.getFuncListName(ft);
+    if (!(funcList in this.funcList)) this.funcList[funcList] = [];
+    this.funcList[funcList].push(funcNode.__assignedName);
+    return funcNode.__funclistIndex = this.funcList[funcList].length - 1;
 };
 
 Environment.prototype.addInit = function(stmt) {

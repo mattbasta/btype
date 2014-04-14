@@ -2,11 +2,11 @@ var nodes = require('./nodes');
 
 var traverse = module.exports.traverse = function(tree, callback, afterCallback) {
     if (tree && tree.type in nodes) {
-        tree.traverse.call(tree, function(node) {
-            var ret = callback(node);
+        tree.traverse.call(tree, function(node, member) {
+            var ret = callback(node, member);
             if (ret === false) return;
             traverse(node, callback, afterCallback);
-            if (afterCallback) afterCallback(node);
+            if (afterCallback) afterCallback(node, member);
         });
     }
 };

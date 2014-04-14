@@ -76,6 +76,12 @@ Type.prototype.equals = function(type) {
     return true;
 };
 
+Type.prototype.toString = function() {
+    return this.name + '<' + this.traits.map(function(trait) {
+        return trait.toString();
+    }).join(',') + '>';
+};
+
 /*
 There are four classifications of types in BType:
 

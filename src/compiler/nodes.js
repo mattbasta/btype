@@ -19,7 +19,7 @@ function binop_toIR(ctx, isExpression) {
 }
 function loop_traverser(cb) {
     cb(this.condition, 'condition');
-    this.loop.forEach(cb);
+    this.loop.forEach(oneArg(cb));
 }
 function loop_substitution(cb) {
     this.condition = cb(this.condition, 'condition') || this.condition;
@@ -36,11 +36,14 @@ function loopValidator(ctx) {
 }
 
 function ident(arg) {return arg;}
+function oneArg(func) {
+    return function(arg) {func.call(this, arg);};
+}
 
 var NODES = {
     Root: {
         traverse: function(cb) {
-            this.body.forEach(cb);
+            this.body.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.body = this.body.map(function(stmt) {
@@ -144,7 +147,7 @@ var NODES = {
     Call: {
         traverse: function(cb) {
             cb(this.callee, 'callee');
-            this.params.forEach(cb);
+            this.params.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.callee = cb(this.callee, 'callee') || this.callee;
@@ -330,7 +333,7 @@ var NODES = {
     Switch: {
         traverse: function(cb) {
             cb(this.condition, 'condition');
-            this.cases.forEach(cb);
+            this.cases.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.condition = cb(this.condition, 'condition') || this.condition;
@@ -347,7 +350,7 @@ var NODES = {
     Case: {
         traverse: function(cb) {
             cb(this.value, 'value');
-            this.body.forEach(cb);
+            this.body.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.value = cb(this.value, 'value') || this.value;
@@ -364,9 +367,9 @@ var NODES = {
     If: {
         traverse: function(cb) {
             cb(this.condition, 'condition');
-            this.consequent.forEach(cb);
+            this.consequent.forEach(oneArg(cb));
             if (this.alternate)
-                this.alternate.forEach(cb);
+                this.alternate.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.condition = cb(this.condition, 'condition') || this.condition;
@@ -397,7 +400,7 @@ var NODES = {
             if (this.returnType)
                 cb(this.returnType, 'return');
             // this.params.forEach(cb);
-            this.body.forEach(cb);
+            this.body.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.body = this.body.map(function(stmt) {
@@ -422,11 +425,13 @@ var NODES = {
     },
     Type: {
         traverse: function(cb) {
-            this.traits.forEach(cb);
+            this.traits.forEach(oneArg(cb));
         },
         substitute: function() {},
         getType: function(ctx) {
+            if (this.__type) return this.__type;
             return new type(this.name, this.traits.map(function(trait) {
+                if (!trait) return null;
                 return trait.getType(ctx);
             }));
         },
@@ -454,8 +459,9 @@ var NODES = {
         traverse: function(cb) {},
         substitute: function() {},
         getType: function(ctx) {
+            if (this.__refType) return this.__refType;
             var objContext = ctx.lookupVar(this.name);
-            return objContext.vars[this.name];
+            return objContext.typeMap[this.__refName];
         },
         validateTypes: function() {}
     },
@@ -463,7 +469,7 @@ var NODES = {
         traverse: function(cb) {
             if (this.newType && this.newType.type)
                 cb(this.newType);
-            this.params.forEach(cb);
+            this.params.forEach(oneArg(cb));
         },
         substitute: function(cb) {
             this.callee = cb(this.callee, 'callee') || this.callee;

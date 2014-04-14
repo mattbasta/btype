@@ -4,6 +4,7 @@ var context = require('../../src/compiler/context');
 var lexer = require('../../src/lexer');
 var parser = require('../../src/parser');
 var transformer = require('../../src/compiler/transformer');
+var namer = require('../../src/compiler/namer');
 
 
 function getCtx(script, environment) {
@@ -13,7 +14,8 @@ function getCtx(script, environment) {
 
 function env() {
     return {
-        namer: function() {return 'named';}
+        namer: namer(),
+        registerFunc: function() {return 0}
     };
 }
 
@@ -145,9 +147,9 @@ describe('transformer', function() {
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
             assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
-            assert.equal(fc.__mapping.x.name, 'int', 'Mapping should preserve types');
+            assert.equal(fc.__mapping[fc.__context.nameMap.x].name, 'int', 'Mapping should preserve types');
             assert.ok(fc.__assignedName, 'Mapping should have an assigned name');
-            assert.ok(fc.declType.fullSize() > 0, 'Generated funcctx type should have a size greater than zero');
+            assert.ok(fc.declType.getType(fc).fullSize() > 0, 'Generated funcctx type should have a size greater than zero');
         });
         it('should retrieve a funcctx that does not include irrelevant variables', function() {
             var ctx = getCtx([
@@ -160,8 +162,8 @@ describe('transformer', function() {
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
             assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
-            assert.ok(fc.__mapping.x, 'Mapping should only have the correct member');
-            assert.equal(Object.keys(fc.declType.members).length, 1, 'Generated funcctx type should have the correct number of members');
+            assert.ok(fc.__mapping[fc.__context.nameMap.x], 'Mapping should only have the correct member');
+            assert.equal(Object.keys(fc.declType.getType(fc.__context).members).length, 1, 'Generated funcctx type should have the correct number of members');
         });
         it('should retrieve a funcctx that includes variables that span contexts', function() {
             var ctx = getCtx([
@@ -175,7 +177,7 @@ describe('transformer', function() {
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
             assert.equal(fc.__mappingOrder.length, 2, 'Should only have a single item in the context');
-            assert.equal(Object.keys(fc.declType.members).length, 2, 'Generated funcctx type should have the correct number of members');
+            assert.equal(Object.keys(fc.declType.getType(fc.__context).members).length, 2, 'Generated funcctx type should have the correct number of members');
         });
     });
 
@@ -246,7 +248,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].params.length, 0, 'No params should have been added to the outer function');
             assert.equal(ctx.functions[1].params.length, 1, 'One param should have been added to the inner function');
             assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The inner function should have an integer param');
-            assert.equal(ctx.functions[1].params[0].name, '$$i', 'The inner function should have an integer param');
+            assert.equal(ctx.functions[1].params[0].name, '$b', 'The inner function should have an integer param');
             assert.equal(ctx.functions[1].body.length, 1, 'The inner function should have only one statement');
             assert.equal(ctx.functions[1].body[0].type, 'Return', 'The statement should be a return statement');
             assert.equal(ctx.functions[1].body[0].value.type, 'Symbol', 'The return should be pointing to a symbol');
@@ -258,7 +260,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].value.type, 'Call', 'The return should return a call');
             assert.equal(ctx.functions[0].body[1].value.params.length, 1, 'The call should have a single param');
             assert.equal(ctx.functions[0].body[1].value.params[0].type, 'Symbol', 'The call should pass a symbol');
-            assert.equal(ctx.functions[0].body[1].value.params[0].name, '$$i', 'The symbol should reference the declaration');
+            assert.equal(ctx.functions[0].body[1].value.params[0].name, '$d', 'The symbol should reference the declaration');
 
         });
         it('should transform all references to transformed functions', function() {
@@ -287,9 +289,9 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].body[0].value.type, 'Call', 'Should return a call');
             assert.equal(ctx.functions[1].body[0].value.callee.name, 'inner', 'Should be calling `inner`');
             assert.equal(ctx.functions[1].body[0].value.params.length, 1, 'Should be calling `inner` with one param');
-            assert.equal(ctx.functions[1].body[0].value.params[0].name, '$$i', 'Should be calling `inner` with `i`');
+            assert.equal(ctx.functions[1].body[0].value.params[0].name, '$e', 'Should be calling `inner` with `i`');
             assert.equal(ctx.functions[1].params.length, 1, 'Caller function should have been updated with `i` as param');
-            assert.equal(ctx.functions[1].params[0].name, '$$$$i', 'Caller function should have been updated with `i` as param');
+            assert.equal(ctx.functions[1].params[0].name, '$b', 'Caller function should have been updated with `i` as param');
 
         });
     });
@@ -321,20 +323,20 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body.length, 3, 'There should be three items in the body');
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
             assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
-            assert.equal(ctx.functions[0].body[0].value.newType.name, 'funcctx', 'The new object should be a funcctx');
-            assert.equal(ctx.functions[0].body[0].value.newType.traits.length, 1, 'The funcctx should have one trait');
-            assert.equal(ctx.functions[0].body[0].value.newType.traits[0].name, 'int', 'The trait should be an int');
-            assert.equal(ctx.functions[0].body[0].value.newType.members.i.type.name, 'int', 'The trait should be an int');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).name, 'funcctx', 'The new object should be a funcctx');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).traits.length, 1, 'The funcctx should have one trait');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).traits[0].name, 'int', 'The trait should be an int');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).members.$b.type.name, 'int', 'The trait should be an int');
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[2].type, 'Return', 'The third should be the return');
 
-            assert.equal(Object.keys(ctx.functions[0].__context.vars).length, 1, 'There should only be one declared variable');
-            assert.equal(ctx.functions[0].__context.vars.$ctx.name, 'funcctx', 'And it should be a funcctx');
+            assert.equal(Object.keys(ctx.functions[0].__context.nameMap).length, 1, 'There should only be one declared variable');
+            assert.equal(ctx.functions[0].__context.typeMap.$e.name, 'funcctx', 'And it should be a funcctx');
 
             // Test that the inner function was updated properly:
             assert.equal(ctx.functions[1].body[0].type, 'Assignment', 'Sanity should dictate that the assignment did not change');
             assert.equal(ctx.functions[1].body[0].base.type, 'Member', 'The assignment should now be to a member expression');
-            assert.equal(ctx.functions[1].body[0].base.child, 'i', 'The member expression should be to an element "i"');
+            assert.equal(ctx.functions[1].body[0].base.child, '$b', 'The member expression should be to an element "i"');
             assert.equal(ctx.functions[1].body[0].base.base.type, 'Symbol', 'The member expression should be based on a symbol');
             var symname = ctx.functions[1].body[0].base.base.name;
 

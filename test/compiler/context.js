@@ -4,6 +4,7 @@ var context = require('../../src/compiler/context');
 var lexer = require('../../src/lexer');
 var parser = require('../../src/parser');
 var types = require('../../src/compiler/types');
+var namer = require('../../src/compiler/namer');
 
 
 function parse(script) {
@@ -12,9 +13,7 @@ function parse(script) {
 }
 
 function env() {
-    return {
-        namer: function() {return 'named';}
-    };
+    return {namer: namer()};
 }
 
 
@@ -27,12 +26,13 @@ describe('context', function() {
                     return {
                         getType: function() {return {test: 'bar'};}
                     };
-                }
+                },
+                namer: namer()
             };
             var ctx = context(env, parse([
                 'import foo;'
             ]));
-            assert.equal(ctx.vars.foo.test, 'bar', 'Import should have been assigned the proper type');
+            assert.equal(ctx.typeMap[ctx.nameMap['foo']].test, 'bar', 'Import should have been assigned the proper type');
         });
 
         it('should import from the environment with an alias', function() {
@@ -42,12 +42,13 @@ describe('context', function() {
                     return {
                         getType: function() {return {test: 'bar'};}
                     };
-                }
+                },
+                namer: namer()
             };
             var ctx = context(env, parse([
                 'import foo as zip;'
             ]));
-            assert.equal(ctx.vars.zip.test, 'bar', 'Import should have been assigned the proper type');
+            assert.equal(ctx.typeMap[ctx.nameMap['zip']].test, 'bar', 'Import should have been assigned the proper type');
         });
     });
 
@@ -58,10 +59,12 @@ describe('context', function() {
                 'export foo;'
             ]));
 
-            assert.ok(ctx.exports.foo.name, 'func', '`foo` should have been exported with the correct type');
-            assert.ok(ctx.exports.foo.traits.length, 1, '`foo` should have been exported with the correct number of traits');
-            assert.ok(ctx.exports.foo.traits[0].name, 'int', '`foo` should have been exported with the correct return type');
-            assert.equal(ctx.exportMap.foo, 'named', 'The export should be associated with the assigned name');
+            var assignedName = ctx.functions[0].__assignedName;
+
+            assert.equal(ctx.exports.foo, '$a', 'The export should be associated with the assigned name');
+            assert.ok(ctx.typeMap[ctx.exports.foo].name, 'func', '`foo` should have been exported with the correct type');
+            assert.ok(ctx.typeMap[ctx.exports.foo].traits.length, 1, '`foo` should have been exported with the correct number of traits');
+            assert.ok(ctx.typeMap[ctx.exports.foo].traits[0].name, 'int', '`foo` should have been exported with the correct return type');
         });
 
         it('should not all exports from nested scopes', function() {
@@ -88,9 +91,9 @@ describe('context', function() {
 
             assert.equal(ctx.functions.length, 2, 'There should be two functions in the global context');
             assert.equal(ctx.functions[0].name, 'test', 'The first function should be "test"');
-            assert.equal(ctx.functions[0], ctx.functionDeclarations.test, 'The first function should be listed in the function declarations');
+            assert.equal(ctx.functions[0], ctx.functionDeclarations[ctx.functions[0].__assignedName], 'The first function should be listed in the function declarations');
             assert.equal(ctx.functions[1].name, 'foo', 'The second function should be "foo"');
-            assert.equal(ctx.functions[1], ctx.functionDeclarations.foo, 'The second function should be listed in the function declarations');
+            assert.equal(ctx.functions[1], ctx.functionDeclarations[ctx.functions[1].__assignedName], 'The second function should be listed in the function declarations');
         });
 
         it('should list nested functions', function() {
@@ -153,8 +156,8 @@ describe('context', function() {
             assert.equal(type.traits.length, 2, 'There should be two traits: return type and one param');
             assert.equal(type.traits[1].name, 'str', 'The first param should be "str"');
 
-            var vars = ctx.functions[0].__context.vars;
-            assert.equal(vars.foo.name, 'str', 'The type of the param declared as a variable in the scope should be "str"');
+            var paramType = ctx.functions[0].__context.typeMap[ctx.functions[0].__context.nameMap.foo];
+            assert.equal(paramType.name, 'str', 'The type of the param declared as a variable in the scope should be "str"');
         });
 
         it('should declare nested functions as variables in the global scope', function() {
@@ -163,7 +166,7 @@ describe('context', function() {
                 '}'
             ]));
 
-            assert.equal(ctx.vars.test.name, 'func', '"test" should be declared as a variable in the global scope');
+            assert.equal(ctx.typeMap[ctx.nameMap.test].name, 'func', '"test" should be declared as a variable in the global scope');
         });
 
         it('should declare nested functions as variables in function contexts', function() {
@@ -174,9 +177,9 @@ describe('context', function() {
                 '}'
             ]));
 
-            assert.equal(ctx.functions[0].__context.vars.bar.name, 'func', '"bar" should be declared as a variable in the function context');
-            assert.ok(ctx.hasVar('test'), '"test" is declared in the global context');
-            assert.ok(ctx.functions[0].__context.hasVar('bar'), '"bar" is declared in the inner function context');
+            assert.equal(ctx.functions[0].__context.typeMap[ctx.functions[0].__context.nameMap.bar].name, 'func', '"bar" should be declared as a variable in the function context');
+            assert.ok('test' in ctx.nameMap, '"test" is declared in the global context');
+            assert.ok('bar' in ctx.functions[0].__context.nameMap, '"bar" is declared in the inner function context');
         });
 
         it('should be able to access declarations that are declared after themselves', function() {
@@ -312,20 +315,20 @@ describe('context', function() {
             var fooctx = ctx.functions[0].__context;
             var barctx = fooctx.functions[0].__context;
 
-            assert.ok(barctx.hasVar('test4'), 'Sanity test that "bar" recognizes "test4"');
-            assert.ok(!barctx.hasVar('test3'), 'Sanity test that "bar" does not recognize "test3"');
-            assert.ok(!barctx.hasVar('test2'), 'Sanity test that "bar" does not recognize "test2"');
-            assert.ok(!barctx.hasVar('test1'), 'Sanity test that "bar" does not recognize "test1"');
+            assert.ok('test4' in barctx.nameMap, 'Sanity test that "bar" recognizes "test4"');
+            assert.ok(!('test3' in barctx.nameMap), 'Sanity test that "bar" does not recognize "test3"');
+            assert.ok(!('test2' in barctx.nameMap), 'Sanity test that "bar" does not recognize "test2"');
+            assert.ok(!('test1' in barctx.nameMap), 'Sanity test that "bar" does not recognize "test1"');
 
-            assert.ok(!fooctx.hasVar('test4'), 'Sanity test that "foo" does not recognize "test4"');
-            assert.ok(fooctx.hasVar('test3'), 'Sanity test that "foo" recognizes "test3"');
-            assert.ok(fooctx.hasVar('test2'), 'Sanity test that "foo" recognizes "test2"');
-            assert.ok(!fooctx.hasVar('test1'), 'Sanity test that "foo" does not recognize "test1"');
+            assert.ok(!('test4' in fooctx.nameMap), 'Sanity test that "foo" does not recognize "test4"');
+            assert.ok('test3' in fooctx.nameMap, 'Sanity test that "foo" recognizes "test3"');
+            assert.ok('test2' in fooctx.nameMap, 'Sanity test that "foo" recognizes "test2"');
+            assert.ok(!('test1' in fooctx.nameMap), 'Sanity test that "foo" does not recognize "test1"');
 
-            assert.ok(!ctx.hasVar('test4'), 'Sanity test that "ctx" does not recognize "test4"');
-            assert.ok(!ctx.hasVar('test3'), 'Sanity test that "ctx" does not recognize "test3"');
-            assert.ok(!ctx.hasVar('test2'), 'Sanity test that "ctx" does not recognize "test2"');
-            assert.ok(ctx.hasVar('test1'), 'Sanity test that "ctx" recognizes "test1"');
+            assert.ok(!('test4' in ctx.nameMap), 'Sanity test that "ctx" does not recognize "test4"');
+            assert.ok(!('test3' in ctx.nameMap), 'Sanity test that "ctx" does not recognize "test3"');
+            assert.ok(!('test2' in ctx.nameMap), 'Sanity test that "ctx" does not recognize "test2"');
+            assert.ok('test1' in ctx.nameMap, 'Sanity test that "ctx" recognizes "test1"');
 
             assert.equal(barctx.lookupVar('test4'), barctx, 'Looking up "test4" in barctx should return itself');
             assert.equal(barctx.lookupVar('test3'), fooctx, 'Looking up "test3" in barctx should return its parent, "fooctx"');
@@ -359,13 +362,13 @@ describe('context', function() {
             ]));
 
             assert.ok('test1' in ctx.nameMap, '"test1" is assigned a name');
-            assert.equal(ctx.nameMap.test1, 'named', 'Test that a name was assigned to "test1"');
+            assert.equal(ctx.nameMap.test1, '$a', 'Test that a name was assigned to "test1"');
             assert.ok('foo' in ctx.nameMap, '"foo" is assigned a name');
-            assert.equal(ctx.nameMap.foo, 'named', 'Test that a name was assigned to "foo"');
+            assert.equal(ctx.nameMap.foo, '$b', 'Test that a name was assigned to "foo"');
 
             var fooctx = ctx.functions[0].__context;
             assert.ok('test2' in fooctx.nameMap, '"test2" is assigned a name');
-            assert.equal(fooctx.nameMap.test2, 'named', 'Test that a name was assigned to "test2"');
+            assert.equal(fooctx.nameMap.test2, '$c', 'Test that a name was assigned to "test2"');
 
         });
     });
@@ -427,7 +430,7 @@ describe('context', function() {
             ]);
             var innerctx = ctx.functions[0].__context;
 
-            assert.equal(innerctx.lexicalLookups.param1, ctx, 'The referenced context for "param1" in the inner function is the outer function');
+            assert.equal(innerctx.lexicalLookups[ctx.nameMap.param1], ctx, 'The referenced context for "param1" in the inner function is the outer function');
         });
     });
 

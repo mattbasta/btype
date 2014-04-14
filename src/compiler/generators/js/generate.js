@@ -11,7 +11,7 @@ function compileIncludes(env, ENV_VARS) {
         return fs.readFileSync(path.resolve(__dirname, '..', '..', 'static', 'asm.js', module + '.js')).toString().replace(/\$([A-Z_]+)\$/g, function(v) {
             return ENV_VARS[v.substr(1, v.length - 2)];
         });
-    }).join('\n')
+    }).join('\n');
 }
 
 function orderCode(body) {
@@ -42,6 +42,11 @@ function makeModule(env, ENV_VARS, body) {
 module.exports = function generate(env, ENV_VARS) {
 
     var body = env.included.map(jsTranslate).join('\n\n');
+
+    // Compile function lists
+    body += Object.keys(env.funcList).map(function(flist) {
+        return 'var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
+    }).join('\n');
 
     // Compile exports for the code.
     body += '    return {\n' + Object.keys(env.requested.exports).map(function(e) {
