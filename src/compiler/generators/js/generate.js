@@ -44,12 +44,12 @@ module.exports = function generate(env, ENV_VARS) {
     var body = env.included.map(jsTranslate).join('\n\n');
 
     // Compile function lists
-    body += Object.keys(env.funcList).map(function(flist) {
-        return 'var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
+    body += '\n' + Object.keys(env.funcList).map(function(flist) {
+        return '    var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
     }).join('\n');
 
     // Compile exports for the code.
-    body += '    return {\n' + Object.keys(env.requested.exports).map(function(e) {
+    body += '\n    return {\n' + Object.keys(env.requested.exports).map(function(e) {
         return '        ' + e + ': ' + env.requested.exports[e];
     }).join(';\n    ') + '\n    };';
 

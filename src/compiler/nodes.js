@@ -202,7 +202,7 @@ var NODES = {
         },
         getType: function(ctx) {
             var base = this.base.getType(ctx);
-            if (!this.child in base.members) {
+            if (!(this.child in base.members)) {
                 throw new Error('Member not found for type "' + base.name + '": ' + this.child);
             }
             return base.members[this.child].type;
