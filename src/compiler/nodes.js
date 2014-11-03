@@ -410,7 +410,7 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            var returnType = this.returnType.getType(ctx);
+            var returnType = this.returnType ? this.returnType.getType(ctx) : null;
             return new types.Func(
                 returnType,
                 this.params.map(function(p) {

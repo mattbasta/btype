@@ -1,26 +1,26 @@
 
-/*
-* @param uint ptr Pointer to the object being queried
-* @returns uint Number of references to the object
-*/
+/**
+ * @param uint ptr Pointer to the object being queried
+ * @returns uint Number of references to the object
+ */
 function rcGet(ptr) {
     ptr = ptr | 0;
     return ptrheap[ptr >> 2] | 0;
 }
 
-/*
-* @param uint ptr Pointer to the object being referenced
-* @returns void
-*/
+/**
+ * @param uint ptr Pointer to the object being referenced
+ * @returns void
+ */
 function rcRef(ptr) {
     ptr = ptr | 0;
     ptrheap[ptr >> 2] = (ptrheap[ptr >> 2] | 0) + 1 | 0;
 }
 
-/*
-* @param uint ptr Pointer to the object being dereferenced
-* @returns void
-*/
+/**
+ * @param uint ptr Pointer to the object being dereferenced
+ * @returns void
+ */
 function rcDeref(ptr) {
     ptr = ptr | 0;
 
