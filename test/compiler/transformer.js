@@ -15,12 +15,15 @@ function getCtx(script, environment) {
 function env() {
     return {
         namer: namer(),
-        registerFunc: function() {return 0}
+        registerFunc: function() {return 0},
+        registerType: function() {}
     };
 }
 
 describe('transformer', function() {
+
     describe('markFirstClassFunctions', function() {
+
         it('should not mark any functions by default', function() {
             // None of these functions are acessed in a first-class way.
             var ctx = getCtx([
@@ -134,7 +137,9 @@ describe('transformer', function() {
         var env = {
             namer: function() {
                 return 'foo' + ++x;
-            }
+            },
+            typeMap: {},
+            types: []
         };
 
         it('should retrieve a basic funcctx', function() {
@@ -149,7 +154,7 @@ describe('transformer', function() {
             assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
             assert.equal(fc.__mapping[fc.__context.nameMap.x].name, 'int', 'Mapping should preserve types');
             assert.ok(fc.__assignedName, 'Mapping should have an assigned name');
-            assert.ok(fc.declType.getType(fc).fullSize() > 0, 'Generated funcctx type should have a size greater than zero');
+            assert.ok(fc.declType.getType(ctx).fullSize() > 0, 'Generated funcctx type should have a size greater than zero');
         });
         it('should retrieve a funcctx that does not include irrelevant variables', function() {
             var ctx = getCtx([
@@ -323,15 +328,12 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body.length, 3, 'There should be three items in the body');
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
             assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).name, 'funcctx', 'The new object should be a funcctx');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).traits.length, 1, 'The funcctx should have one trait');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).traits[0].name, 'int', 'The trait should be an int');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).members.$b.type.name, 'int', 'The trait should be an int');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).name, '$e$outer', 'The new object should be a funcctx');
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[2].type, 'Return', 'The third should be the return');
 
             assert.equal(Object.keys(ctx.functions[0].__context.nameMap).length, 1, 'There should only be one declared variable');
-            assert.equal(ctx.functions[0].__context.typeMap.$e.name, 'funcctx', 'And it should be a funcctx');
+            assert.equal(ctx.functions[0].__context.typeMap.$g.name, '$e$outer', 'And it should be a funcctx with an assigned name');
 
             // Test that the inner function was updated properly:
             assert.equal(ctx.functions[1].body[0].type, 'Assignment', 'Sanity should dictate that the assignment did not change');
@@ -342,7 +344,7 @@ describe('transformer', function() {
 
             assert.equal(ctx.functions[1].params.length, 2, 'A new parameter should have been added');
             assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The first param should have remained an int');
-            assert.equal(ctx.functions[1].params[1].idType.name, 'funcctx', 'The second param should now be a funcctx');
+            assert.equal(ctx.functions[1].params[1].idType.name, '$e$outer', 'The second param should now be the same funcctx');
             assert.equal(ctx.functions[1].params[1].name, symname, 'The second param should be what is referenced in the body');
 
         });

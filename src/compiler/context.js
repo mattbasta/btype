@@ -1,4 +1,5 @@
 var traverser = require('./traverser');
+var types = require('./types');
 
 
 function Context(env, scope, parent) {
@@ -44,6 +45,9 @@ function Context(env, scope, parent) {
     // Boolean representing whether the context is lexically side effect-free.
     this.lexicalSideEffectFree = true;
 
+    // A mapping of given names for types in this context to assigned names
+    this.typeNameMap = parent ? parent.typeNameMap : {};  // Actual types are stored in the environment
+
     // A mapping of assigned names of referenced variables to the contexts
     // that contain the definition of those variables.
     this.lexicalLookups = {};
@@ -68,18 +72,33 @@ Context.prototype.addVar = function(varName, type) {
 
 Context.prototype.lookupVar = function(varName) {
     if (varName in this.nameMap) {
-        // console.log('Found ' + varName + ' in this scope');
         return this;
     } else if (this.parent) {
-        // console.log('Looking for ' + varName + ' in parent scope');
         return this.parent.lookupVar(varName);
     } else {
         throw new ReferenceError('Reference to undefined variable "' + varName + '"');
     }
 };
 
-module.exports = function generateContext(env, tree, filename) {
-    var rootContext = new Context(env, tree);
+Context.prototype.registerType = function(givenTypeName, type) {
+    var assignedName = this.env.namer();
+    this.typeNameMap[givenTypeName] = assignedName;
+    this.env.registerType(assignedName, type);
+};
+
+Context.prototype.resolveType = function(typeName) {
+    if (typeName in this.typeNameMap) {
+        return this.env.typeMap[typeName];
+    }
+    if (this.parent) {
+        return this.parent.resolveType(typeName);
+    } else {
+        return types.resolve(typeName);
+    }
+};
+
+module.exports = function generateContext(env, tree, filename, rootContext) {
+    rootContext = rootContext || new Context(env, tree);
     var contexts = [rootContext];
 
     // This is used to keep track of nested functions so that they can be

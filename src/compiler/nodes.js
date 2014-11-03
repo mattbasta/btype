@@ -1,5 +1,7 @@
-var type = require('./types');
+var types = require('./types');
 var irNodes = require('./generators/nodes');
+
+var Type = types.Type;
 
 
 function binop_traverser(cb) {
@@ -28,7 +30,7 @@ function loop_substitution(cb) {
     }).filter(ident);
 }
 function boolType() {
-    return new type('bool');
+    return types.publicTypes.bool;
 }
 function loopValidator(ctx) {
     this.condition.validateTypes(ctx);
@@ -71,7 +73,7 @@ var NODES = {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
-            return this.operator === '-' ? this.base.getType(ctx) : new type('bool');
+            return this.operator === '-' ? this.base.getType(ctx) : boolType();
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
@@ -156,7 +158,7 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            return this.callee.getType(ctx).traits[0];
+            return this.callee.getType(ctx).returnType;
         },
         validateTypes: function(ctx) {
             this.callee.validateTypes(ctx);
@@ -383,7 +385,7 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             this.condition.validateTypes(ctx);
-            if(!this.condition.getType(ctx).equals(new type('bool')))
+            if(!this.condition.getType(ctx).equals(boolType()))
                 throw new TypeError('Unexpected type passed as condition');
             this.consequent.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
@@ -395,7 +397,7 @@ var NODES = {
             }
         }
     },
-    'Function': {
+    Function: {
         traverse: function(cb) {
             if (this.returnType)
                 cb(this.returnType, 'return');
@@ -408,12 +410,12 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            var returnType = this.returnType;
-            return new type(
-                'func',
-                [returnType].concat(this.params.map(function(p) {
+            var returnType = this.returnType.getType(ctx);
+            return new types.Func(
+                returnType,
+                this.params.map(function(p) {
                     return p.getType(ctx);
-                }))
+                })
             );
         },
         validateTypes: function(ctx) {
@@ -430,10 +432,19 @@ var NODES = {
         substitute: function() {},
         getType: function(ctx) {
             if (this.__type) return this.__type;
-            return new type(this.name, this.traits.map(function(trait) {
-                if (!trait) return null;
-                return trait.getType(ctx);
-            }));
+
+            if (this.name === 'func') {
+                return this.__type = new types.Func(
+                    this.traits[0] && this.traits[0].getType(ctx),
+                    this.traits.slice(1).map(function(trait) {
+                        return trait.getType(ctx);
+                    })
+                );
+            } else if (this.name === 'array') {
+                return this.__type = new types.Array_(this.traits[0].getType(ctx));
+            }
+
+            return this.__type = ctx.resolveType(this.name);
         },
         validateTypes: function() {}
     },
@@ -451,7 +462,7 @@ var NODES = {
         traverse: function(cb) {},
         substitute: function() {},
         getType: function() {
-            return new type(this.litType);
+            return types.resolve(this.litType);
         },
         validateTypes: function() {}
     },
@@ -478,7 +489,7 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            return this.__type || this.newType.getType(ctx);
+            return this.newType.getType(ctx);
         },
         validateTypes: function() {
             // TODO: Check that the params match the params of the constructor
@@ -488,6 +499,13 @@ var NODES = {
 
 function buildNode(proto, name) {
     function node(start, end, base) {
+        // Allow non-positional shorthand
+        if (start && typeof start !== 'number') {
+            base = start;
+            start = 0;
+            end = 0;
+        }
+
         this.type = name;
         this.start = start;
         this.end = end;

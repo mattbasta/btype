@@ -1,3 +1,4 @@
+var function_contexts = require('./function_contexts');
 var generatorNodes = require('./generators/nodes');
 var nodes = require('./nodes');
 var traverser = require('./traverser');
@@ -162,37 +163,16 @@ function getFunctionContext(ctx) {
             }
         }
     });
-    var mappingOrder = Object.keys(mapping);
-    var funcctxType = new types(
-        'funcctx',
-        mappingOrder.map(function(lookup) {
-            return mapping[lookup];
-        })
-    );
-    var members = funcctxType.members;
-    var offset = 0;
-    mappingOrder.forEach(function(mem) {
-        var type = mapping[mem];
-        (function(offset) {
-            funcctxType.members[mem] = {
-                generator: function(ptr) {
-                    return generatorNodes.HeapLookup({
-                        heap: type.getHeap(),
-                        pointer: ptr,
-                        offset: generatorNodes.Literal({value: offset})
-                    });
-                },
-                type: type
-            };
-        })(offset);
-        offset += type.baseSize();
-    });
-    funcctxType.fullSize = function() {
-        return offset;
-    };
 
-    var wrappedType = wrapType(funcctxType);
-    wrappedType.getType = function() {return funcctxType;};
+
+    var funcctxTypeName = ctx.env.namer() + '$' + (ctx.scope.name || 'anon');
+    var funcctxType = function_contexts.newFuncCtx(funcctxTypeName, mapping, ctx);
+
+    var wrappedType = new nodes.Type(0, 0, {
+        traits: [],
+        name: funcctxTypeName
+    });
+
     var funcctx = new nodes.Declaration(0, 0, {
         __context: ctx,
         declType: wrappedType,
@@ -203,7 +183,6 @@ function getFunctionContext(ctx) {
         })
     });
     funcctx.__mapping = mapping;
-    funcctx.__mappingOrder = mappingOrder;
 
     funcctx.__assignedName = ctx.env.namer();
 
@@ -239,7 +218,7 @@ var transform = module.exports = function(rootContext) {
                         base: new nodes.Symbol(0, 0, {
                             name: '$ctx',
                             __refContext: context,
-                            __refType: funcctx.declType,
+                            __refType: funcctx.declType.getType(context),
                             __refName: funcctx.__assignedName
                         }),
                         child: name

@@ -32,7 +32,7 @@ function makeModule(env, ENV_VARS, body) {
         'if (ret.__init) ret.__init();',
         'return ret;',
         '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign, heap) {',
-        '    "use asm";',
+        // '    "use asm";',
         '    var imul = stdlib.Math.imul;',
         body,
         '})'
@@ -41,6 +41,8 @@ function makeModule(env, ENV_VARS, body) {
 
 module.exports = function generate(env, ENV_VARS) {
 
+    // var body = env.types.map(typeTranslate).join('\n\n');
+    // body += env.included.map(jsTranslate).join('\n\n');
     var body = env.included.map(jsTranslate).join('\n\n');
 
     // Compile function lists

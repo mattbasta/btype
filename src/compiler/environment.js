@@ -3,6 +3,7 @@ var path = require('path');
 var util = require('util');
 
 var context = require('./context');
+var nodes = require('./nodes');
 var transformer = require('./transformer');
 var types = require('./types');
 
@@ -25,6 +26,16 @@ function Environment(name) {
     this.requested = null;
     this.modules = {};
     this.inits = [];
+
+    // Mapping of assigned type names to types
+    this.typeMap = {};
+    // Set of types
+    this.types = [];
+    // Mapping of stringified constructed types to constructed types
+    this.constructedTypeMap = {};
+
+    // Mapping of module identifiers to the associated module types.
+    this.moduleTypeMap = {};
 
     this.moduleCache = {};
 
@@ -75,9 +86,18 @@ Environment.prototype.import = function(importNode, requestingContext) {
 
     var importedContext = this.loadFile(target);
 
-    var ret = new types('_module');
-    ret.memberTypes = importedContext.exports;
+    if (target in this.moduleTypeMap) {
+        return this.moduleTypeMap[target];
+    }
+
+    var ret = types.lookupName(null, '_module', []);
+    var moduleType = {
+        extend: ret,
+        memberTypes: importedContext.exports
+    }
+    this.moduleTypeMap[target] = moduleType;
     // TODO: fill out ret.members
+    return ret;
 };
 
 Environment.prototype.addModule = function(module, context) {
@@ -86,6 +106,15 @@ Environment.prototype.addModule = function(module, context) {
 
 Environment.prototype.addContext = function(context) {
     this.included.push(context);
+};
+
+Environment.prototype.registerType = function(assignedName, type) {
+    this.typeMap[assignedName] = type;
+    this.types.push(type);
+};
+
+Environment.prototype.resolveTypeType = function(assignedName) {
+    return this.typeMap[assignedName];
 };
 
 Environment.prototype.markRequested = function(context) {

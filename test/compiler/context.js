@@ -62,9 +62,7 @@ describe('context', function() {
             var assignedName = ctx.functions[0].__assignedName;
 
             assert.equal(ctx.exports.foo, '$a', 'The export should be associated with the assigned name');
-            assert.ok(ctx.typeMap[ctx.exports.foo].name, 'func', '`foo` should have been exported with the correct type');
-            assert.ok(ctx.typeMap[ctx.exports.foo].traits.length, 1, '`foo` should have been exported with the correct number of traits');
-            assert.ok(ctx.typeMap[ctx.exports.foo].traits[0].name, 'int', '`foo` should have been exported with the correct return type');
+            assert.ok(ctx.typeMap[ctx.exports.foo] instanceof types.Func, '`foo` should have been exported with the correct type');
         });
 
         it('should not all exports from nested scopes', function() {
@@ -120,9 +118,7 @@ describe('context', function() {
             ]));
 
             var type = ctx.functions[0].getType(ctx);
-            assert.equal(type.name, 'func', 'The base type should be "func"');
-            assert.equal(type.traits.length, 1, 'There should only be at one trait, the return type');
-            assert.equal(type.traits[0].name, 'int', 'The return type should be "int"');
+            assert.ok(type instanceof types.Func, 'The base type should be "func"');
         });
 
         it('should resolve the correct type with parameters', function() {
@@ -134,14 +130,13 @@ describe('context', function() {
             ]));
 
             var type = ctx.functions[0].getType(ctx);
-            assert.equal(type.name, 'func', 'The base type should be "func"');
-            assert.equal(type.traits.length, 3, 'There should be three traits: return type and two params');
-            assert.equal(type.traits[0].name, 'int', 'The return type should be "int"');
-            assert.equal(type.traits[1].name, 'str', 'The first param should be "int"');
-            assert.equal(type.traits[2].name, 'func', 'The second param should be "func"');
-            assert.equal(type.traits[2].traits.length, 2, 'There should be two traits for the second param');
-            assert.equal(type.traits[2].traits[0], null, 'The return type of the second param should be void');
-            assert.equal(type.traits[2].traits[1].name, 'int', 'The first param of the second param is "int"');
+            assert.ok(type instanceof types.Func, 'The base type should be "func"');
+            assert.equal(type.args.length, 2, 'There should be three traits: return type and two params');
+            assert.equal(type.args[0].typeName, 'str', 'The first param should be "str"');
+            assert.ok(type.args[1] instanceof types.Func, 'The second param should be "func"');
+            assert.equal(type.args[1].args.length, 1, 'There should be one arg for the second param');
+            assert.equal(type.args[1].returnType, null, 'The return type of the second param should be void');
+            assert.equal(type.args[1].args[0].typeName, 'int', 'The first param of the second param is "int"');
         });
 
         it('should declare the parameters in the internal function context', function() {
@@ -152,12 +147,12 @@ describe('context', function() {
 
             // Some sanity checking
             var type = ctx.functions[0].getType(ctx);
-            assert.equal(type.name, 'func', 'The base type should be "func"');
-            assert.equal(type.traits.length, 2, 'There should be two traits: return type and one param');
-            assert.equal(type.traits[1].name, 'str', 'The first param should be "str"');
+            assert.ok(type instanceof types.Func, 'The base type should be "func"');
+            assert.equal(type.args.length, 1, 'There should be one argument');
+            assert.equal(type.args[0].typeName, 'str', 'The first param should be "str"');
 
             var paramType = ctx.functions[0].__context.typeMap[ctx.functions[0].__context.nameMap.foo];
-            assert.equal(paramType.name, 'str', 'The type of the param declared as a variable in the scope should be "str"');
+            assert.equal(paramType.typeName, 'str', 'The type of the param declared as a variable in the scope should be "str"');
         });
 
         it('should declare nested functions as variables in the global scope', function() {
@@ -166,7 +161,7 @@ describe('context', function() {
                 '}'
             ]));
 
-            assert.equal(ctx.typeMap[ctx.nameMap.test].name, 'func', '"test" should be declared as a variable in the global scope');
+            assert.ok(ctx.typeMap[ctx.nameMap.test] instanceof types.Func, '"test" should be declared as a variable in the global scope');
         });
 
         it('should declare nested functions as variables in function contexts', function() {
@@ -177,7 +172,7 @@ describe('context', function() {
                 '}'
             ]));
 
-            assert.equal(ctx.functions[0].__context.typeMap[ctx.functions[0].__context.nameMap.bar].name, 'func', '"bar" should be declared as a variable in the function context');
+            assert.ok(ctx.functions[0].__context.typeMap[ctx.functions[0].__context.nameMap.bar] instanceof types.Func, '"bar" should be declared as a variable in the function context');
             assert.ok('test' in ctx.nameMap, '"test" is declared in the global context');
             assert.ok('bar' in ctx.functions[0].__context.nameMap, '"bar" is declared in the inner function context');
         });
@@ -507,7 +502,6 @@ describe('context', function() {
                 '}'
             ]).functions[0].__context;
 
-            // console.log(ctx);
             assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if a lexical lookup that runs through it has side effects');
             assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since a nested function modifies "local"');
 

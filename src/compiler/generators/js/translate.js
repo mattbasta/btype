@@ -175,4 +175,4 @@ var NODES = {
 
 module.exports = function translate(ctx) {
     return _node(ctx.scope, ctx.env, ctx, 0);
-}
+};
