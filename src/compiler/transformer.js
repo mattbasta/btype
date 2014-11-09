@@ -31,7 +31,7 @@ function markFirstClassFunctions(context) {
 
             if (node.type === 'Symbol') {
                 // Ignore symbols that don't point to functions.
-                if (node.__refType.name !== 'func') return false;
+                if (!(node.__refType instanceof types.Func)) return false;
                 // Ignore symbols that are the callees of Call nodes
                 if (stack[0].type === 'Call' && marker === 'callee') {
                     return false;
@@ -165,26 +165,24 @@ function getFunctionContext(ctx) {
     });
 
 
-    var funcctxTypeName = ctx.env.namer() + '$' + (ctx.scope.name || 'anon');
+    var funcctxTypeName = (ctx.scope.name || 'anon') + '$fctx';
     var funcctxType = function_contexts.newFuncCtx(funcctxTypeName, mapping, ctx);
 
-    var wrappedType = new nodes.Type(0, 0, {
+    var wrappedType = new nodes.Type({
         traits: [],
-        name: funcctxTypeName
+        name: funcctxTypeName,
     });
 
-    var funcctx = new nodes.Declaration(0, 0, {
+    var funcctx = new nodes.Declaration({
         __context: ctx,
         declType: wrappedType,
         identifier: '$ctx',
-        value: new nodes.New(0, 0, {
+        value: new nodes.New({
             newType: wrappedType,
             params: []
         })
     });
     funcctx.__mapping = mapping;
-
-    funcctx.__assignedName = ctx.env.namer();
 
     return funcctx;
 }
@@ -259,7 +257,7 @@ var transform = module.exports = function(rootContext) {
                 if (!node || node.type !== 'Function') return false;
                 var ctx = node.__context;
                 var hasChanged = false;
-                funcctx.__mappingOrder.forEach(function(mem) {
+                funcctx.contentsTypeArr.forEach(function(mem) {
                     if (!(mem in ctx.lexicalLookups)) return;
                     if (ctx.lexicalLookups[mem] !== context) return;
 
@@ -273,7 +271,7 @@ var transform = module.exports = function(rootContext) {
 
             // Remove all of the converted variables from the `typeMap` and
             // `nameMap` fields.
-            funcctx.__mappingOrder.forEach(function(name) {
+            funcctx.contentsTypeArr.forEach(function(name) {
                 delete context.typeMap[name];
                 context.nameMap = removeElement(context.nameMap, name);
             });
@@ -308,7 +306,7 @@ var transform = module.exports = function(rootContext) {
 
             // If the lookup is for a non-first class function declaration,
             // don't make it a param.
-            if (lookupType.name === 'func' &&
+            if (lookupType.typeName === 'func' &&
                 lookupOrigContext.functionDeclarations[lexicalLookup] &&
                 !lookupOrigContext.functionDeclarations[lexicalLookup].__firstClass) {
 
@@ -331,8 +329,12 @@ var transform = module.exports = function(rootContext) {
             context.typeMap[lexicalLookup] = lookupType;
             var newAssignedName = context.nameMap[lexicalLookup] = rootContext.env.namer();
 
-            lookupIdentifier = new nodes.TypedIdentifier(0, 0, {
-                idType: lookupType,
+            lookupIdentifier = new nodes.TypedIdentifier({
+                idType: new nodes.Type({
+                    name: lookupType.typeName || lookupType._type,
+                    traits: [],
+                    __type: lookupType,
+                }),
                 name: lexicalLookup,
                 __origName: lexicalLookup,
                 __assignedName: newAssignedName,

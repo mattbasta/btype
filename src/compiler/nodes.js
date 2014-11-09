@@ -260,6 +260,9 @@ var NODES = {
         substitute: function(cb) {
             this.value = cb(this.value, 'value') || this.value;
         },
+        getType: function(ctx) {
+            return this.declType.getType(ctx);
+        },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
             if (!this.declType) return;

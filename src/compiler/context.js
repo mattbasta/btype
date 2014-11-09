@@ -82,13 +82,14 @@ Context.prototype.lookupVar = function(varName) {
 
 Context.prototype.registerType = function(givenTypeName, type) {
     var assignedName = this.env.namer();
+    type.__assignedName = assignedName;
     this.typeNameMap[givenTypeName] = assignedName;
     this.env.registerType(assignedName, type);
 };
 
 Context.prototype.resolveType = function(typeName) {
     if (typeName in this.typeNameMap) {
-        return this.env.typeMap[typeName];
+        return this.env.typeMap[this.typeNameMap[typeName]];
     }
     if (this.parent) {
         return this.parent.resolveType(typeName);

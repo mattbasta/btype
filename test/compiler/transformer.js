@@ -1,24 +1,20 @@
 var assert = require('assert');
 
 var context = require('../../src/compiler/context');
+var environment = require('../../src/compiler/environment');
 var lexer = require('../../src/lexer');
 var parser = require('../../src/parser');
 var transformer = require('../../src/compiler/transformer');
-var namer = require('../../src/compiler/namer');
 
 
-function getCtx(script, environment) {
+function getCtx(script, env) {
     if (script instanceof Array) script = script.join('\n');
-    return context(environment || env(), parser(lexer(script)));
+    return context(
+        env || new environment.Environment(),
+        parser(lexer(script))
+    );
 }
 
-function env() {
-    return {
-        namer: namer(),
-        registerFunc: function() {return 0},
-        registerType: function() {}
-    };
-}
 
 describe('transformer', function() {
 
@@ -134,13 +130,6 @@ describe('transformer', function() {
 
     describe('getFunctionContext', function() {
         var x = 0;
-        var env = {
-            namer: function() {
-                return 'foo' + ++x;
-            },
-            typeMap: {},
-            types: []
-        };
 
         it('should retrieve a basic funcctx', function() {
             var ctx = getCtx([
@@ -151,11 +140,11 @@ describe('transformer', function() {
             ]);
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
-            assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
-            assert.equal(fc.__mapping[fc.__context.nameMap.x].name, 'int', 'Mapping should preserve types');
-            assert.ok(fc.__assignedName, 'Mapping should have an assigned name');
-            assert.ok(fc.declType.getType(ctx).fullSize() > 0, 'Generated funcctx type should have a size greater than zero');
+            assert.equal(Object.keys(fc.getType(ctx).contentsTypeMap).length, 1, 'Should only have a single item in the context');
+            assert.equal(fc.__mapping[fc.__context.nameMap.x].typeName, 'int', 'Mapping should preserve types');
+
         });
+
         it('should retrieve a funcctx that does not include irrelevant variables', function() {
             var ctx = getCtx([
                 'func bar() {',
@@ -163,13 +152,14 @@ describe('transformer', function() {
                 '    var y = 0;',
                 '    func int:inner() {x = x + 1; return y;}',
                 '}'
-            ], env);
+            ]);
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
-            assert.equal(fc.__mappingOrder.length, 1, 'Should only have a single item in the context');
+            assert.equal(Object.keys(fc.getType(ctx).contentsTypeMap).length, 1, 'Should only have a single item in the context');
             assert.ok(fc.__mapping[fc.__context.nameMap.x], 'Mapping should only have the correct member');
-            assert.equal(Object.keys(fc.declType.getType(fc.__context).members).length, 1, 'Generated funcctx type should have the correct number of members');
+
         });
+
         it('should retrieve a funcctx that includes variables that span contexts', function() {
             var ctx = getCtx([
                 'func bar() {',
@@ -178,15 +168,17 @@ describe('transformer', function() {
                 '    func int:inner1() {x = x + 1;}',
                 '    func int:inner2() {y = y + 1;}',
                 '}'
-            ], env);
+            ]);
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
-            assert.equal(fc.__mappingOrder.length, 2, 'Should only have a single item in the context');
-            assert.equal(Object.keys(fc.declType.getType(fc.__context).members).length, 2, 'Generated funcctx type should have the correct number of members');
+            assert.equal(Object.keys(fc.getType(ctx).contentsTypeMap).length, 2, 'Should only have a single item in the context');
+
         });
+
     });
 
     describe('class 1: side-effect free transformations', function() {
+
         it('should uplift functions with no other changes', function() {
             // None of these functions are acessed in a first-class way.
             var ctx = getCtx([
@@ -205,6 +197,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].__context.functions.length, 0, 'The inner function should have no nested functions');
 
         });
+
         it('should update references to uplifted functions', function() {
             // None of these functions are acessed in a first-class way.
             var ctx = getCtx([
@@ -225,9 +218,11 @@ describe('transformer', function() {
                          'The reference context of the call to `inner` should have been changed to the root context');
 
         });
+
     });
 
     describe('class 2: read-only transformations', function() {
+
         it('should perform transformations on read-only functions', function() {
             var ctx = getCtx([
                 'func int:outer() {',
@@ -252,7 +247,7 @@ describe('transformer', function() {
 
             assert.equal(ctx.functions[0].params.length, 0, 'No params should have been added to the outer function');
             assert.equal(ctx.functions[1].params.length, 1, 'One param should have been added to the inner function');
-            assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The inner function should have an integer param');
+            assert.equal(ctx.functions[1].params[0].idType.typeName, 'int', 'The inner function should have an integer param');
             assert.equal(ctx.functions[1].params[0].name, '$b', 'The inner function should have an integer param');
             assert.equal(ctx.functions[1].body.length, 1, 'The inner function should have only one statement');
             assert.equal(ctx.functions[1].body[0].type, 'Return', 'The statement should be a return statement');
@@ -268,6 +263,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].value.params[0].name, '$d', 'The symbol should reference the declaration');
 
         });
+
         it('should transform all references to transformed functions', function() {
             var ctx = getCtx([
                 'func int:outer() {',
@@ -289,16 +285,20 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].name, 'caller');
             assert.equal(ctx.functions[2].name, 'inner');
 
+            assert.equal(ctx.functions[1].params.length, 1);
+            assert.equal(ctx.functions[1].params[0].name, '$d');
+            console.log(ctx.functions[1].params[0].getType(ctx));
+            assert.equal(ctx.functions[1].params[0].getType(ctx).typeName, 'int');
+
             assert.equal(ctx.functions[1].body.length, 1, 'Caller function should have only a return statement');
             assert.equal(ctx.functions[1].body[0].type, 'Return', 'Only statement should be return');
             assert.equal(ctx.functions[1].body[0].value.type, 'Call', 'Should return a call');
-            assert.equal(ctx.functions[1].body[0].value.callee.name, 'inner', 'Should be calling `inner`');
-            assert.equal(ctx.functions[1].body[0].value.params.length, 1, 'Should be calling `inner` with one param');
+            assert.equal(ctx.functions[1].body[0].value.callee.name, '$d', 'Should be calling `inner`');
+            assert.equal(ctx.functions[1].body[0].value.params.length, 1);
             assert.equal(ctx.functions[1].body[0].value.params[0].name, '$e', 'Should be calling `inner` with `i`');
-            assert.equal(ctx.functions[1].params.length, 1, 'Caller function should have been updated with `i` as param');
-            assert.equal(ctx.functions[1].params[0].name, '$b', 'Caller function should have been updated with `i` as param');
 
         });
+
     });
 
     describe('class 3: complex transformations', function() {

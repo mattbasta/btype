@@ -1,3 +1,6 @@
+var types = require('../../types');
+
+
 var OP_PREC = {
     '*': 5,
     '/': 5,
@@ -28,7 +31,8 @@ function _binop(env, ctx, prec) {
 
     var out;
     var oPrec = OP_PREC[this.operator];
-    if (this.operator === '*' && this.left.getType(ctx).name === 'int' && this.right.getType(ctx).name === 'int') {
+    if (this.operator === '*' && this.left.getType(ctx) instanceof types.publicTypes.int &&
+        this.right.getType(ctx) instanceof types.publicTypes.int) {
         out = 'imul(' + left + ', ' + right + ')';
         oPrec = 18;
     } else {
