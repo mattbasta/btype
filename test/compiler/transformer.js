@@ -247,7 +247,7 @@ describe('transformer', function() {
 
             assert.equal(ctx.functions[0].params.length, 0, 'No params should have been added to the outer function');
             assert.equal(ctx.functions[1].params.length, 1, 'One param should have been added to the inner function');
-            assert.equal(ctx.functions[1].params[0].idType.typeName, 'int', 'The inner function should have an integer param');
+            assert.equal(ctx.functions[1].params[0].idType.name, 'int');
             assert.equal(ctx.functions[1].params[0].name, '$b', 'The inner function should have an integer param');
             assert.equal(ctx.functions[1].body.length, 1, 'The inner function should have only one statement');
             assert.equal(ctx.functions[1].body[0].type, 'Return', 'The statement should be a return statement');
@@ -287,7 +287,7 @@ describe('transformer', function() {
 
             assert.equal(ctx.functions[1].params.length, 1);
             assert.equal(ctx.functions[1].params[0].name, '$d');
-            console.log(ctx.functions[1].params[0].getType(ctx));
+            console.log(ctx.functions[1].params[0]);
             assert.equal(ctx.functions[1].params[0].getType(ctx).typeName, 'int');
 
             assert.equal(ctx.functions[1].body.length, 1, 'Caller function should have only a return statement');

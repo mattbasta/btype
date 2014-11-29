@@ -89,6 +89,7 @@ function Tuple(contentsTypeArr) {
 
 }
 function Func(returnType, args) {
+    this._type = 'func';
     this.returnType = returnType;
     this.args = args;
 }
@@ -121,6 +122,7 @@ public_.str = new Struct('str', {
 });
 
 exports.resolve = function(typeName, privileged) {
+    console.log(typeName);
     if (typeName in public_) return public_[typeName];
     if (typeName in private_ && privileged) return private_[typeName];
     return null;

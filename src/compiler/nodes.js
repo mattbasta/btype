@@ -42,6 +42,19 @@ function oneArg(func) {
     return function(arg) {func.call(this, arg);};
 }
 
+function indentEach(input, level) {
+    level = level || 1;
+    var indentation = '';
+    while (level) {
+        indentation += '    ';
+        level--;
+    }
+    return input.split('\n').map(function(line) {
+        return indentation + line;
+    }).join('\n');
+}
+
+
 var NODES = {
     Root: {
         traverse: function(cb) {
@@ -63,7 +76,12 @@ var NODES = {
                     return stmt.toIR(ctx, false);
                 })
             });
-        }
+        },
+        toString: function() {
+            return 'Root:\n' + indentEach(this.body.map(function(stmt) {
+                return stmt.toString();
+            }).join('\n')) + '\n';
+        },
     },
     Unary: {
         traverse: function(cb) {
@@ -89,7 +107,10 @@ var NODES = {
                 operator: this.operator,
                 value: this.base.toIR(ctx, true)
             });
-        }
+        },
+        toString: function() {
+            return 'Unary(' + this.operator + '): ' + this.base.toString() + '\n';
+        },
     },
     LogicalBinop: {
         traverse: binop_traverser,
@@ -99,7 +120,14 @@ var NODES = {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
         },
-        toIR: binop_toIR
+        toIR: binop_toIR,
+        toString: function() {
+            return 'LogicalBinop(' + this.operator + '):\n' +
+                   '    Left:\n' +
+                   indentEach(this.left.toString(), 2) + '\n' +
+                   '    Right:\n' +
+                   indentEach(this.right.toString(), 2) + '\n';
+        },
     },
     EqualityBinop: {
         traverse: binop_traverser,
@@ -112,7 +140,14 @@ var NODES = {
                 throw new TypeError('Equality operations may only be performed against same types');
             }
         },
-        toIR: binop_toIR
+        toIR: binop_toIR,
+        toString: function() {
+            return 'EqualityBinop(' + this.operator + '):\n' +
+                   '    Left:\n' +
+                   indentEach(this.left.toString(), 2) + '\n' +
+                   '    Right:\n' +
+                   indentEach(this.right.toString(), 2) + '\n';
+        },
     },
     RelativeBinop: {
         traverse: binop_traverser,
@@ -125,7 +160,14 @@ var NODES = {
                 throw new TypeError('Comparison operations may only be performed against same types');
             }
         },
-        toIR: binop_toIR
+        toIR: binop_toIR,
+        toString: function() {
+            return 'RelativeBinop(' + this.operator + '):\n' +
+                   '    Left:\n' +
+                   indentEach(this.left.toString(), 2) + '\n' +
+                   '    Right:\n' +
+                   indentEach(this.right.toString(), 2) + '\n';
+        },
     },
     Binop: {
         traverse: binop_traverser,
@@ -144,7 +186,14 @@ var NODES = {
                 throw new TypeError('Mismatched types in binop');
             }
         },
-        toIR: binop_toIR
+        toIR: binop_toIR,
+        toString: function() {
+            return 'Binop(' + this.operator + '):\n' +
+                   '    Left:\n' +
+                   indentEach(this.left.toString(), 2) + '\n' +
+                   '    Right:\n' +
+                   indentEach(this.right.toString(), 2) + '\n';
+        },
     },
     Call: {
         traverse: function(cb) {
@@ -193,7 +242,14 @@ var NODES = {
             } else {
                 return irNodes.CallExpression(base);
             }
-        }
+        },
+        toString: function() {
+            return 'Call:\n' +
+                   '    Base:\n' +
+                   indentEach(this.callee.toString(), 2) + '\n' +
+                   '    Args:\n' +
+                   indentEach(this.params.map(function(param) {return param.toString()}).join('\n'), 2) + '\n';
+        },
     },
     Member: {
         traverse: function(cb) {
@@ -217,7 +273,11 @@ var NODES = {
                 throw new Error('Not Implemented: Assignment to member expressions is not yet supported');
             }
             return this.base.getType(ctx).members[this.child].generator(this.base.toIR(true));
-        }
+        },
+        toString: function() {
+            return 'Member(' + this.child + '):\n' +
+                   indentEach(this.base.toString()) + '\n';
+        },
     },
     Assignment: {
         traverse: function(cb) {
@@ -249,7 +309,14 @@ var NODES = {
                 return this.base.toIR(ctx, false, this.value.toIR(ctx, true));
             }
             throw new Error('Unexpected IR requested');
-        }
+        },
+        toString: function() {
+            return 'Assignment:\n' +
+                   '    Lval:\n' +
+                   indentEach(this.base.toString(), 2) + '\n' +
+                   '    Rval:\n' +
+                   indentEach(this.value.toString(), 2) + '\n';
+        },
     },
     Declaration: {
         traverse: function(cb) {
@@ -270,7 +337,16 @@ var NODES = {
             if (!valueType.equals(this.declType)) {
                 throw new TypeError('Mismatched types in declaration');
             }
-        }
+        },
+        toString: function() {
+            return 'Declaration(' + this.identifier + '):\n' +
+                   (!this.declType ? '' :
+                       '    Type:\n' +
+                       indentEach(this.declType.toString(), 2) + '\n'
+                    ) +
+                   '    Value:\n' +
+                   indentEach(this.value.toString(), 2) + '\n';
+        },
     },
     Return: {
         traverse: function(cb) {
@@ -292,7 +368,11 @@ var NODES = {
             if (!funcReturnType.equals(valueType)) {
                 throw new TypeError('Mismatched return type');
             }
-        }
+        },
+        toString: function() {
+            return 'Return:\n' +
+                   indentEach(this.value.toString()) + '\n';
+        },
     },
     Export: {
         traverse: function(cb) {
@@ -305,7 +385,11 @@ var NODES = {
             if (valueType.name !== 'func') {
                 throw new TypeError('Cannot export non-executable objects');
             }
-        }
+        },
+        toString: function() {
+            return 'Export:\n' +
+                   indentEach(this.value.toString()) + '\n';
+        },
     },
     Import: {
         traverse: function(cb) {
@@ -318,7 +402,16 @@ var NODES = {
             this.base.validateTypes(ctx);
             if (this.member) this.member.validateTypes(ctx);
             if (this.alias) this.alias.validateTypes(ctx);
-        }
+        },
+        toString: function() {
+            return 'Import:\n' +
+                   '    Base:\n' +
+                   indentEach(this.base.toString(), 2) + '\n' +
+                   '    Member:\n' +
+                   indentEach(this.member.toString(), 2) + '\n' +
+                   '    Alias:\n' +
+                   indentEach(this.alias.toString(), 2) + '\n';
+        },
     },
     For: {
         traverse: loop_traverser,
@@ -350,7 +443,11 @@ var NODES = {
             this.cases.forEach(function(c) {
                 c.validateTypes(ctx);
             });
-        }
+        },
+        toString: function() {
+            return 'Switch(' + this.condition.toString() + '):\n' +
+                   indentEach(this.cases.map(function(stmt) {return stmt.toString()}).join('\n'));
+        },
     },
     Case: {
         traverse: function(cb) {
@@ -367,7 +464,11 @@ var NODES = {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
             });
-        }
+        },
+        toString: function() {
+            return 'Case(' + this.value.toString() + '):\n' +
+                   indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
+        },
     },
     If: {
         traverse: function(cb) {
@@ -398,7 +499,18 @@ var NODES = {
                     stmt.validateTypes(ctx);
                 });
             }
-        }
+        },
+        toString: function() {
+            return 'If:\n' +
+                   '    Condition:\n' +
+                   indentEach(this.condition, 2) + '\n' +
+                   '    Consequent:\n' +
+                   indentEach(this.consequent.map(function(stmt) {return stmt.toString()}).join('\n'), 2) +
+                   (!this.alternate ? '' :
+                       '\n    Alternate:\n' +
+                       indentEach(this.alternate.map(function(stmt) {return stmt.toString()}).join('\n'), 2)
+                    );
+        },
     },
     Function: {
         traverse: function(cb) {
@@ -426,7 +538,13 @@ var NODES = {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(context);
             });
-        }
+        },
+        toString: function() {
+            return 'Function ' + this.name +
+                       '(' + this.params.map(function(param) {return param.toString();}).join(', ') + ') ' +
+                       this.returnType.toString() + '\n' +
+                   indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
+        },
     },
     Type: {
         traverse: function(cb) {
@@ -434,7 +552,9 @@ var NODES = {
         },
         substitute: function() {},
         getType: function(ctx) {
-            if (this.__type) return this.__type;
+            if (this.__type) {
+                return this.__type;
+            }
 
             if (this.name === 'func') {
                 return this.__type = new types.Func(
@@ -449,7 +569,10 @@ var NODES = {
 
             return this.__type = ctx.resolveType(this.name);
         },
-        validateTypes: function() {}
+        validateTypes: function() {},
+        toString: function() {
+            return '<' + this.name + (this.traits.length ? '; ' + this.traits.map(function(trait) {return trait.toString();}).join(', ') : '') + '>';
+        },
     },
     TypedIdentifier: {
         traverse: function(cb) {
@@ -459,7 +582,10 @@ var NODES = {
         getType: function(ctx) {
             return this.idType.getType(ctx);
         },
-        validateTypes: function() {}
+        validateTypes: function() {},
+        toString: function() {
+            return 'TypedId(' + this.name + this.idType.toString() + ')';
+        },
     },
     Literal: {
         traverse: function(cb) {},
@@ -467,7 +593,10 @@ var NODES = {
         getType: function() {
             return types.resolve(this.litType);
         },
-        validateTypes: function() {}
+        validateTypes: function() {},
+        toString: function() {
+            return 'Literal(' + this.value + ')';
+        },
     },
     Symbol: {
         traverse: function(cb) {},
@@ -477,7 +606,10 @@ var NODES = {
             var objContext = ctx.lookupVar(this.name);
             return objContext.typeMap[this.__refName];
         },
-        validateTypes: function() {}
+        validateTypes: function() {},
+        toString: function() {
+            return 'Symbol(' + this.name + ')';
+        },
     },
     New: {
         traverse: function(cb) {
@@ -496,7 +628,14 @@ var NODES = {
         },
         validateTypes: function() {
             // TODO: Check that the params match the params of the constructor
-        }
+        },
+        toString: function() {
+            return 'New:\n' +
+                   '    Type:\n' +
+                   indentEach(this.newType.toString(), 2) + '\n' +
+                   '    Params:\n' +
+                   indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 2);
+        },
     }
 };
 
@@ -513,7 +652,7 @@ function buildNode(proto, name) {
         this.start = start;
         this.end = end;
         this.__base = base;
-        for(var prop in base) {
+        for (var prop in base) {
             this[prop] = base[prop];
         }
     }

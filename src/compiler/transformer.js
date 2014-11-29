@@ -140,7 +140,7 @@ function willFunctionNeedContext(ctx) {
 
 function wrapType(baseType) {
     if (!baseType) return null;
-    return new nodes.Type(0, 0, {
+    return new nodes.Type({
         __type: baseType,
         traits: baseType.traits.map(wrapType),
         name: baseType.name
@@ -204,25 +204,24 @@ var transform = module.exports = function(rootContext) {
             var funcctx = getFunctionContext(context);
             context.__funcctx = funcctx;
             context.nameMap['$ctx'] = funcctx.__assignedName;
-            context.typeMap[funcctx.__assignedName] = funcctx.declType;
+            context.typeMap[funcctx.__assignedName] = funcctx.declType.getType(context);
 
             var ctxMapping = funcctx.__mapping;
             node.body.unshift(funcctx);
 
+            function getReference(name) {
+                return new nodes.Member({
+                    base: new nodes.Symbol({
+                        name: '$ctx',
+                        __refContext: context,
+                        __refType: funcctx.declType.getType(context),
+                        __refName: funcctx.__assignedName,
+                    }),
+                    child: name,
+                });
+            }
+
             traverser.findAndReplace(node, function(node) {
-
-                function getReference(name) {
-                    return new nodes.Member(0, 0, {
-                        base: new nodes.Symbol(0, 0, {
-                            name: '$ctx',
-                            __refContext: context,
-                            __refType: funcctx.declType.getType(context),
-                            __refName: funcctx.__assignedName
-                        }),
-                        child: name
-                    });
-                }
-
                 // Replace symbols referencing declarations that are now inside
                 // the funcctx with member expressions
                 if (node.type === 'Symbol' &&
@@ -331,7 +330,7 @@ var transform = module.exports = function(rootContext) {
 
             lookupIdentifier = new nodes.TypedIdentifier({
                 idType: new nodes.Type({
-                    name: lookupType.typeName || lookupType._type,
+                    name: lookupType.typeName || lookupType.name,
                     traits: [],
                     __type: lookupType,
                 }),
@@ -339,7 +338,7 @@ var transform = module.exports = function(rootContext) {
                 __origName: lexicalLookup,
                 __assignedName: newAssignedName,
                 __context: node.__context,
-                __refContext: lookupOrigContext
+                __refContext: lookupOrigContext,
             })
             node.params.push(lookupIdentifier);
             lookupOrder.push(lookupIdentifier);
@@ -380,44 +379,47 @@ var transform = module.exports = function(rootContext) {
                     return false;
                 }
 
-                if (travNode && travNode.type === 'Call' &&
-                    travNode.callee.type === 'Symbol' &&
-                    travNode.callee.__refName === node.__assignedName) {
-
-                    if (travNode.params.length === node.params.length) return;
-
-                    lookupOrder.forEach(function(param) {
-                        travNode.params.push(new nodes.Symbol(0, 0, {
-                            name: param.__assignedName,
-                            __refContext: context,
-                            __refName: param.__assignedName,
-                            __refType: param.idType,
-                            __context: travNode.__context
-                        }));
-
-                        if (travNode.__context !== travNode.__refContext) {
-                            var currCtx = travNode.__context;
-                            while (currCtx && currCtx !== travNode.__refContext) {
-                                currCtx.lexicalLookups[param.name] = travNode.callee.__refContext;
-                                currCtx.typeMap[param.name] = travNode.callee.__refType;
-                                currCtx.accessesLexicalScope = true;
-                                currCtx = currCtx.parent;
-                            }
-                        }
-                    });
-
-                    // If we're causing a new lexical lookup for a node
-                    // that has already gone through the transformation
-                    // process, process it a second time. If we don't,
-                    // those lexical lookups won't get processed.
-                    if (travNode.__context !== ctxparent &&
-                        travNode.__context.parent &&  // Don't do this on the global scope
-                        travNode.__context.__transformed) {
-
-                        processContext(travNode.__context, travNode.__context.scope);
-                    }
-
+                if (!travNode || travNode.type !== 'Call' ||
+                    travNode.callee.type !== 'Symbol' ||
+                    travNode.callee.__refName !== node.__assignedName) {
+                    return;
                 }
+
+                if (travNode.params.length === node.params.length) return;
+
+                lookupOrder.forEach(function(param) {
+                    travNode.params.push(new nodes.Symbol({
+                        name: param.__assignedName,
+                        __refContext: context,
+                        __refName: param.__assignedName,
+                        __refType: param.getType(context),
+                        __context: travNode.__context,
+                    }));
+
+                    if (travNode.__context !== travNode.__refContext) {
+                        var currCtx = travNode.__context;
+                        while (currCtx && currCtx !== travNode.__refContext) {
+                            currCtx.lexicalLookups[param.name] = travNode.callee.__refContext;
+
+                            console.log(travNode.callee.__refType);
+                            currCtx.typeMap[param.name] = travNode.callee.__refType;
+                            currCtx.accessesLexicalScope = true;
+                            currCtx = currCtx.parent;
+                        }
+                    }
+                });
+
+                // If we're causing a new lexical lookup for a node
+                // that has already gone through the transformation
+                // process, process it a second time. If we don't,
+                // those lexical lookups won't get processed.
+                if (travNode.__context !== ctxparent &&
+                    travNode.__context.parent &&  // Don't do this on the global scope
+                    travNode.__context.__transformed) {
+
+                    processContext(travNode.__context, travNode.__context.scope);
+                }
+
             });
         }
 
@@ -426,32 +428,33 @@ var transform = module.exports = function(rootContext) {
             var nodeType = node.getType(node.__context);
             var nodeIndex = node.__context.env.registerFunc(node);
             traverser.findAndReplace(ctxparent.scope, function(travNode) {
-                if (travNode.type === 'Symbol' && travNode.__refName === node.__assignedName) {
-                    return function(travNode) {
-                        return new nodes.New(0, 0, {
-                            newType: wrapType(nodeType),
-                            params: [
-                                new nodes.Literal(0, 0, {
-                                    value: nodeIndex,
-                                    litType: new nodes.Type(0, 0, {
-                                        name: 'int',
-                                        traits: []
-                                    })
-                                }),
-                                // TODO/FIXME: This needs to create lookups all
-                                // the way up the context chain and then call
-                                // for a re-process at the end if __transformed
-                                // is truthy.
-                                new nodes.Symbol(0, 0, {
-                                    name: ctxparent.__funcctx.__assignedName,
-                                    __refContext: ctxparent,
-                                    __refName: ctxparent.__funcctx.__assignedName,
-                                    __refType: ctxparent.typeMap[ctxparent.__funcctx.__assignedName],
-                                })
-                            ]
-                        });
-                    };
+                if (travNode.type !== 'Symbol' || travNode.__refName !== node.__assignedName) {
+                    return;
                 }
+                return function(travNode) {
+                    return new nodes.New({
+                        newType: wrapType(nodeType),
+                        params: [
+                            new nodes.Literal({
+                                value: nodeIndex,
+                                litType: new nodes.Type({
+                                    name: 'int',
+                                    traits: []
+                                })
+                            }),
+                            // TODO/FIXME: This needs to create lookups all
+                            // the way up the context chain and then call
+                            // for a re-process at the end if __transformed
+                            // is truthy.
+                            new nodes.Symbol({
+                                name: ctxparent.__funcctx.__assignedName,
+                                __refContext: ctxparent,
+                                __refName: ctxparent.__funcctx.__assignedName,
+                                __refType: ctxparent.typeMap[ctxparent.__funcctx.__assignedName],
+                            })
+                        ]
+                    });
+                };
             });
         }
 
