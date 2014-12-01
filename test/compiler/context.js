@@ -442,7 +442,6 @@ describe('context', function() {
             ]);
 
             assert.ok(ctx.sideEffectFree, 'The function should be side effect-free if it has no side effects');
-            assert.ok(ctx.lexicalSideEffectFree, 'The function should be lexically side effect-free if it has no side effects');
         });
 
         it('should not mark functions as having side effects for read-only access', function() {
@@ -454,7 +453,6 @@ describe('context', function() {
             ]);
 
             assert.ok(ctx.sideEffectFree, 'The function has no side effects');
-            assert.ok(ctx.lexicalSideEffectFree, 'The function has no lexical side effects');
         });
 
         it('should mark funcions that have side effects', function() {
@@ -467,7 +465,6 @@ describe('context', function() {
             ]);
 
             assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has side effects');
-            assert.ok(ctx.lexicalSideEffectFree, 'The function should be lexically side effect-free since it is not nested');
         });
 
         it('should mark functions that have lexical side effects as such', function() {
@@ -483,7 +480,6 @@ describe('context', function() {
             ]).functions[0].__context;
 
             assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has side effects');
-            assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since it modifies "local"');
         });
 
         it('should mark lexical side effects when lookups cross multiple scopes', function() {
@@ -503,12 +499,10 @@ describe('context', function() {
             ]).functions[0].__context;
 
             assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if a lexical lookup that runs through it has side effects');
-            assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since a nested function modifies "local"');
 
             ctx = ctx.functions[0].__context;
 
             assert.ok(!ctx.sideEffectFree, 'The function should not be side effect-free if it has lexical side effects');
-            assert.ok(!ctx.lexicalSideEffectFree, 'The function should not be lexically side effect-free since it modifies "local"');
         });
     });
 });

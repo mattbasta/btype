@@ -15,14 +15,41 @@ Some notes about transformation:
 */
 
 function markFirstClassFunctions(context) {
-    /*
-    This function searches for nested functions within a context that are
-    accessed such that first-class function objects are created (references to
-    objects of type `func`). This happens when a Symbol node references the
-    identifier of a function in any case other than as the callee of a Call
-    node.
-    */
-    var result = [];
+    var stack = [];
+    traverser.traverse(
+        context.scope,
+        function(node, marker) {
+            if (!node) return false;
+
+            // Ignore non-Symbol nodes but keep them in the stack.
+            if (node.type !== 'Symbol') {
+                stack.unshift(node);
+                return;
+            }
+
+            // Ignore symbols that don't point to functions.
+            if (!(node.__refType instanceof types.Func)) return false;
+
+            // Ignore symbols that are the callees of Call nodes. Calling a
+            // declared function doesn't make the function first-class.
+            if (stack[0].type === 'Call' && marker === 'callee') return false;
+
+            // If it's falsey, it means that it's a variable declaration of
+            // type `func`, not a function declaration.
+            if (!node.__refContext.isFuncMap[node.__refName]) return false;
+
+            node.__refContext.functionDeclarations[node.__refName].__firstClass = true;
+
+            // There's nothing left to do with a symbol, so hard return.
+            return false;
+        },
+        function(node) {
+            stack.shift(node);
+        }
+    );
+}
+
+function convertFCFuncsToVariables(context) {
     var stack = [];
     traverser.traverse(
         context.scope,
@@ -53,31 +80,15 @@ function markFirstClassFunctions(context) {
             stack.shift(node);
         }
     );
-
-    result.forEach(function(func) {
-        func.__firstClass = true;
-
-        // HACK: When a function is first class, it retains its original type
-        // signature (like func<null, foo, bar>), but may have bindings to
-        // things in the lexical scope that would otherwise be added as params.
-        // Since anything outside the parent context's scope have no knowledge
-        // of those bindings, EVERYTHING that the function touches needs to be
-        // included in the parent context's `funcctx` object. To accomplish
-        // this, we mark all lexical lookups as lexical modifications. They
-        // aren't [lexical modifications], but it makes the transformer put
-        // them into the `funcctx`.
-        Object.keys(func.__context.lexicalLookups).forEach(function(lookup) {
-            func.__context.lexicalModifications[
-                func.__context.lexicalLookups[lookup].nameMap[lookup]
-            ] = true;
-        });
-    });
-
-    return result;
 }
 
 function removeItem(array, item) {
-    return array.filter(function(x) {return x !== item;});
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === item) {
+            array.splice(i, 1);
+            return;
+        }
+    }
 }
 function removeElement(obj, val) {
     var out = {};
@@ -133,7 +144,7 @@ function objectSize(obj) {
 function willFunctionNeedContext(ctx) {
     var willIt = false;
     ctx.functions.forEach(function(func) {
-        willIt = willIt || func.__firstClass || !func.__context.lexicalSideEffectFree;
+        willIt = willIt || func.__firstClass || !func.sideEffectFree;
     });
     return willIt;
 }
@@ -152,7 +163,7 @@ function getFunctionContext(ctx) {
     traverser.traverse(ctx.scope, function(node) {
         if (!node) return;
         if (node.type === 'Function') {
-            if (node.sideEffectFree || node.lexicalSideEffectFree) return false;
+            if (node.sideEffectFree) return false;
 
             for (var lookup in node.__context.lexicalLookups) {
                 if (lookup in mapping) continue;
@@ -220,7 +231,6 @@ function processContext(rootContext, ctx, tree) {
 }
 
 function processFunc(rootContext, node, context) {
-
     // Perform Class 3 transformations first.
     // These have to be done on the parent context, since the variables
     // that are accessed lexically need to be moved into a funcctx.
@@ -307,7 +317,7 @@ function processFunc(rootContext, node, context) {
 
     var ctxparent = context.parent;
     // Detect whether the function is side-effect free to the extent that we care.
-    if (!context.accessesLexicalScope && context.lexicalSideEffectFree && !node.__firstClass) {
+    if (!context.accessesLexicalScope && context.sideEffectFree && !node.__firstClass) {
         // Class 1 transformations are no-op, so just return.
         return;
     }
@@ -341,7 +351,7 @@ function processFunc(rootContext, node, context) {
                     node.__context.lexicalLookups[lexicalLookup] === lookupOrigContext;
             }).forEach(function(scope) {
                 delete node.__context.lexicalLookups[lexicalLookup];
-                if (node.__context.lexicalSideEffectFree && !objectSize(node.__context.lexicalLookups)) {
+                if (node.__context.sideEffectFree && !objectSize(node.__context.lexicalLookups)) {
                     node.__context.accessesLexicalScope = false;
                 }
             });
@@ -487,34 +497,41 @@ function processFunc(rootContext, node, context) {
 
 }
 
+function upliftContext(rootContext, ctx) {
+    var ctxparent = ctx.parent;
+    if (ctxparent === rootContext) return;
+
+    var node = ctx.scope;
+    rootContext.functions.push(node);
+
+    ctxparent.functions = removeItem(ctxparent.functions, node);
+    delete ctxparent.nameMap[node.name];
+    delete ctxparent.typeMap[node.__assignedName];
+    delete ctxparent.isFuncMap[node.__assignedName];
+    updateSymbolReferences(node, ctxparent.scope, rootContext);
+    ctxparent.accessesGlobalScope = true;
+    removeNode(node, ctxparent.scope);
+    rootContext.scope.body.push(node);
+
+    // NOTE: We do not update `ctxparent.functionDeclarations` since it
+    // shouldn't be used for anything after type checking, name
+    // assignment, and context generation has completed.
+}
+
 var transform = module.exports = function(rootContext) {
 
-    // First step: mark all first class functions as such.
+    // First mark all first class functions as such.
     markFirstClassFunctions(rootContext);
 
+    // Then, convert all first class function declarations to variable declarations
+    convertFCFuncsToVariables(rootContext);
+
+    // Traverse down into the context tree and process each context in turn.
+    // This uses depth-first search.
     processContext(rootContext, rootContext);
 
     // Perform all uplifting at the end.
-    rootContext.__transformEncounteredContexts.forEach(function(ctx) {
-        var ctxparent = ctx.parent;
-        if (ctxparent === rootContext) return;
-
-        var node = ctx.scope;
-        rootContext.functions.push(node);
-
-        ctxparent.functions = removeItem(ctxparent.functions, node);
-        delete ctxparent.nameMap[node.name];
-        delete ctxparent.typeMap[node.__assignedName];
-        delete ctxparent.isFuncMap[node.__assignedName];
-        updateSymbolReferences(node, ctxparent.scope, rootContext);
-        ctxparent.accessesGlobalScope = true;
-        removeNode(node, ctxparent.scope);
-        rootContext.scope.body.push(node);
-
-        // NOTE: We do not update `ctxparent.functionDeclarations` since it
-        // shouldn't be used for anything after type checking, name
-        // assignment, and context generation has completed.
-    });
+    rootContext.__transformEncounteredContexts.forEach(upliftContext.bind(null, rootContext));
 };
 
 transform.getFunctionContext = getFunctionContext;

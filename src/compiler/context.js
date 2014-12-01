@@ -42,8 +42,6 @@ function Context(env, scope, parent) {
 
     // Boolean representing whether the context is side effect-free.
     this.sideEffectFree = true;
-    // Boolean representing whether the context is lexically side effect-free.
-    this.lexicalSideEffectFree = true;
 
     // A mapping of given names for types in this context to assigned names
     this.typeNameMap = parent ? parent.typeNameMap : {};  // Actual types are stored in the environment
@@ -182,7 +180,6 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                                 var i = 0;
                                 while (contexts[i] && contexts[i] !== node.__refContext) {
                                     contexts[i].lexicalModifications[node.__refName] = true;
-                                    contexts[i].lexicalSideEffectFree = false;
                                     contexts[i].sideEffectFree = false;
                                     i++;
                                 }
