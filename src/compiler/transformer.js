@@ -39,42 +39,10 @@ function markFirstClassFunctions(context) {
             if (!node.__refContext.isFuncMap[node.__refName]) return false;
 
             node.__refContext.functionDeclarations[node.__refName].__firstClass = true;
+            node.__refsFirstClassFunction = true;
 
             // There's nothing left to do with a symbol, so hard return.
             return false;
-        },
-        function(node) {
-            stack.shift(node);
-        }
-    );
-}
-
-function convertFCFuncsToVariables(context) {
-    var stack = [];
-    traverser.traverse(
-        context.scope,
-        function(node, marker) {
-            if (!node) return false;
-
-            if (node.type === 'Symbol') {
-                // Ignore symbols that don't point to functions.
-                if (!(node.__refType instanceof types.Func)) return false;
-                // Ignore symbols that are the callees of Call nodes
-                if (stack[0].type === 'Call' && marker === 'callee') {
-                    return false;
-                }
-
-                // If it's falsey, it means that it's a variable declaration of
-                // type `func`, not a function declaration.
-                if (!node.__refContext.isFuncMap[node.__refName]) return false;
-
-                result.push(node.__refContext.functionDeclarations[node.__refName]);
-
-                // There's nothing left to do with a symbol, so hard return.
-                return false;
-            }
-
-            stack.unshift(node);
         },
         function(node) {
             stack.shift(node);
@@ -142,11 +110,9 @@ function objectSize(obj) {
 }
 
 function willFunctionNeedContext(ctx) {
-    var willIt = false;
-    ctx.functions.forEach(function(func) {
-        willIt = willIt || func.__firstClass || !func.sideEffectFree;
+    return ctx.functions.some(function(func) {
+        return func.accessesLexicalScope;
     });
-    return willIt;
 }
 
 function wrapType(baseType) {
@@ -160,6 +126,7 @@ function wrapType(baseType) {
 
 function getFunctionContext(ctx) {
     var mapping = {};
+    // Find the lexical lookups in each descendant context and put them into a mapping
     traverser.traverse(ctx.scope, function(node) {
         if (!node) return;
         if (node.type === 'Function') {
@@ -190,8 +157,8 @@ function getFunctionContext(ctx) {
         identifier: '$ctx',
         value: new nodes.New({
             newType: wrappedType,
-            params: []
-        })
+            params: [],
+        }),
     });
     funcctx.__mapping = mapping;
 
@@ -231,9 +198,7 @@ function processContext(rootContext, ctx, tree) {
 }
 
 function processFunc(rootContext, node, context) {
-    // Perform Class 3 transformations first.
-    // These have to be done on the parent context, since the variables
-    // that are accessed lexically need to be moved into a funcctx.
+
     if (willFunctionNeedContext(context)) {
 
         var funcctx = getFunctionContext(context);
@@ -291,7 +256,7 @@ function processFunc(rootContext, node, context) {
             if (!node || node.type !== 'Function') return false;
             var ctx = node.__context;
             var hasChanged = false;
-            funcctx.contentsTypeArr.forEach(function(mem) {
+            for (var mem in funcctx.contentsTypeMap) {
                 if (!(mem in ctx.lexicalLookups)) return;
                 if (ctx.lexicalLookups[mem] !== context) return;
 
@@ -300,15 +265,15 @@ function processFunc(rootContext, node, context) {
                 if (hasChanged) return;
                 ctx.lexicalLookups[funcctx.__assignedName] = context;
                 hasChanged = true;
-            });
+            }
         });
 
         // Remove all of the converted variables from the `typeMap` and
         // `nameMap` fields.
-        funcctx.contentsTypeArr.forEach(function(name) {
+        for (var name in funcctx.contentsTypeMap) {
             delete context.typeMap[name];
             context.nameMap = removeElement(context.nameMap, name);
-        });
+        }
 
         // TODO: If the function's params are used lexically, copy their
         // values into the funcctx and remove their declarations and
@@ -522,9 +487,6 @@ var transform = module.exports = function(rootContext) {
 
     // First mark all first class functions as such.
     markFirstClassFunctions(rootContext);
-
-    // Then, convert all first class function declarations to variable declarations
-    convertFCFuncsToVariables(rootContext);
 
     // Traverse down into the context tree and process each context in turn.
     // This uses depth-first search.
