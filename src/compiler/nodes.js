@@ -542,7 +542,7 @@ var NODES = {
         toString: function() {
             return 'Function ' + this.name +
                        '(' + this.params.map(function(param) {return param.toString();}).join(', ') + ') ' +
-                       this.returnType.toString() + '\n' +
+                       (this.returnType ? this.returnType.toString() : 'void') + '\n' +
                    indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
         },
     },
@@ -571,7 +571,7 @@ var NODES = {
         },
         validateTypes: function() {},
         toString: function() {
-            return '<' + this.name + (this.traits.length ? '; ' + this.traits.map(function(trait) {return trait.toString();}).join(', ') : '') + '>';
+            return '<' + this.name + (this.traits.length ? '; ' + this.traits.map(function(trait) {return trait ? trait.toString() : 'null';}).join(', ') : '') + '>';
         },
     },
     TypedIdentifier: {
@@ -584,7 +584,7 @@ var NODES = {
         },
         validateTypes: function() {},
         toString: function() {
-            return 'TypedId(' + this.name + this.idType.toString() + ')';
+            return 'TypedId(' + this.name + ': ' + this.idType.toString() + ')';
         },
     },
     Literal: {

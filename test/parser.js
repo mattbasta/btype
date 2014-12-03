@@ -7,8 +7,6 @@ var node = parser.node;
 
 function compareTree(script, tree) {
     var parsed = parser(lexer(script));
-    // console.log(parsed.body[0]);
-    // console.log(tree.body[0]);
     function compare(left, right, base, key) {
         if (left instanceof lexer.token) {
             assert.equal(left.text, right.text, 'Expected token "' + key + '" text to be equal in both trees at ' + base);

@@ -117,6 +117,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 var imp = env.import(node, rootContext);
                 contexts[0].addVar(node.alias ? node.alias.name : node.base, imp.getType(contexts[0]));
                 return;
+
             case 'Function':
                 // Remember the function in the function hierarchy.
                 contexts[0].functions.push(node);
@@ -136,22 +137,32 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
                 innerFunctions[0].push(node);
 
-                return false;
+                return false; // `false` to block the traverser from going deeper.
+
             case 'Declaration':
                 node.__assignedName = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
                 return;
+
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
                 node.__refName = node.__refContext.nameMap[node.name];
                 node.__refType = node.__refContext.typeMap[node.__refName];
                 node.__isFunc = node.__refContext.isFuncMap[node.__refName];
+
                 if (node.__refContext === rootContext && contexts.length > 1) {
+                    // If the context referenced is the global scope, mark the
+                    // context as accessing global scope.
                     contexts[0].accessesGlobalScope = true;
+
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
+                    // Otherwise the lookup is lexical and needs to be marked as such.
+
                     for (var i = 0; i < contexts.length && contexts[i] !== node.__refContext; i++) {
                         contexts[i].accessesLexicalScope = true;
                         contexts[i].lexicalLookups[node.__refName] = node.__refContext;
+
                     }
+
                 }
                 return;
         }

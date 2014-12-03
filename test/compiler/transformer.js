@@ -104,7 +104,7 @@ describe('transformer', function() {
             assert.ok(!transformer.willFunctionNeedContext(ctx.functions[1].__context));
             assert.ok(!transformer.willFunctionNeedContext(ctx.functions[1].__context.functions[0].__context));
         });
-        it('should not mark any functions that only read lexical scope', function() {
+        it('should mark any functions that read lexical scope', function() {
             var ctx = getCtx([
                 'func bar() {',
                 '    var x = 0;',
@@ -112,7 +112,7 @@ describe('transformer', function() {
                 '}'
             ]);
 
-            assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context));
+            assert.ok(transformer.willFunctionNeedContext(ctx.functions[0].__context));
             assert.ok(!transformer.willFunctionNeedContext(ctx.functions[0].__context.functions[0].__context));
         });
         it('should mark functions that have their scope written to lexically', function() {
@@ -226,12 +226,13 @@ describe('transformer', function() {
     describe('class 3: complex transformations', function() {
         it('should perform complex transformations', function() {
             var ctx = getCtx([
-                'func func<null, int>:outer() {',
+                'func int:outer() {',
                 '    var i = 0;',
                 '    func inner(int:j) {',
                 '        i = i + j;',
                 '    }',
-                '    return inner;',
+                '    inner(3);',
+                '    return i;',
                 '}'
             ]);
 
@@ -247,15 +248,20 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].__context.functions.length, 0, 'The inner function should have no nested functions');
 
             // Test that the funcctx was created in the outer function:
-            assert.equal(ctx.functions[0].body.length, 3, 'There should be three items in the body');
+            assert.equal(ctx.functions[0].body.length, 4, 'There should be four items in the body');
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
             assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).name, '$e$outer', 'The new object should be a funcctx');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'funcctx');
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
-            assert.equal(ctx.functions[0].body[2].type, 'Return', 'The third should be the return');
+            assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
+            assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
+            assert.equal(ctx.functions[0].body[2].type, 'Call', 'The third should be the call to inner');
+            assert.equal(ctx.functions[0].body[2].params.length, 2);
+            assert.equal(ctx.functions[0].body[2].params[1].type, 'Symbol', 'Passed param should be a reference to the context');
+            assert.equal(ctx.functions[0].body[2].params[1].name, ctx.functions[0].body[0].identifier, 'Passed param should point at the context');
+            assert.equal(ctx.functions[0].body[3].type, 'Return', 'The fourth should be the return');
 
             assert.equal(Object.keys(ctx.functions[0].__context.nameMap).length, 1, 'There should only be one declared variable');
-            assert.equal(ctx.functions[0].__context.typeMap.$g.name, '$e$outer', 'And it should be a funcctx with an assigned name');
 
             // Test that the inner function was updated properly:
             assert.equal(ctx.functions[1].body[0].type, 'Assignment', 'Sanity should dictate that the assignment did not change');
@@ -266,7 +272,7 @@ describe('transformer', function() {
 
             assert.equal(ctx.functions[1].params.length, 2, 'A new parameter should have been added');
             assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The first param should have remained an int');
-            assert.equal(ctx.functions[1].params[1].idType.name, '$e$outer', 'The second param should now be the same funcctx');
+            assert.equal(ctx.functions[1].params[1].idType.name, 'outer$fctx', 'The second param should now be the same funcctx');
             assert.equal(ctx.functions[1].params[1].name, symname, 'The second param should be what is referenced in the body');
 
         });
