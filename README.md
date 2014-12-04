@@ -1,4 +1,7 @@
 # btype
+
+[![Build Status](https://travis-ci.org/mattbasta/btype.svg?branch=master)](https://travis-ci.org/mattbasta/btype)
+
 ## A fast language for the web
 
 BType is a compiled, statically typed language for the web that doesn't get in
