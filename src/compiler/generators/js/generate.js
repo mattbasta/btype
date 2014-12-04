@@ -39,11 +39,43 @@ function makeModule(env, ENV_VARS, body) {
     ].join('\n');
 }
 
+function typeTranslate(type) {
+    console.log(type);
+    switch (type._type) {
+        case 'primitive':
+            return '/* primitive: ' + type.toString() + ' */';
+        case 'array':
+            return '/* array type: ' + type.toString() + ' */';
+        case 'slice':
+            return '/* slice type: ' + type.toString() + ' */';
+        case 'struct':
+            return [
+                'function ' + type.flatTypeName() + '() {',
+                Object.keys(type.contentsTypeMap).map(function(contentsTypeName) {
+                    return 'this.' + contentsTypeName + ' = 0';
+                }).join('\n'),
+                '}',
+            ].join('\n');
+        case 'tuple':
+            return [
+                'function ' + type.flatTypeName() + '() {',
+                '    this.data = [',
+                '    ' + type.contentsTypeArr.map(function(type) {
+                    return '0';
+                }).join('\n    '),
+                '    ];',
+                '}',
+            ].join('\n');
+        default:
+            return '/* unknown type translation for ' + type.toString() + ' */';
+    }
+}
+
 module.exports = function generate(env, ENV_VARS) {
 
-    // var body = env.types.map(typeTranslate).join('\n\n');
+    var body = env.types.map(typeTranslate).join('\n\n') + '\n';
     // body += env.included.map(jsTranslate).join('\n\n');
-    var body = env.included.map(jsTranslate).join('\n\n');
+    body += env.included.map(jsTranslate).join('\n\n');
 
     // Compile function lists
     body += '\n' + Object.keys(env.funcList).map(function(flist) {

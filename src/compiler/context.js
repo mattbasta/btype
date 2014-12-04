@@ -78,10 +78,12 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
-Context.prototype.registerType = function(givenTypeName, type) {
-    var assignedName = this.env.namer();
+Context.prototype.registerType = function(givenTypeName, type, assignedName) {
+    assignedName = assignedName || this.env.namer();
     type.__assignedName = assignedName;
     this.typeNameMap[givenTypeName] = assignedName;
+    this.typeMap[assignedName] = type;
+    this.nameMap[assignedName] = givenTypeName;
     this.env.registerType(assignedName, type);
 };
 

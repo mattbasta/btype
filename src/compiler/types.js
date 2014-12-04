@@ -23,8 +23,13 @@ function Primitive(typeName, backing) {
         }
     };
 
-    this.toString = function() {
+    this.toString = this.flatTypeName = function() {
         return typeName;
+    };
+
+    this.equals = function(x) {
+        return x instanceof Primitive &&
+            this.typeName === x.typeName;
     };
 
 }
@@ -44,6 +49,16 @@ function Array_(contentsType, length) {
         return 'array<' + contentsType.toString() + ',' + length + '>';
     };
 
+    this.flatTypeName = function() {
+        return 'array$' + contentsType.flatTypeName() + '$' + length;
+    };
+
+    this.equals = function(x) {
+        return x instanceof Array_ &&
+            this.contentsType.equals(x.contentsType) &&
+            this.length === x.length;
+    };
+
 }
 function Slice(contentsType) {
     this._type = 'slice';
@@ -60,6 +75,14 @@ function Slice(contentsType) {
         return 'slice<' + contentsType.toString() + '>';
     };
 
+    this.flatTypeName = function() {
+        return 'slice$' + contentsType.flatTypeName();
+    };
+
+    this.equals = function(x) {
+        return x instanceof Slice && this.contentsType.equals(x.contentsType);
+    };
+
 }
 function Struct(name, contentsTypeMap) {
     this.typeName = name;
@@ -72,6 +95,20 @@ function Struct(name, contentsTypeMap) {
             pointer: base,
             offset: 0
         });
+    };
+
+    this.equals = function(x) {
+        if (!(x instanceof Struct && this.typeName === x.typeName)) return false;
+        if (Object.keys(this.contentsTypeMap).length !== Object.keys(x.contentsTypeMap).length) return false;
+        for (var key in this.contentsTypeMap) {
+            if (!(key in x.contentsTypeMap)) return false;
+            if (!this.contentsTypeMap[key].equals(x.contentsTypeMap[key])) return false;
+        }
+        return true;
+    };
+
+    this.flatTypeName = function() {
+        return this.typeName;
     };
 
 }
@@ -87,11 +124,73 @@ function Tuple(contentsTypeArr) {
         });
     };
 
+    this.equals = function(x) {
+        if (!(x instanceof Tuple)) return false;
+        return this.contentsTypeArr.every(function(type, i) {
+            return type.equals(x.contentsTypeArr[i]);
+        });
+    };
+
+    this.flatTypeName = function() {
+        return 'tuple$' + this.contentsTypeArr.map(function(type) {
+            return type.flatTypeName();
+        }).join('$') + '$$';
+
+        /*
+        The final two dollar signs are important. Otherwise, nested tuples
+        could cause problems:
+            A: tuple$foo$bar
+            B: tuple$XXX$bar where XXX is type A
+        vs.
+            A: tuple$foo$bar$bar
+            B: tuple$XXX where XXX is type A
+
+        Both would otherwise be
+
+            tuple$tuple$foo$bar$bar
+
+        instead, they become
+
+            tuple$tuple$foo$bar$$bar$$
+            tuple$tuple$foo$bar$bar$$$$
+
+        respectively.
+
+        */
+    };
+
 }
 function Func(returnType, args) {
     this._type = 'func';
     this.returnType = returnType;
     this.args = args;
+
+    this.equals = function(x) {
+        if (!(x instanceof Func)) return false;
+        if (!(this.returnType ? this.returnType.equals(x.returnType) : !x.returnType)) return false;
+        if (this.args.length !== x.args.length) return false;
+        return this.args.every(function(arg, i) {
+            return arg.equals(x.args[i]);
+        });
+    };
+
+    this.toString = function() {
+        return 'func<' +
+            (this.returnType ? this.returnType.toString() : 'null') +
+            (this.args.length ? ',' + this.args.map(function(arg) {
+                return arg.toString();
+            }).join(',') : '') +
+            '>';
+    };
+
+    this.flatTypeName = function() {
+        return 'func$' +
+            (this.returnType ? this.returnType.toString() : 'null') +
+            (this.args.length ? '$' + this.args.map(function(arg) {
+                return arg.toString();
+            }).join('$') : '') +
+            '$$';
+    };
 }
 
 

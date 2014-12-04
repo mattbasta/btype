@@ -7,6 +7,8 @@ exports.newFuncCtx = function(name, contents, context) {
         resolvedContents.push(context.resolveType(varname));
     }
 
-    var funcctxType = new types.Struct('funcctx', contents);
+    var funcctxType = new types.Struct(name, contents);
     context.registerType(name, funcctxType);
+
+    return funcctxType;
 };

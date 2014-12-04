@@ -260,10 +260,10 @@ var NODES = {
         },
         getType: function(ctx) {
             var base = this.base.getType(ctx);
-            if (!(this.child in base.members)) {
+            if (!(this.child in base.contentsTypeMap)) {
                 throw new Error('Member not found for type "' + base.name + '": ' + this.child);
             }
-            return base.members[this.child].type;
+            return base.contentsTypeMap[this.child].type;
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
@@ -272,7 +272,7 @@ var NODES = {
             if (assigning) {
                 throw new Error('Not Implemented: Assignment to member expressions is not yet supported');
             }
-            return this.base.getType(ctx).members[this.child].generator(this.base.toIR(true));
+            return this.base.getType(ctx).contentsTypeMap[this.child].generator(this.base.toIR(true));
         },
         toString: function() {
             return 'Member(' + this.child + '):\n' +
@@ -382,7 +382,7 @@ var NODES = {
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
             var valueType = this.value.getType(ctx);
-            if (valueType.name !== 'func') {
+            if (valueType._type !== 'func') {
                 throw new TypeError('Cannot export non-executable objects');
             }
         },

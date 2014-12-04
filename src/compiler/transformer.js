@@ -155,6 +155,7 @@ function getFunctionContext(ctx, name) {
         __context: ctx,
         declType: wrappedType,
         identifier: name,
+        __assignedName: name,
         value: new nodes.New({
             newType: wrappedType,
             params: [],
@@ -206,8 +207,6 @@ function processFunc(rootContext, node, context) {
 
     var funcctx = getFunctionContext(context, ctxName);
     context.__funcctx = funcctx;
-    context.nameMap[ctxName] = ctxName;
-    context.typeMap[ctxName] = funcctx.declType.getType(context);
 
     var ctxMapping = funcctx.__mapping;
     node.body.unshift(funcctx);

@@ -251,7 +251,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body.length, 4, 'There should be four items in the body');
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
             assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'funcctx');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'outer$fctx');
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
@@ -303,7 +303,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body.length, 4, 'There should be four items in the body');
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
             assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
-            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'funcctx');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'outer$fctx');
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');

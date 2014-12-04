@@ -31,8 +31,8 @@ function _binop(env, ctx, prec) {
 
     var out;
     var oPrec = OP_PREC[this.operator];
-    if (this.operator === '*' && this.left.getType(ctx) instanceof types.publicTypes.int &&
-        this.right.getType(ctx) instanceof types.publicTypes.int) {
+    if (this.operator === '*' && this.left.getType(ctx) === types.publicTypes.int &&
+        this.right.getType(ctx) === types.publicTypes.int) {
         out = 'imul(' + left + ', ' + right + ')';
         oPrec = 18;
     } else {
@@ -169,11 +169,7 @@ var NODES = {
         return this.__refName;
     },
     New: function(env, ctx) {
-        var baseType = this.getType(ctx);
-        return '{' + (Object.keys(baseType.members).map(function(member) {
-            return "'" + member.replace(/('|\\)/g, "\\$&") + "':0";
-        }).join(',')) + '}';
-        throw new Error('"New" is not implemented yet.');
+        return 'new ' + this.getType(ctx).typeName + '()';
     }
 };
 
