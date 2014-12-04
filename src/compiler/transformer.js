@@ -254,6 +254,22 @@ function processFunc(rootContext, node, context) {
         }
     });
 
+    // Put initial parameter values into the context
+    context.scope.params.forEach(function(param) {
+        var assignedName = context.nameMap[param.name];
+        if (!(assignedName in ctxMapping)) return;
+        var assign = new nodes.Assignment({
+            base: getReference(assignedName),
+            value: new nodes.Symbol({
+                name: param.name,
+                __refContext: context,
+                __refType: param.getType(context),
+                __refName: assignedName,
+            }),
+        });
+        node.body.splice(1, 0, assign);
+    });
+
     // Remove lexical lookups from the context objects and add the parameter
     traverser.traverse(node, function(node) {
         if (!node || node.type !== 'Function') return false;
