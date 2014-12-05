@@ -160,6 +160,8 @@ function Tuple(contentsTypeArr) {
     };
 
 }
+
+// Func is the type of a function declaration.
 function Func(returnType, args) {
     this._type = 'func';
     this.returnType = returnType;
@@ -193,6 +195,29 @@ function Func(returnType, args) {
     };
 }
 
+// FuncRef is the type of a function reference (first-class function).
+function FuncRef(func) {
+    this._type = 'funcref';
+    this.func = func;
+
+    // These objects have two "real" members:
+    // - function reference (compile target-specific)
+    // - context reference (for lexical scope)
+
+    this.equals = function(x) {
+        if (!(x instanceof FuncRef)) return false;
+        return this.func.equals(x.func);
+    };
+
+    this.toString = function() {
+        return 'funcref<' + this.func.toString() + '>';
+    };
+
+    this.flatTypeName = function() {
+        return 'funcref$' + this.func.flatTypeName();
+    };
+}
+
 
 exports.Primitive = Primitive;
 exports.Array = Array_;
@@ -201,6 +226,7 @@ exports.Struct = Struct;
 exports.Tuple = Tuple;
 
 exports.Func = Func;
+exports.FuncRef = FuncRef;
 
 
 var public_ = exports.publicTypes = {

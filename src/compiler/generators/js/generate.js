@@ -25,8 +25,7 @@ function orderCode(body) {
 function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
-        // TODO: Make errors better.
-        'var error = function() {throw new Error("Error!")};',
+        'var error = function() {throw new Error()};',
         'var heap = new ArrayBuffer(' + (ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         'var ret = module(window, {error: error}, heap);',
         'if (ret.__init) ret.__init();',
@@ -40,7 +39,6 @@ function makeModule(env, ENV_VARS, body) {
 }
 
 function typeTranslate(type) {
-    console.log(type);
     switch (type._type) {
         case 'primitive':
             return '/* primitive: ' + type.toString() + ' */';
@@ -50,7 +48,7 @@ function typeTranslate(type) {
             return '/* slice type: ' + type.toString() + ' */';
         case 'struct':
             return [
-                'function ' + type.flatTypeName() + '() {',
+                'function ' + type.flatTypeName() + '() { /* struct */',
                 Object.keys(type.contentsTypeMap).map(function(contentsTypeName) {
                     return 'this.' + contentsTypeName + ' = 0';
                 }).join('\n'),
@@ -58,7 +56,7 @@ function typeTranslate(type) {
             ].join('\n');
         case 'tuple':
             return [
-                'function ' + type.flatTypeName() + '() {',
+                'function ' + type.flatTypeName() + '() { /* tuple */',
                 '    this.data = [',
                 '    ' + type.contentsTypeArr.map(function(type) {
                     return '0';

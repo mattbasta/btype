@@ -120,7 +120,7 @@ function wrapType(baseType) {
     return new nodes.Type({
         __type: baseType,
         traits: baseType.traits.map(wrapType),
-        name: baseType.name
+        name: baseType.name,
     });
 }
 
@@ -128,16 +128,14 @@ function getFunctionContext(ctx, name) {
     var mapping = {};
     // Find the lexical lookups in each descendant context and put them into a mapping
     traverser.traverse(ctx.scope, function(node) {
-        if (!node) return;
-        if (node.type === 'Function') {
-            if (node.sideEffectFree) return false;
+        if (!node || node.type !== 'Function') return;
+        if (node.sideEffectFree) return false;
 
-            for (var lookup in node.__context.lexicalLookups) {
-                if (lookup in mapping) continue;
-                if (node.__context.lexicalLookups[lookup] === ctx &&
-                    lookup in node.__context.lexicalModifications) {
-                    mapping[lookup] = ctx.typeMap[lookup];
-                }
+        for (var lookup in node.__context.lexicalLookups) {
+            if (lookup in mapping) continue;
+            if (node.__context.lexicalLookups[lookup] === ctx &&
+                lookup in node.__context.lexicalModifications) {
+                mapping[lookup] = ctx.typeMap[lookup];
             }
         }
     });
@@ -271,7 +269,7 @@ function processFunc(rootContext, node, context) {
 
     // Remove lexical lookups from the context objects and add the parameter
     traverser.traverse(node, function(node) {
-        if (!node || node.type !== 'Function') return false;
+        if (!node || node.type !== 'Function') return;
 
         var ctx = node.__context;
         for (var mem in ctxMapping) {
@@ -303,7 +301,7 @@ function processFunc(rootContext, node, context) {
     // Finally, find all of the calls to the functions and add the appropriate
     // new parameter.
     traverser.traverse(node, function(node) {
-        if (!node || node.type !== 'Call') return false;
+        if (!node || node.type !== 'Call') return;
         // Ignore calls to non-symbols
         if (node.callee.type !== 'Symbol') return false;
         // Ignore calls to non-functions
