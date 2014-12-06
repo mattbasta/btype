@@ -202,7 +202,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                         case 'Member':
                             return follow(node.base, called);
                         // x().y = foo;
-                        case 'Call':
+                        case 'CallRaw':
                             return follow(node.callee, true);
                     }
                     return false;

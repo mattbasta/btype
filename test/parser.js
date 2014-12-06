@@ -538,7 +538,7 @@ describe('Parser', function() {
                 'foo();',
                 _root([
                     node(
-                        'Call',
+                        'CallRaw',
                         0,
                         6,
                         {
@@ -560,7 +560,7 @@ describe('Parser', function() {
                         {
                             base: _i('x'),
                             value: node(
-                                'Call',
+                                'CallRaw',
                                 3,
                                 9,
                                 {
@@ -578,7 +578,7 @@ describe('Parser', function() {
                 'foo(x, y, bar());',
                 _root([
                     node(
-                        'Call',
+                        'CallRaw',
                         0,
                         17,
                         {
@@ -587,7 +587,7 @@ describe('Parser', function() {
                                 _i('x'),
                                 _i('y'),
                                 node(
-                                    'Call',
+                                    'CallRaw',
                                     9,
                                     15,
                                     {
@@ -606,12 +606,12 @@ describe('Parser', function() {
                 'foo()();',
                 _root([
                     node(
-                        'Call',
+                        'CallRaw',
                         0,
                         8,
                         {
                             callee: node(
-                                'Call',
+                                'CallRaw',
                                 0,
                                 5,
                                 {
@@ -911,7 +911,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'Call',
+                                'CallRaw',
                                 7,
                                 13,
                                 {
@@ -936,7 +936,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'Call',
+                                'CallRaw',
                                 5,
                                 12,
                                 {
@@ -961,7 +961,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'Call',
+                                'CallRaw',
                                 7,
                                 13,
                                 {
@@ -970,7 +970,7 @@ describe('Parser', function() {
                                 }
                             )],
                             alternate: [node(
-                                'Call',
+                                'CallRaw',
                                 21,
                                 27,
                                 {
@@ -994,7 +994,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'Call',
+                                'CallRaw',
                                 5,
                                 12,
                                 {
@@ -1003,7 +1003,7 @@ describe('Parser', function() {
                                 }
                             )],
                             alternate: [node(
-                                'Call',
+                                'CallRaw',
                                 17,
                                 24,
                                 {
@@ -1027,7 +1027,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'Call',
+                                'CallRaw',
                                 5,
                                 12,
                                 {
@@ -1042,7 +1042,7 @@ describe('Parser', function() {
                                 {
                                     condition: _i('y'),
                                     consequent: [node(
-                                        'Call',
+                                        'CallRaw',
                                         24,
                                         30,
                                         {
@@ -1072,7 +1072,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             loop: [node(
-                                'Call',
+                                'CallRaw',
                                 10,
                                 16,
                                 {
@@ -1096,7 +1096,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             loop: [node(
-                                'Call',
+                                'CallRaw',
                                 8,
                                 15,
                                 {
@@ -1123,7 +1123,7 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             loop: [node(
-                                'Call',
+                                'CallRaw',
                                 4,
                                 10,
                                 {
@@ -1186,7 +1186,7 @@ describe('Parser', function() {
                                 }
                             ),
                             loop: [node(
-                                'Call',
+                                'CallRaw',
                                 33,
                                 39,
                                 {
@@ -1229,7 +1229,7 @@ describe('Parser', function() {
                             ),
                             iteration: null,
                             loop: [node(
-                                'Call',
+                                'CallRaw',
                                 22,
                                 28,
                                 {
@@ -1272,7 +1272,7 @@ describe('Parser', function() {
                             ),
                             iteration: null,
                             loop: [node(
-                                'Call',
+                                'CallRaw',
                                 20,
                                 27,
                                 {

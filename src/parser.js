@@ -325,7 +325,7 @@ module.exports = function(tokenizer) {
         );
     }
     function parseAssignment(isExpression, base) {
-        if (base && base.type === 'Call') {
+        if (base && base.type === 'CallRaw') {
             throw new SyntaxError('Assignment to function call output');
         }
         if (!isExpression) {
@@ -372,7 +372,7 @@ module.exports = function(tokenizer) {
         var params = parseSignature(false, ')');
         var end = assert(')');
         return node(
-            'Call',
+            'CallRaw',
             base.start,
             end.end,
             {

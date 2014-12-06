@@ -255,7 +255,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
-            assert.equal(ctx.functions[0].body[2].type, 'Call', 'The third should be the call to inner');
+            assert.equal(ctx.functions[0].body[2].type, 'CallDecl', 'The third should be the call to inner');
             assert.equal(ctx.functions[0].body[2].params.length, 2);
             assert.equal(ctx.functions[0].body[2].params[1].type, 'Symbol', 'Passed param should be a reference to the context');
             assert.equal(ctx.functions[0].body[2].params[1].name, ctx.functions[0].body[0].identifier, 'Passed param should point at the context');
@@ -308,7 +308,46 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
             assert.equal(ctx.functions[0].body[1].value.name, 'mutated');
-            assert.equal(ctx.functions[0].body[2].type, 'Call', 'The third should be the call to inner');
+            assert.equal(ctx.functions[0].body[2].type, 'CallDecl', 'The third should be the call to inner');
+            assert.equal(ctx.functions[0].body[3].type, 'Return', 'The fourth should be the return');
+
+        });
+
+        it('should create function references', function() {
+            var ctx = getCtx([
+                'func int:outer(int:mutated) {',
+                '    func inner() {',
+                '        mutated = mutated + 123;',
+                '        return mutated;',
+                '    }',
+                '    return inner;',
+                '}'
+            ]);
+
+            transformer(ctx);
+
+            // Test that everything was flattened:
+
+            assert.equal(ctx.functions.length, 2, 'There should be two functions in the global scope');
+            assert.equal(ctx.functions[0].name, 'outer');
+            assert.equal(ctx.functions[1].name, 'inner');
+
+
+            assert.equal(ctx.functions[0].__context.functions.length, 0, 'The outer function should have no nested functions');
+            assert.equal(ctx.functions[1].__context.functions.length, 0, 'The inner function should have no nested functions');
+
+            // Test that the funcctx was created in the outer function:
+            assert.equal(ctx.functions[0].body.length, 4, 'There should be four items in the body');
+            assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
+            assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
+            assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'outer$fctx');
+            assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
+            assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
+            assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
+            assert.equal(ctx.functions[0].body[1].value.name, 'mutated');
+            assert.equal(ctx.functions[0].body[2].type, 'Declaration', 'The third should be the declaration of inner');
+            assert.equal(ctx.functions[0].body[2].value.type, 'FunctionReference');
+            assert.equal(ctx.functions[0].body[2].value.base.name, 'inner');
             assert.equal(ctx.functions[0].body[3].type, 'Return', 'The fourth should be the return');
 
         });

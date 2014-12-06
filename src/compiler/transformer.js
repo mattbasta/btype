@@ -32,7 +32,7 @@ function markFirstClassFunctions(context) {
 
             // Ignore symbols that are the callees of Call nodes. Calling a
             // declared function doesn't make the function first-class.
-            if (stack[0].type === 'Call' && marker === 'callee') return false;
+            if (stack[0].type === 'CallRaw' && marker === 'callee') return false;
 
             // If it's falsey, it means that it's a variable declaration of
             // type `func`, not a function declaration.
@@ -84,24 +84,6 @@ function updateSymbolReferences(funcNode, tree, rootContext, refName) {
         if (refName) {
             symbol.__refName = refName;
         }
-    });
-}
-
-function removeNode(target, tree) {
-    var stack = [tree];
-    traverser.traverse(tree, function(node, marker) {
-        if (!node) return false;
-
-        if (node === target) {
-            marker = marker || 'body';
-            stack[0][marker] = removeItem(stack[0][marker], node);
-            return false;
-        }
-
-        stack.unshift(node);
-    }, function(node) {
-        if (!node) return false;
-        stack.shift();
     });
 }
 
@@ -243,7 +225,7 @@ function processFunc(rootContext, node, context) {
                     node.start,
                     node.end,
                     {
-                        base: getReference(node.__refName),
+                        base: getReference(node.__assignedName),
                         value: node.value,
                     }
                 );
@@ -301,7 +283,7 @@ function processFunc(rootContext, node, context) {
     // Finally, find all of the calls to the functions and add the appropriate
     // new parameter.
     traverser.traverse(node, function(node) {
-        if (!node || node.type !== 'Call') return;
+        if (!node || node.type !== 'CallRaw') return;
         // Ignore calls to non-symbols
         if (node.callee.type !== 'Symbol') return false;
         // Ignore calls to non-functions
@@ -316,6 +298,80 @@ function processFunc(rootContext, node, context) {
         }));
     });
 
+    // Replace calls to function declarations with CallDecl nodes and calls to
+    // references with CallRef.
+    traverser.findAndReplace(node, function(node) {
+        if (node.type !== 'CallRaw') return;
+
+        var isDeclaration = !!context.isFuncMap[node.callee.__refName];
+        var newNodeType = nodes[isDeclaration ? 'CallDecl' : 'CallRef'];
+        return function(node) {
+            return new newNodeType(
+                node.start,
+                node.end,
+                {
+                    callee: node.callee,
+                    params: node.params,
+                }
+            );
+        };
+
+    });
+
+    // Replace first class function delcarations with variable declarations
+    for (var i = 0; i < node.body.length; i++) {
+        (function(iterNode, i) {
+            if (!iterNode || iterNode.type !== 'Function') return;
+            if (!iterNode.__firstClass) return false;
+
+            node.body.splice(
+                i,
+                1,
+                new nodes.Declaration(
+                    iterNode.start,
+                    iterNode.end,
+                    {
+                        declType: iterNode.getType(context),
+                        identifier: iterNode.name,
+                        __assignedName: iterNode.__assignedName,
+                        value: new nodes.FunctionReference({
+                            base: iterNode,
+                            ctx: new nodes.Symbol({
+                                name: ctxName,
+                                __refContext: context,
+                                __refType: ctxType,
+                                __refName: ctxName,
+                            }),
+                        }),
+                    }
+                )
+            );
+        }(node.body[i], i));
+    }
+
+    // Put function expressions into FunctionReference wrappers so that the
+    // context object can be bound at runtime.
+    traverser.findAndReplace(node, function(node) {
+        if (!node || node.type !== 'Symbol') return;
+        if (!node.__refsFirstClassFunction) return false;
+
+        return function(node) {
+            return new nodes.FunctionReference(
+                node.start,
+                node.end,
+                {
+                    base: node,
+                    ctx: new nodes.Symbol({
+                        name: ctxName,
+                        __refContext: context,
+                        __refType: ctxType,
+                        __refName: ctxName,
+                    }),
+                }
+            );
+        };
+
+    });
 
 }
 
@@ -332,7 +388,32 @@ function upliftContext(rootContext, ctx) {
     delete ctxparent.isFuncMap[node.__assignedName];
     updateSymbolReferences(node, ctxparent.scope, rootContext);
     ctxparent.accessesGlobalScope = true;
-    removeNode(node, ctxparent.scope);
+
+
+    var stack = [ctxparent.scope];
+    traverser.traverse(ctxparent.scope, function(iterNode, marker) {
+        if (!iterNode) return false;
+
+        if (iterNode === node) {
+            marker = marker || 'body';
+            if (stack[0][marker] instanceof Array) {
+                stack[0][marker] = removeItem(stack[0][marker], iterNode);
+            } else {
+                stack[0][marker] = new nodes.Symbol({
+                    name: node.name,
+                    __refContext: rootContext,
+                    __refType: node.getType(ctxparent),
+                    __refName: node.__assignedName,
+                });
+            }
+            return false;
+        }
+
+        stack.unshift(iterNode);
+    }, function(iterNode) {
+        if (!iterNode) return false;
+        stack.shift();
+    });
     rootContext.scope.body.push(node);
 
     // NOTE: We do not update `ctxparent.functionDeclarations` since it

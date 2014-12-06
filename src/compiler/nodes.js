@@ -195,7 +195,7 @@ var NODES = {
                    indentEach(this.right.toString(), 2) + '\n';
         },
     },
-    Call: {
+    CallRaw: {
         traverse: function(cb) {
             cb(this.callee, 'callee');
             this.params.forEach(oneArg(cb));
@@ -214,11 +214,11 @@ var NODES = {
             this.params.forEach(function(p) {p.validateTypes(ctx);});
 
             var base = this.callee.getType(ctx);
-            if (base.name !== 'func') {
+            if (base._type !== 'func') {
                 throw new Error('Call to non-executable type');
             }
 
-            var paramTypes = base.slice(1);
+            var paramTypes = base.args;
             if (this.params.length < paramTypes.length) {
                 throw new TypeError('Too few arguments passed to function call');
             } else if (this.params.length < paramTypes.length) {
@@ -243,12 +243,84 @@ var NODES = {
                 return irNodes.CallExpression(base);
             }
         },
+        __getName: function() {
+            return 'CallRaw';
+        },
         toString: function() {
-            return 'Call:\n' +
+            return this.__getName() + ':\n' +
                    '    Base:\n' +
                    indentEach(this.callee.toString(), 2) + '\n' +
                    '    Args:\n' +
                    indentEach(this.params.map(function(param) {return param.toString()}).join('\n'), 2) + '\n';
+        },
+    },
+    CallDecl: { // Calls a function declaration
+        traverse: function(cb) {
+            return NODES.CallRaw.traverse.call(this, cb);
+        },
+        substitute: function(cb) {
+            return NODES.CallRaw.substitute.call(this, cb);
+        },
+        getType: function(ctx) {
+            return NODES.CallRaw.getType.call(this, ctx);
+        },
+        validateTypes: function(ctx) {
+            return NODES.CallRaw.validateTypes.call(this, ctx);
+        },
+        toIR: function(ctx, isExpression) {
+            return NODES.CallRaw.toIR.call(this, ctx, isExpression);
+        },
+        __getName: function() {
+            return 'CallDecl';
+        },
+        toString: function() {
+            return NODES.CallRaw.toString.call(this);
+        },
+    },
+    CallRef: { // Calls a reference to a function
+        traverse: function(cb) {
+            return NODES.CallRaw.traverse.call(this, cb);
+        },
+        substitute: function(cb) {
+            return NODES.CallRaw.substitute.call(this, cb);
+        },
+        getType: function(ctx) {
+            return NODES.CallRaw.getType.call(this, ctx);
+        },
+        validateTypes: function(ctx) {
+            return NODES.CallRaw.validateTypes.call(this, ctx);
+        },
+        toIR: function(ctx, isExpression) {
+            throw new Error('Not Implemented');
+        },
+        __getName: function() {
+            return 'CallRef';
+        },
+        toString: function() {
+            return NODES.CallRaw.toString.call(this);
+        },
+    },
+    FunctionReference: { // Wraps a symbol pointing at a function so that it can become a reference
+        traverse: function(cb) {
+            cb(this.base, 'base');
+            cb(this.ctx, 'ctx');
+        },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
+            this.ctx = cb(this.ctx, 'ctx') || this.ctx;
+        },
+        getType: function(ctx) {
+            return this.base.getType(ctx);
+        },
+        validateTypes: function(ctx) {
+            return this.base.validateTypes(ctx);
+        },
+        toIR: function(ctx, isExpression) {
+            throw new Error('Not Implemented');
+        },
+        toString: function() {
+            return 'FunctionReference(' + this.ctx.toString() + '):\n' +
+                indentEach(this.base.toString()) + '\n';
         },
     },
     Member: {

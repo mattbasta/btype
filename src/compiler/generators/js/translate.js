@@ -67,14 +67,20 @@ var NODES = {
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
-    Call: function(env, ctx, prec) {
+    CallRaw: function() {
+        throw new Error('Unconverted CallRaw node encountered!\n' + this.toString());
+    },
+    CallDecl: function(env, ctx, prec) {
         return _node(this.callee, env, ctx, 1) +
-            '(' +
+            '(/* CallDecl */' +
             this.params.map(function(param) {
                 return _node(param, env, ctx, 18);
             }).join(',') +
             ')' +
             (!prec ? ';' : '');
+    },
+    CallRef: function() {
+        throw new Error('CallRef currently unimplemented');
     },
     Member: function(env, ctx, prec) {
         return _node(this.base, env, ctx, 1) + '.' + this.child;
