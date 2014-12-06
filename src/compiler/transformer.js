@@ -39,7 +39,7 @@ function markFirstClassFunctions(context) {
             if (!node.__refContext.isFuncMap[node.__refName]) return false;
 
             node.__refContext.functionDeclarations[node.__refName].__firstClass = true;
-            node.__refsFirstClassFunction = true;
+            // node.__refsFirstClassFunction = true;
 
             // There's nothing left to do with a symbol, so hard return.
             return false;
@@ -87,22 +87,9 @@ function updateSymbolReferences(funcNode, tree, rootContext, refName) {
     });
 }
 
-function objectSize(obj) {
-    return Object.keys(obj).length;
-}
-
 function willFunctionNeedContext(ctx) {
     return ctx.functions.some(function(func) {
         return func.__context.accessesLexicalScope;
-    });
-}
-
-function wrapType(baseType) {
-    if (!baseType) return null;
-    return new nodes.Type({
-        __type: baseType,
-        traits: baseType.traits.map(wrapType),
-        name: baseType.name,
     });
 }
 
@@ -349,30 +336,6 @@ function processFunc(rootContext, node, context) {
         }(node.body[i], i));
     }
 
-    // Put function expressions into FunctionReference wrappers so that the
-    // context object can be bound at runtime.
-    traverser.findAndReplace(node, function(node) {
-        if (!node || node.type !== 'Symbol') return;
-        if (!node.__refsFirstClassFunction) return false;
-
-        return function(node) {
-            return new nodes.FunctionReference(
-                node.start,
-                node.end,
-                {
-                    base: node,
-                    ctx: new nodes.Symbol({
-                        name: ctxName,
-                        __refContext: context,
-                        __refType: ctxType,
-                        __refName: ctxName,
-                    }),
-                }
-            );
-        };
-
-    });
-
 }
 
 function upliftContext(rootContext, ctx) {
@@ -389,8 +352,11 @@ function upliftContext(rootContext, ctx) {
     updateSymbolReferences(node, ctxparent.scope, rootContext);
     ctxparent.accessesGlobalScope = true;
 
-
+    // Replace the function itself with a symbol rather than a direct reference
+    // or nothing if it is defined as a declaration.
     var stack = [ctxparent.scope];
+    var newName;
+    var oldName = node.__assignedName;
     traverser.traverse(ctxparent.scope, function(iterNode, marker) {
         if (!iterNode) return false;
 
@@ -399,11 +365,12 @@ function upliftContext(rootContext, ctx) {
             if (stack[0][marker] instanceof Array) {
                 stack[0][marker] = removeItem(stack[0][marker], iterNode);
             } else {
+                newName = node.__assignedName = ctx.env.namer();
                 stack[0][marker] = new nodes.Symbol({
                     name: node.name,
                     __refContext: rootContext,
                     __refType: node.getType(ctxparent),
-                    __refName: node.__assignedName,
+                    __refName: newName,
                 });
             }
             return false;
@@ -414,6 +381,18 @@ function upliftContext(rootContext, ctx) {
         if (!iterNode) return false;
         stack.shift();
     });
+
+    // If we gave the function a new name to prevent collisions with local
+    // variables, we need to update CallDecl nodes that point at the old name.
+    if (newName) {
+        traverser.traverse(ctxparent.scope, function(iterNode, marker) {
+            if (!iterNode || iterNode.type !== 'CallDecl') return;
+            if (iterNode.callee.type !== 'Symbol') return;
+            if (iterNode.callee.__refName !== oldName) return;
+
+            iterNode.callee.__refName = newName;
+        });
+    }
     rootContext.scope.body.push(node);
 
     // NOTE: We do not update `ctxparent.functionDeclarations` since it

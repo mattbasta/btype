@@ -255,6 +255,7 @@ var NODES = {
         },
     },
     CallDecl: { // Calls a function declaration
+        // TODO: Roll the symbol in `callee` into this node?
         traverse: function(cb) {
             return NODES.CallRaw.traverse.call(this, cb);
         },

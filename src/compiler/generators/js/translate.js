@@ -82,6 +82,9 @@ var NODES = {
     CallRef: function() {
         throw new Error('CallRef currently unimplemented');
     },
+    FunctionReference: function(env, ctx, prec) {
+        return '{func:' + _node(this.base, env, ctx, 1) + ',ctx:' + _node(this.ctx, env, ctx) + '}';
+    },
     Member: function(env, ctx, prec) {
         return _node(this.base, env, ctx, 1) + '.' + this.child;
     },
