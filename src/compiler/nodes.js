@@ -1,5 +1,4 @@
 var types = require('./types');
-var irNodes = require('./generators/nodes');
 
 var Type = types.Type;
 
@@ -11,13 +10,6 @@ function binop_traverser(cb) {
 function binop_substitution(cb) {
     this.left = cb(this.left, 'left') || this.left;
     this.right = cb(this.right, 'right') || this.right;
-}
-function binop_toIR(ctx, isExpression) {
-    return irNodes.Binop({
-        operator: this.operator,
-        left: this.left.toIR(ctx, true),
-        right: this.right.toIR(ctx, true)
-    });
 }
 function loop_traverser(cb) {
     cb(this.condition, 'condition');
@@ -70,13 +62,6 @@ var NODES = {
                 stmt.validateTypes(ctx);
             });
         },
-        toIR: function(ctx) {
-            return irNodes.StatementList({
-                body: this.body.map(function(stmt) {
-                    return stmt.toIR(ctx, false);
-                })
-            });
-        },
         toString: function() {
             return 'Root:\n' + indentEach(this.body.map(function(stmt) {
                 return stmt.toString();
@@ -102,12 +87,6 @@ var NODES = {
                 }
             }
         },
-        toIR: function(ctx) {
-            return node = irNodes.Unaryop({
-                operator: this.operator,
-                value: this.base.toIR(ctx, true)
-            });
-        },
         toString: function() {
             return 'Unary(' + this.operator + '): ' + this.base.toString() + '\n';
         },
@@ -120,7 +99,6 @@ var NODES = {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
         },
-        toIR: binop_toIR,
         toString: function() {
             return 'LogicalBinop(' + this.operator + '):\n' +
                    '    Left:\n' +
@@ -140,7 +118,6 @@ var NODES = {
                 throw new TypeError('Equality operations may only be performed against same types');
             }
         },
-        toIR: binop_toIR,
         toString: function() {
             return 'EqualityBinop(' + this.operator + '):\n' +
                    '    Left:\n' +
@@ -160,7 +137,6 @@ var NODES = {
                 throw new TypeError('Comparison operations may only be performed against same types');
             }
         },
-        toIR: binop_toIR,
         toString: function() {
             return 'RelativeBinop(' + this.operator + '):\n' +
                    '    Left:\n' +
@@ -186,7 +162,6 @@ var NODES = {
                 throw new TypeError('Mismatched types in binop');
             }
         },
-        toIR: binop_toIR,
         toString: function() {
             return 'Binop(' + this.operator + '):\n' +
                    '    Left:\n' +
@@ -230,19 +205,6 @@ var NODES = {
                 }
             }
         },
-        toIR: function(ctx, isExpression) {
-            var base = {
-                callee: this.callee.toIR(ctx, true),
-                params: this.params.map(function(param) {
-                    return param.toIR(ctx, true)
-                })
-            };
-            if (!isExpression) {
-                return irNodes.Call(base);
-            } else {
-                return irNodes.CallExpression(base);
-            }
-        },
         __getName: function() {
             return 'CallRaw';
         },
@@ -268,9 +230,6 @@ var NODES = {
         validateTypes: function(ctx) {
             return NODES.CallRaw.validateTypes.call(this, ctx);
         },
-        toIR: function(ctx, isExpression) {
-            return NODES.CallRaw.toIR.call(this, ctx, isExpression);
-        },
         __getName: function() {
             return 'CallDecl';
         },
@@ -290,9 +249,6 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             return NODES.CallRaw.validateTypes.call(this, ctx);
-        },
-        toIR: function(ctx, isExpression) {
-            throw new Error('Not Implemented');
         },
         __getName: function() {
             return 'CallRef';
@@ -316,9 +272,6 @@ var NODES = {
         validateTypes: function(ctx) {
             return this.base.validateTypes(ctx);
         },
-        toIR: function(ctx, isExpression) {
-            throw new Error('Not Implemented');
-        },
         toString: function() {
             return 'FunctionReference(' + this.ctx.toString() + '):\n' +
                 indentEach(this.base.toString()) + '\n';
@@ -340,12 +293,6 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             this.base.validateTypes(ctx);
-        },
-        toIR: function(ctx, isExpression, assigning) {
-            if (assigning) {
-                throw new Error('Not Implemented: Assignment to member expressions is not yet supported');
-            }
-            return this.base.getType(ctx).contentsTypeMap[this.child].generator(this.base.toIR(true));
         },
         toString: function() {
             return 'Member(' + this.child + '):\n' +
@@ -370,18 +317,6 @@ var NODES = {
             if (!baseType.equals(this.value.getType(ctx))) {
                 throw new TypeError('Mismatched types in assignment');
             }
-        },
-        toIR: function(ctx, isExpression) {
-            if (this.base.type === 'Symbol') {
-                return irNodes.Assignment({
-                    name: this.base.__refName,
-                    value: this.value.toIR(ctx, true)
-                });
-
-            } else if (this.base.type === 'Member') {
-                return this.base.toIR(ctx, false, this.value.toIR(ctx, true));
-            }
-            throw new Error('Unexpected IR requested');
         },
         toString: function() {
             return 'Assignment:\n' +

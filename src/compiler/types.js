@@ -1,9 +1,4 @@
 var nodes = require('./nodes');
-var generatorNodes = require('./generators/nodes');
-
-var Literal = generatorNodes.Literal;
-var HeapLookup = generatorNodes.HeapLookup;
-var Binop = generatorNodes.Binop;
 
 
 function Primitive(typeName, backing) {
