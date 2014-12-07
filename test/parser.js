@@ -473,6 +473,7 @@ describe('Parser', function() {
                 ])
             );
         });
+
         it('should parse basic declarations', function() {
             compareTree(
                 'var x = y;',
@@ -517,6 +518,25 @@ describe('Parser', function() {
                         17,
                         {
                             declType: _type('func', [null]),
+                            identifier: 'x',
+                            value: _i('y')
+                        }
+                    )
+                ])
+            );
+        });
+
+
+        it('should parse basic constant declarations', function() {
+            compareTree(
+                'const x = y;',
+                _root([
+                    node(
+                        'ConstDeclaration',
+                        0,
+                        12,
+                        {
+                            declType: null,
                             identifier: 'x',
                             value: _i('y')
                         }

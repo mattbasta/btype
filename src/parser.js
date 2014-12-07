@@ -300,7 +300,7 @@ module.exports = function(tokenizer) {
             }
         );
     }
-    function parseDeclaration(type, start) {
+    function parseDeclaration(type, start, isConst) {
         var origType = type;
         if (type && type.type !== 'Type') {
             type = parseType(type);
@@ -314,7 +314,7 @@ module.exports = function(tokenizer) {
         var value = parseExpression();
         var end = assert(';');
         return node(
-            'Declaration',
+            isConst ? 'ConstDeclaration' : 'Declaration',
             type ? type.start : start,
             end.end,
             {
@@ -330,8 +330,11 @@ module.exports = function(tokenizer) {
         }
         if (!isExpression) {
             var start;
+            var isConst = false;
             if (start = accept('var')) {
-                return parseDeclaration(null, start.start);
+                return parseDeclaration(null, start.start, false);
+            } else if (start = accept('const')) {
+                return parseDeclaration(null, start.start, true);
             }
             base = accept('identifier');
             if (base && accept(':')) {

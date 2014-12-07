@@ -44,6 +44,7 @@ var tokens = [
     [/^:/, ':'],  // For `case` and types
     [/^!/, '!'],
 
+    [/^const(?!\w)/, 'const'],
     [/^var(?!\w)/, 'var'],
     [/^as(?!\w)/, 'as'],
     [/^switch(?!\w)/, 'switch'],

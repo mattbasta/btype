@@ -1,5 +1,4 @@
 var function_contexts = require('./function_contexts');
-var generatorNodes = require('./generators/nodes');
 var nodes = require('./nodes');
 var traverser = require('./traverser');
 var types = require('./types');

@@ -421,6 +421,27 @@ var NODES = {
                    indentEach(this.value.toString(), 2) + '\n';
         },
     },
+    ConstDeclaration: {
+        traverse: function(cb) {
+            return NODES.Declaration.traverse.call(this, cb);
+        },
+        substitute: function(cb) {
+            return NODES.Declaration.substitute.call(this, cb);
+        },
+        getType: function(ctx) {
+            return NODES.Declaration.getType.call(this, ctx);
+        },
+        validateTypes: function(ctx) {
+            var valueType = this.value.getType(ctx);
+            if (valueType._type !== 'primitive') {
+                throw new TypeError('Cannot assign non-primitive values to constants');
+            }
+            return NODES.Declaration.validateTypes.call(this, ctx);
+        },
+        toString: function() {
+            return 'Const' + NODES.Declaration.toString.call(this);
+        },
+    },
     Return: {
         traverse: function(cb) {
             if (this.value)

@@ -94,6 +94,9 @@ var NODES = {
     Declaration: function(env, ctx, prec) {
         return 'var ' + this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
     },
+    ConstDeclaration: function() {
+        return NODES.Declaration.apply(this, arguments);
+    },
     Return: function(env, ctx, prec) {
         return 'return ' + _node(this.value, env, ctx, 1) + ';';
     },
