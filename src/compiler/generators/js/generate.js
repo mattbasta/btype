@@ -1,9 +1,7 @@
 var fs = require('fs');
 
-var esprima = require('esprima');
-var escodegen = require('escodegen');
-
 var jsTranslate = require('./translate');
+var postOptimizer = require('./postOptimizer');
 
 
 function compileIncludes(env, ENV_VARS) {
@@ -14,13 +12,6 @@ function compileIncludes(env, ENV_VARS) {
     }).join('\n');
 }
 
-function orderCode(body) {
-    var parsed = esprima.parse(body);
-
-    console.log(Object.keys(parsed));
-
-    return escodegen.generate(parsed);
-}
 
 function makeModule(env, ENV_VARS, body) {
     return [
@@ -85,8 +76,7 @@ module.exports = function generate(env, ENV_VARS) {
         return '        ' + e + ': ' + env.requested.exports[e];
     }).join(';\n    ') + '\n    };';
 
-    // TODO: Write a sorting function to convert the generated JS into properly
-    // ordered asm.js using esprima and escodegen
+    body = postOptimizer.optimize(body);
 
     return makeModule(env, ENV_VARS, body);
 };

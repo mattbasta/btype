@@ -106,6 +106,14 @@ function Struct(name, contentsTypeMap) {
         return this.typeName;
     };
 
+    this.hasMember = function(name) {
+        return name in this.contentsTypeMap;
+    };
+
+    this.getMemberType = function(name) {
+        return this.contentsTypeMap[name];
+    };
+
 }
 function Tuple(contentsTypeArr) {
     this._type = 'tuple';
@@ -195,8 +203,32 @@ exports.Array = Array_;
 exports.Slice = Slice;
 exports.Struct = Struct;
 exports.Tuple = Tuple;
-
 exports.Func = Func;
+
+function Module(mod) {
+    this._type = 'module';
+    this.mod = mod;
+    this.memberMapping = mod.exports;
+
+    this.equals = function(x) {
+        return false; // Modules do not have type equality.
+    };
+
+    this.flatTypeName = this.toString = this.flatTypeName = function() {
+        return 'module';
+    };
+
+    this.hasMember = function(name) {
+        return name in this.memberMapping;
+    };
+
+    this.getMemberType = function(name) {
+        return mod.typeMap[this.memberMapping[name]];
+    };
+
+}
+
+exports.Module = Module;
 
 
 var public_ = exports.publicTypes = {

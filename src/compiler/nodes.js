@@ -189,6 +189,12 @@ var NODES = {
             this.params.forEach(function(p) {p.validateTypes(ctx);});
 
             var base = this.callee.getType(ctx);
+
+            // Ignore type checking on external (foreign) functions.
+            if (base._type === '_stdlib') {
+                return;
+            }
+
             if (base._type !== 'func') {
                 throw new Error('Call to non-executable type');
             }
@@ -285,13 +291,17 @@ var NODES = {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
-            var base = this.base.getType(ctx);
-            if (!(this.child in base.contentsTypeMap)) {
-                throw new Error('Member not found for type "' + base.name + '": ' + this.child);
+            var baseType = this.base.getType(ctx);
+            if (!baseType.hasMember(this.child)) {
+                throw new Error('Member not found for type "' + baseType.toString() + '": ' + this.child);
             }
-            return base.contentsTypeMap[this.child].type;
+            return baseType.getMemberType(this.child);
         },
         validateTypes: function(ctx) {
+            var baseType = this.base.getType(ctx);
+            if (!baseType.hasMember(this.child)) {
+                throw new TypeError('Requesting incompatible member (' + this.child + ') from type');
+            }
             this.base.validateTypes(ctx);
         },
         toString: function() {
@@ -314,8 +324,9 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             var baseType = this.base.getType(ctx);
-            if (!baseType.equals(this.value.getType(ctx))) {
-                throw new TypeError('Mismatched types in assignment');
+            var valueType = this.value.getType(ctx);
+            if (!baseType.equals(valueType)) {
+                throw new TypeError('Mismatched types in assignment: ' + baseType.toString() + ' != ' + valueType.toString());
             }
         },
         toString: function() {
@@ -428,18 +439,20 @@ var NODES = {
         },
         substitute: function() {},
         validateTypes: function(ctx) {
-            this.base.validateTypes(ctx);
-            if (this.member) this.member.validateTypes(ctx);
-            if (this.alias) this.alias.validateTypes(ctx);
+            // this.base.validateTypes(ctx);
+            // if (this.member) this.member.validateTypes(ctx);
+            // if (this.alias) this.alias.validateTypes(ctx);
         },
         toString: function() {
             return 'Import:\n' +
                    '    Base:\n' +
                    indentEach(this.base.toString(), 2) + '\n' +
-                   '    Member:\n' +
-                   indentEach(this.member.toString(), 2) + '\n' +
-                   '    Alias:\n' +
-                   indentEach(this.alias.toString(), 2) + '\n';
+                   (this.member ?
+                    '    Member:\n' +
+                    indentEach(this.member.toString(), 2) + '\n' : '') +
+                   (this.alias ?
+                    '    Alias:\n' +
+                    indentEach(this.alias.toString(), 2) + '\n' : '');
         },
     },
     For: {
@@ -532,7 +545,7 @@ var NODES = {
         toString: function() {
             return 'If:\n' +
                    '    Condition:\n' +
-                   indentEach(this.condition, 2) + '\n' +
+                   indentEach(this.condition.toString(), 2) + '\n' +
                    '    Consequent:\n' +
                    indentEach(this.consequent.map(function(stmt) {return stmt.toString()}).join('\n'), 2) +
                    (!this.alternate ? '' :

@@ -67,8 +67,13 @@ var NODES = {
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
-    CallRaw: function() {
-        throw new Error('Unconverted CallRaw node encountered!\n' + this.toString());
+    CallRaw: function(env, ctx, prec) {
+        return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
+            this.params.map(function(param) {
+                return _node(param, env, ctx, 18);
+            }).join(',') +
+            ')' +
+            (!prec ? ';' : '');
     },
     CallDecl: function(env, ctx, prec) {
         return _node(this.callee, env, ctx, 1) +
@@ -79,14 +84,31 @@ var NODES = {
             ')' +
             (!prec ? ';' : '');
     },
-    CallRef: function() {
-        throw new Error('CallRef currently unimplemented');
+    CallRef: function(env, ctx, prec) {
+        return _node(this.callee, env, ctx, 1) +
+            '.func(/* CallRef */' +
+            this.params.map(function(param) {
+                return _node(param, env, ctx, 18);
+            }).join(',') +
+            ')' +
+            (!prec ? ';' : '');
     },
     FunctionReference: function(env, ctx, prec) {
         return '{func:' + _node(this.base, env, ctx, 1) + ',ctx:' + _node(this.ctx, env, ctx) + '}';
     },
     Member: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1) + '.' + this.child;
+        var baseType = this.base.getType(ctx);
+        if (baseType._type === 'module') {
+            return baseType.memberMapping[this.child];
+        }
+
+        var base;
+        if (baseType._type === '_stdlib') {
+            base = 'stdlib';
+        } else {
+            base = _node(this.base, env, ctx, 1);
+        }
+        return base + '.' + this.child;
     },
     Assignment: function(env, ctx, prec) {
         return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1) + ';';

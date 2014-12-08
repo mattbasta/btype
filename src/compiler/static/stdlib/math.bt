@@ -1,15 +1,18 @@
 import foreign;
 
 
+func float:fabs(float:i) {
+    if (i < 0.0) {
+        i = i * -1;
+    }
+    return i;
+}
+export fabs;
+
 func int:iabs(int:i) {
     return foreign.Math.abs(i);
 }
 export iabs;
-
-func float:fabs(float:i) {
-    return foreign.Math.abs(i);
-}
-export fabs;
 
 
 # Trig functions
@@ -92,19 +95,35 @@ export pow;
 
 
 # Constants
-var PI = 3.141592653589793;
+func float:PI() {
+    return 3.141592653589793;
+}
 export PI;
-var E = 2.718281828459045;
+func float:E() {
+    return 2.718281828459045;
+}
 export E;
-var LN10 = 2.302585092994046;
+func float:LN10() {
+    return 2.302585092994046;
+}
 export LN10;
-var LN2 = 0.6931471805599453;
+func float:LN2() {
+    return 0.6931471805599453;
+}
 export LN2;
-var LN10E = 0.4342944819032518;
+func float:LN10E() {
+    return 0.4342944819032518;
+}
 export LN10E;
-var LN2E = 1.4426950408889634;
+func float:LN2E() {
+    return 1.4426950408889634;
+}
 export LN2E;
-var SQRT1_2 = 0.7071067811865476;
+func float:SQRT1_2() {
+    return 0.7071067811865476;
+}
 export SQRT1_2;
-var SQRT2 = 1.4142135623730951;
+func float:SQRT2() {
+    return 1.4142135623730951;
+}
 export SQRT2;

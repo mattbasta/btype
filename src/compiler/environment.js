@@ -4,6 +4,7 @@ var util = require('util');
 
 var context = require('./context');
 var nodes = require('./nodes');
+var specialModules = require('./specialModules/__directory');
 var transformer = require('./transformer');
 var types = require('./types');
 
@@ -53,12 +54,10 @@ Environment.prototype.loadFile = function(filename, tree) {
     }
 
     var ctx = context(this, tree, filename);
-
     // Perform simple inline type checking.
     tree.validateTypes(ctx);
 
     transformer(ctx);
-
 
     this.addContext(ctx);
     this.moduleCache[filename] = ctx;
@@ -66,38 +65,43 @@ Environment.prototype.loadFile = function(filename, tree) {
 };
 
 Environment.prototype.import = function(importNode, requestingContext) {
-    // TODO: Add some sort of system to resolve stdlib imports with the same
-    // name
-
-    var baseDir = path.dirname(requestingContext.filename);
 
     var target;
+
     // TODO: Make this handle multiple levels of nesting.
+    var baseDir = path.dirname(requestingContext.filename);
+    target = path.resolve(baseDir, importNode.base);
     if (importNode.member) {
-        target = path.resolve(baseDir, importNode.base, importNode.member);
-    } else {
-        target = path.resolve(baseDir, importNode.base);
+        target = path.resolve(target, importNode.member);
     }
     target += '.bt';
 
+    // Test to see whether the file exists in the project
     if (!fs.existsSync(target)) {
-        throw new Error('Could not find imported module: ' + target);
+        // If not, try for the stdlib.
+        target = path.resolve(__dirname, 'static', 'stdlib', importNode.base);
+        if (importNode.member) {
+            target = path.resolve(target, importNode.member);
+        }
+        target += '.bt';
     }
 
-    var importedContext = this.loadFile(target);
+    // Test to see whether the file exists in the stdlib
+    if (!fs.existsSync(target)) {
+        // Handle the case of special modules
+        if (!importNode.member && specialModules.isSpecialModule(importNode.base)) {
+            var mod = specialModules.getConstructor(importNode.base).get(this);
+            return this.moduleTypeMap[target] = new types.Module(mod);
+        }
+        throw new Error('Could not find imported module: ' + target);
+    }
 
     if (target in this.moduleTypeMap) {
         return this.moduleTypeMap[target];
     }
 
-    var ret = types.lookupName(null, '_module', []);
-    var moduleType = {
-        extend: ret,
-        memberTypes: importedContext.exports
-    }
-    this.moduleTypeMap[target] = moduleType;
-    // TODO: fill out ret.members
-    return ret;
+    var importedContext = this.loadFile(target);
+    return this.moduleTypeMap[target] = new types.Module(importedContext);
 };
 
 Environment.prototype.addModule = function(module, context) {

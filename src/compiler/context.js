@@ -100,6 +100,9 @@ Context.prototype.resolveType = function(typeName) {
 
 module.exports = function generateContext(env, tree, filename, rootContext) {
     rootContext = rootContext || new Context(env, tree);
+    if (filename) {
+        rootContext.filename = filename;
+    }
     var contexts = [rootContext];
 
     // This is used to keep track of nested functions so that they can be
@@ -117,7 +120,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
         switch (node.type) {
             case 'Import':
                 var imp = env.import(node, rootContext);
-                contexts[0].addVar(node.alias ? node.alias.name : node.base, imp.getType(contexts[0]));
+                contexts[0].addVar(node.alias ? node.alias.name : node.base, imp);
                 return;
 
             case 'Function':
@@ -231,3 +234,4 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
     return rootContext;
 };
+module.exports.Context = Context;
