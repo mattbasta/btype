@@ -18,7 +18,7 @@ function makeModule(env, ENV_VARS, body) {
         '(function(module) {',
         'var error = function() {throw new Error()};',
         'var heap = new ArrayBuffer(' + (ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
-        'var ret = module(window, {error: error}, heap);',
+        'var ret = module(this, {error: error}, heap);',
         'if (ret.__init) ret.__init();',
         'return ret;',
         '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign, heap) {',

@@ -290,6 +290,11 @@ function processFunc(rootContext, node, context) {
         if (node.type !== 'CallRaw') return;
 
         var isDeclaration = !!context.isFuncMap[node.callee.__refName];
+        if (!isDeclaration &&
+            node.callee.type === 'Member' &&
+            node.callee.base.getType(context)._type === 'module') {
+            isDeclaration = true;
+        }
         var newNodeType = nodes[isDeclaration ? 'CallDecl' : 'CallRef'];
         return function(node) {
             return new newNodeType(

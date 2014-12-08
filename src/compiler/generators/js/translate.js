@@ -85,6 +85,8 @@ var NODES = {
             (!prec ? ';' : '');
     },
     CallRef: function(env, ctx, prec) {
+        // FIXME: This doesn't pass the context because outputting the callee
+        // twice can cause unwanted side effects
         return _node(this.callee, env, ctx, 1) +
             '.func(/* CallRef */' +
             this.params.map(function(param) {
@@ -104,7 +106,7 @@ var NODES = {
 
         var base;
         if (baseType._type === '_stdlib') {
-            base = 'stdlib';
+            base = 'stdlib.' + baseType.name;
         } else {
             base = _node(this.base, env, ctx, 1);
         }

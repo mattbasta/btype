@@ -21,8 +21,9 @@ var MathRaw = [
     'func float:pow(float:y, float:x) {}',
 ].join('\n');
 
-function StdlibType(env, raw) {
+function StdlibType(env, name, raw) {
     this._type = '_stdlib';
+    this.name = name;
 
     var raw = context(env, parser(lexer(raw)));
 
@@ -67,7 +68,7 @@ function ForeignType() {
 exports.get = function(env) {
     var ctx = new context.Context(env, new nodes.Root({body: []}));
 
-    ctx.exports.Math = ctx.addVar('Math', new StdlibType(env, MathRaw));
+    ctx.exports.Math = ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw));
 
     return ctx;
 };
