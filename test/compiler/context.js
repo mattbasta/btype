@@ -23,32 +23,34 @@ describe('context', function() {
             var env = {
                 import: function(node) {
                     assert.equal(node.base, 'foo', '`foo` should be imported.');
-                    return {
-                        getType: function() {return {test: 'bar'};}
-                    };
+                    return new types.Module({
+                        exports: {'exportedMember': '$bar'},
+                        typeMap: {'$bar': types.publicTypes.int},
+                    });
                 },
                 namer: namer()
             };
             var ctx = context(env, parse([
                 'import foo;'
             ]));
-            assert.equal(ctx.typeMap[ctx.nameMap['foo']].test, 'bar', 'Import should have been assigned the proper type');
+            assert.equal(ctx.typeMap[ctx.nameMap['foo']].getMemberType('exportedMember'), types.publicTypes.int);
         });
 
         it('should import from the environment with an alias', function() {
             var env = {
                 import: function(node) {
                     assert.equal(node.base, 'foo', '`foo` should be imported.');
-                    return {
-                        getType: function() {return {test: 'bar'};}
-                    };
+                    return new types.Module({
+                        exports: {'exportedMember': '$bar'},
+                        typeMap: {'$bar': types.publicTypes.int},
+                    });
                 },
                 namer: namer()
             };
             var ctx = context(env, parse([
                 'import foo as zip;'
             ]));
-            assert.equal(ctx.typeMap[ctx.nameMap['zip']].test, 'bar', 'Import should have been assigned the proper type');
+            assert.equal(ctx.typeMap[ctx.nameMap['zip']].getMemberType('exportedMember'), types.publicTypes.int);
         });
     });
 
