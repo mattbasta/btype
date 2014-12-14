@@ -6,5 +6,7 @@ module.exports = function(filename, tree) {
     var ctx = env.loadFile(filename, tree);
     env.markRequested(ctx);
 
-    console.log(env.make('js'));
+    var output = env.make('asmjs');
+    console.log(output);
+    return output;
 };

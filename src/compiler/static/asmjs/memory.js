@@ -7,8 +7,6 @@ var intheap = new stdlib.Int32Array(heap);
 // Heap object for storing floating point data.
 var floatheap = new stdlib.Float64Array(heap);
 
-var HEAP_SIZE = $HEAP_SIZE$;
-
 /*
 Memory is managed in a buddy system. The heap starts out as one contiguous
 block of memory and is continuously divided down until the memory is in 32 byte
@@ -22,11 +20,11 @@ One unit of memory:
 
 */
 
-/*
-* @param uint index Pointer to the heap memory being used
-* @param uint bit (0 or 1) The bit being requested
-* @returns uint (0 or 1) Value of the bit
-*/
+/**
+ * @param uint index Pointer to the heap memory being used
+ * @param uint bit (0 or 1) The bit being requested
+ * @returns uint (0 or 1) Value of the bit
+ */
 function _malloc_lookup(index, bit) {
     index = index | 0;
     bit = bit | 0;
@@ -51,11 +49,11 @@ function _malloc_lookup(index, bit) {
     return 0;
 }
 
-/*
-* @param uint index Pointer to the heap memory being set
-* @param uint bit (0 or 1) The bit being set
-* @returns void
-*/
+/**
+ * @param uint index Pointer to the heap memory being set
+ * @param uint bit (0 or 1) The bit being set
+ * @returns void
+ */
 function _malloc_toggle(index, bit) {
     index = index | 0;
     bit = bit | 0;
@@ -144,10 +142,10 @@ function _malloc_search(pointer, pairSize, requestedSize, midpoint) {
     return 0;
 }
 
-/*
-* @param uint bytes Number of bytes to allocate
-* @returns uint Pointer to location of allocated memory
-*/
+/**
+ * @param uint bytes Number of bytes to allocate
+ * @returns uint Pointer to location of allocated memory
+ */
 function malloc(bytes) {
     bytes = bytes | 0;  // Cast to int
 
@@ -159,10 +157,10 @@ function malloc(bytes) {
     return _malloc_search(halfHeap, HEAP_SIZE, bytes, midpoint) | 0;
 }
 
-/*
-* @param int pointer A pointer to the memory location to be freed.
-* @returns void
-*/
+/**
+ * @param int pointer A pointer to the memory location to be freed.
+ * @returns void
+ */
 function free(pointer) {
     pointer = pointer | 0;  // Cast to int
 

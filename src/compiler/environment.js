@@ -41,7 +41,10 @@ function Environment(name) {
     this.moduleCache = {};
 
     this.funcListMapping = {};  // Mapping of func types to func list assigned names
+
     this.funcList = {};  // Mapping of func list assigned names to arrays of func assigned names
+    this.funcListTypeMap = {};  // Mapping of serialized func types to names of func lists
+    this.funcListReverseTypeMap = {};  // Mapping of func list assigned names to func types
 }
 
 Environment.prototype.loadFile = function(filename, tree) {
@@ -127,7 +130,13 @@ Environment.prototype.markRequested = function(context) {
 
 Environment.prototype.getFuncListName = function(funcType) {
     var fts = funcType.toString();
-    return this.funcListMapping[fts] || (this.funcListMapping[fts] = this.namer());
+    if (!(fts in this.funcListTypeMap)) {
+        console.log(fts);
+        var name = this.funcListTypeMap[fts] = this.namer();
+        this.funcListReverseTypeMap[name] = funcType;
+        this.funcList[name] = [];
+    }
+    return this.funcListTypeMap[fts];
 };
 
 Environment.prototype.registerFunc = function(funcNode) {

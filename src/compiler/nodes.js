@@ -352,9 +352,10 @@ var NODES = {
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
             if (!this.declType) return;
+            var declType = this.declType.getType(ctx);
             var valueType = this.value.getType(ctx);
-            if (!valueType.equals(this.declType)) {
-                throw new TypeError('Mismatched types in declaration');
+            if (!valueType.equals(declType)) {
+                throw new TypeError('Mismatched types in declaration: ' + declType.toString() + ' != ' + valueType.toString());
             }
         },
         toString: function() {
@@ -567,6 +568,9 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
+            if (this.__originalType) {
+                return this.__originalType;
+            }
             var returnType = this.returnType ? this.returnType.getType(ctx) : null;
             return new types.Func(
                 returnType,

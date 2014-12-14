@@ -12,8 +12,9 @@ function Primitive(typeName, backing) {
             case 'uint':
                 return 4;
             case 'byte':
+            case 'bool':
                 return 1;
-            case 'float64':
+            case 'float':
                 return 8;
         }
     };
@@ -80,16 +81,37 @@ function Slice(contentsType) {
 
 }
 function Struct(name, contentsTypeMap) {
-    this.typeName = name;
     this._type = 'struct';
+    this.typeName = name;
     this.contentsTypeMap = contentsTypeMap;
 
-    this.resolve = function(pointer) {
-        return HeapLookup({
-            heap: 'ptrheap',
-            pointer: base,
-            offset: 0
+    function getLayout() {
+        var keys = Object.keys(contentsTypeMap);
+        keys.sort(function(a, b) {
+            return contentsTypeMap[a].getSize() > contentsTypeMap[b].getSize();
         });
+        return keys;
+    }
+
+    this.getLayout = function() {
+        // TODO: Add caching to this function
+        var layout = getLayout();
+        var offsets = {};
+        var i = 0;
+        layout.forEach(function(key) {
+            var size = contentsTypeMap[key].getSize();
+            offsets[key] = size;
+            i += size;
+        });
+        return offsets;
+    };
+
+    this.getSize = function() {
+        var sum = 0;
+        for (var key in this.contentsTypeMap) {
+            sum += this.contentsTypeMap[key].getSize();
+        }
+        return sum;
     };
 
     this.equals = function(x) {

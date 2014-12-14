@@ -66,7 +66,7 @@ function removeElement(obj, val) {
     return out;
 }
 
-function updateSymbolReferences(funcNode, tree, rootContext, refName) {
+function updateSymbolReferences(funcNode, tree, rootContext, refType) {
     var targetContext = funcNode.__context.parent;
     traverser.findAll(tree, function(node) {
         if (!node) return false;
@@ -79,9 +79,9 @@ function updateSymbolReferences(funcNode, tree, rootContext, refName) {
     }).forEach(function(symbol) {
         // Update the symbol's reference context to the root context.
         symbol.__refContext = rootContext;
-        // If one is provided, do the same for the refName
-        if (refName) {
-            symbol.__refName = refName;
+        // If one is provided, do the same for the refType
+        if (refType) {
+            symbol.__refType = refType;
         }
     });
 }
@@ -239,6 +239,10 @@ function processFunc(rootContext, node, context) {
     traverser.traverse(node, function(node) {
         if (!node || node.type !== 'Function') return;
 
+        if (!node.__originalType) {
+            node.__originalType = node.getType(node.__context);
+        }
+
         var ctx = node.__context;
         for (var mem in ctxMapping) {
             if (!(mem in ctx.lexicalLookups)) return; // Ignore lexical lookups not in this scope
@@ -353,7 +357,7 @@ function upliftContext(rootContext, ctx) {
     delete ctxparent.nameMap[node.name];
     delete ctxparent.typeMap[node.__assignedName];
     delete ctxparent.isFuncMap[node.__assignedName];
-    updateSymbolReferences(node, ctxparent.scope, rootContext);
+    updateSymbolReferences(node, ctxparent.scope, rootContext, node.getType(rootContext));
     ctxparent.accessesGlobalScope = true;
 
     // Replace the function itself with a symbol rather than a direct reference

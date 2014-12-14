@@ -1,6 +1,7 @@
 var esprima = require('esprima');
 var escodegen = require('escodegen');
 
+
 function traverse(node, cb, after) {
     cb(node);
     for (var key in node) {
@@ -63,6 +64,6 @@ exports.optimize = function(body) {
     // console.log(Object.keys(parsed.body[0]));
 
     parsedBody.type = 'Program';
-    return escodegen.generate(parsedBody);
+    return escodegen.generate(parsedBody, {directive: true});
 
 };
