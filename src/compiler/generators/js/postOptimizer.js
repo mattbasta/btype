@@ -32,6 +32,7 @@ function trimBody(body) {
         stack.unshift(node);
         if (node.type !== 'Identifier') return;
         if (stack[1].type === 'FunctionDeclaration') return;
+        if (stack[1].type === 'VariableDeclarator') return;
         if (node.name in encounteredIdentifiers) return;
 
         encounteredIdentifiers[node.name] = true;
@@ -41,10 +42,18 @@ function trimBody(body) {
 
     var anyRemoved = false;
     body.body = body.body.filter(function(node) {
-        if (node.type !== 'FunctionDeclaration') return true;
-        var removed = node.id.name in encounteredIdentifiers;
-        anyRemoved = anyRemoved || !removed;
-        return removed;
+        var kept = true;
+        if (node.type === 'FunctionDeclaration') {
+            kept = node.id.name in encounteredIdentifiers;
+            anyRemoved = anyRemoved || !kept;
+        } else if (node.type === 'VariableDeclaration') {
+            node.declarations = node.declarations.filter(function(decl) {
+                return decl.id.name in encounteredIdentifiers;
+            });
+            kept = !!node.declarations.length;
+            anyRemoved = anyRemoved || !kept;
+        }
+        return kept;
     });
 
     if (anyRemoved) trimBody(body);

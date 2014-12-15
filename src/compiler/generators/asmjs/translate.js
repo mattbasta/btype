@@ -85,9 +85,15 @@ function typeAnnotationReturn(base, type) {
 
 var NODES = {
     Root: function(env, ctx) {
-        return this.body.map(function(stmt) {
+        env.__globalPrefix = '';
+        env.__stdlibRequested = {};
+        var output = this.body.map(function(stmt) {
             return _node(stmt, env, ctx, 0);
         }).join('\n');
+        output = env.__globalPrefix + output;
+        delete env.__globalPrefix;
+        delete env.__stdlibRequested;
+        return output;
     },
     Unary: function(env, ctx, prec) {
         // Precedence here will always be 4.
@@ -142,7 +148,14 @@ var NODES = {
         }
 
         if (baseType._type === '_stdlib') {
-            return 'stdlib.' + baseType.name + '.' + this.child;
+            var stdlibName = baseType.name + '.' + this.child;
+            if (stdlibName in env.__stdlibRequested) {
+                return env.__stdlibRequested[stdlibName];
+            }
+            var stdlibAssignedName = env.namer();
+            env.__globalPrefix += 'var ' + stdlibAssignedName + ' = stdlib.' + stdlibName + ';\n';
+            env.__stdlibRequested[stdlibName] = stdlibAssignedName;
+            return stdlibAssignedName;
         }
 
         var layout = baseType.getLayout();
