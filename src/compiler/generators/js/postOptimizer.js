@@ -60,6 +60,31 @@ function trimBody(body) {
 }
 
 function orderCode(body) {
+    function getType(node) {
+        if (node.type === 'VariableDeclaration') {
+            var decl = node.declarations[0];
+            if (decl.init.type === 'MemberExpression') {
+                return 0;
+            }
+            if (decl.init.type === 'NewExpression') {
+                return 1;
+            }
+            if (decl.init.type === 'ArrayExpression') {
+                return 3;
+            }
+            return 0;
+        }
+        if (node.type === 'FunctionDeclaration') {
+            return 2;
+        }
+        if (node.type === 'ReturnStatement') {
+            return 4;
+        }
+        return -1;
+    }
+    body.body.sort(function(a, b) {
+        return getType(a) - getType(b);
+    });
 }
 
 exports.optimize = function(body) {
