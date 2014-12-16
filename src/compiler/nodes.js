@@ -185,7 +185,6 @@ var NODES = {
             return this.callee.getType(ctx).returnType;
         },
         validateTypes: function(ctx) {
-            console.log(this.toString());
             this.callee.validateTypes(ctx);
             this.params.forEach(function(p) {p.validateTypes(ctx);});
 

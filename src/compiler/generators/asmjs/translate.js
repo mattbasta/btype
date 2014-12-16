@@ -52,8 +52,8 @@ function _binop(env, ctx, prec) {
     return out;
 }
 
-function _node(node, env, ctx, prec) {
-    return NODES[node.type].call(node, env, ctx, prec);
+function _node(node, env, ctx, prec, extra) {
+    return NODES[node.type].call(node, env, ctx, prec, extra);
 }
 
 function typeAnnotation(base, type) {
@@ -138,7 +138,7 @@ var NODES = {
         if (env.funcList[listName].indexOf(funcName) === -1) env.funcList[listName].push(funcName);
         return '(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ') | 0)';
     },
-    Member: function(env, ctx, prec) {
+    Member: function(env, ctx, prec, parent) {
         var baseType = this.base.getType(ctx);
         if (baseType._type === 'module') {
             return baseType.memberMapping[this.child];
@@ -162,10 +162,15 @@ var NODES = {
         else if (childType.typeName === 'byte') typedArr = 'memheap';
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
-        return typedArr + '[' + _node(this.base, env, ctx, 1) + ' + ' + layout[this.child] + HEAP_MODIFIERS[typedArr] + ']';
+
+        var lookup = typedArr + '[' + _node(this.base, env, ctx, 1) + ' + ' + layout[this.child] + HEAP_MODIFIERS[typedArr] + ']';
+        if (parent !== 'Assignment' && parent !== 'Return') {
+            lookup = typeAnnotation(lookup, childType);
+        }
+        return lookup;
     },
     Assignment: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1) + ';';
+        return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' + _node(this.value, env, ctx, 1) + ';';
     },
     Declaration: function(env, ctx, prec) {
         var type = this.value.getType(ctx);
@@ -177,7 +182,7 @@ var NODES = {
         return NODES.Declaration.apply(this, arguments);
     },
     Return: function(env, ctx, prec) {
-        return 'return ' + typeAnnotation(_node(this.value, env, ctx, 1), this.value.getType(ctx)) + ';';
+        return 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
     },
     Export: function() {return '';},
     Import: function() {return '';},
@@ -283,3 +288,5 @@ var NODES = {
 module.exports = function translate(ctx) {
     return _node(ctx.scope, ctx.env, ctx, 0);
 };
+
+module.exports.typeAnnotation = typeAnnotation;

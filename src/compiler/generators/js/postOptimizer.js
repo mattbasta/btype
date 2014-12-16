@@ -172,6 +172,8 @@ exports.optimize = function(body) {
         parsedBody,
         {
             directive: true,
+            parse: esprima.parse,
+            raw: true,
         }
     );
 

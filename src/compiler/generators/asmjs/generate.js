@@ -43,10 +43,19 @@ module.exports = function generate(env, ENV_VARS) {
             (paramList.length ? ',' : '') +
             paramList.join(',') +
             ') {\n' +
-            '    return ' + flist + '[ptrheap[$$ctx >> 2]](' +
-                paramList.join(',') +
-                (paramList.length ? ',' : '') +
-                'ptrheap[$$ctx + 4 >> 2]);\n' +
+            '    $$ctx = $$ctx | 0;\n' +
+            funcType.args.map(function(arg, i) {
+                var base = '$param' + i;
+                return '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg);
+            }).join('\n') +
+            '    return ' + jsTranslate.typeAnnotation(
+                    flist + '[ptrheap[$$ctx >> 2]](' +
+                        paramList.join(',') +
+                        (paramList.length ? ',' : '') +
+                        'ptrheap[$$ctx + 4 >> 2])',
+                    funcType.returnType
+                ) +
+                ';\n' +
             '}';
     }).join('\n');
 
