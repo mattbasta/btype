@@ -69,19 +69,6 @@ function typeAnnotation(base, type) {
 
 }
 
-function typeAnnotationReturn(base, type) {
-    switch (type.typeName) {
-        case 'float':
-            return '+' + base;
-        case 'int':
-        case 'byte':
-        case 'uint':
-        default:
-            return base + '|0';
-    }
-
-}
-
 
 var NODES = {
     Root: function(env, ctx) {
@@ -116,22 +103,32 @@ var NODES = {
             (!prec ? ';' : '');
     },
     CallDecl: function(env, ctx, prec) {
-        return _node(this.callee, env, ctx, 1) +
-            '(/* CallDecl */' +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
-            }).join(',') +
+        return '(' +
+            typeAnnotation(
+                _node(this.callee, env, ctx, 1) +
+                    '(/* CallDecl */' +
+                    this.params.map(function(param) {
+                        return _node(param, env, ctx, 18);
+                    }).join(',') +
+                    ')',
+                this.callee.getType(ctx).returnType
+            ) +
             ')' +
             (!prec ? ';' : '');
     },
     CallRef: function(env, ctx, prec) {
         var funcType = this.callee.getType(ctx);
         var listName = env.getFuncListName(funcType);
-        return listName + '$$call(' + _node(this.callee, env, ctx, 1) +
-            (this.params.length ? ',' : '') +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
-            }).join(',') + ')' +
+        return '(' +
+            typeAnnotation(
+                listName + '$$call(' + _node(this.callee, env, ctx, 1) +
+                    (this.params.length ? ',' : '') +
+                    this.params.map(function(param) {
+                        return _node(param, env, ctx, 18);
+                    }).join(',') + ')',
+                funcType.returnType
+            ) +
+            ')' +
             (!prec ? ';' : '');
     },
     FunctionReference: function(env, ctx, prec) {
@@ -139,7 +136,7 @@ var NODES = {
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
         if (env.funcList[listName].indexOf(funcName) === -1) env.funcList[listName].push(funcName);
-        return 'getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ')';
+        return '(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ') | 0)';
     },
     Member: function(env, ctx, prec) {
         var baseType = this.base.getType(ctx);
@@ -180,7 +177,7 @@ var NODES = {
         return NODES.Declaration.apply(this, arguments);
     },
     Return: function(env, ctx, prec) {
-        return 'return ' + typeAnnotationReturn(_node(this.value, env, ctx, 1), this.value.getType(ctx)) + ';';
+        return 'return ' + typeAnnotation(_node(this.value, env, ctx, 1), this.value.getType(ctx)) + ';';
     },
     Export: function() {return '';},
     Import: function() {return '';},
@@ -268,8 +265,12 @@ var NODES = {
     TypedIdentifier: function(env, ctx, prec) {
         return this.__assignedName;
     },
-    Literal: function() {
-        return this.value.toString();
+    Literal: function(env, ctx) {
+        var output = this.value.toString();
+        if (this.getType(ctx).typeName === 'float' && output.indexOf('.') === -1) {
+            output += '.0';
+        }
+        return output
     },
     Symbol: function() {
         return this.__refName;

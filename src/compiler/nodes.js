@@ -82,8 +82,8 @@ var NODES = {
             this.base.validateTypes(ctx);
             if (this.operator === '-') {
                 var baseType = this.base.getType(ctx);
-                if (baseType.name !== 'int' && baseType.name !== 'float') {
-                    throw new TypeError('Invalid type for unary minus');
+                if (baseType.typeName !== 'int' && baseType.typeName !== 'float') {
+                    throw new TypeError('Invalid type for unary minus: ' + baseType.toString());
                 }
             }
         },
@@ -159,7 +159,7 @@ var NODES = {
             var right = this.right.getType(ctx);
             if (!left.equals(right)) {
                 // TODO: implement basic casting
-                throw new TypeError('Mismatched types in binop');
+                throw new TypeError('Mismatched types in binop: ' + left.toString() + ' != ' + right.toString());
             }
         },
         toString: function() {
@@ -185,6 +185,7 @@ var NODES = {
             return this.callee.getType(ctx).returnType;
         },
         validateTypes: function(ctx) {
+            console.log(this.toString());
             this.callee.validateTypes(ctx);
             this.params.forEach(function(p) {p.validateTypes(ctx);});
 
@@ -328,6 +329,7 @@ var NODES = {
             if (!baseType.equals(valueType)) {
                 throw new TypeError('Mismatched types in assignment: ' + baseType.toString() + ' != ' + valueType.toString());
             }
+            this.value.validateTypes(ctx);
         },
         toString: function() {
             return 'Assignment:\n' +

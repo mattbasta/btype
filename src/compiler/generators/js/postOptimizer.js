@@ -85,10 +85,80 @@ function orderCode(body) {
     body.body.sort(function(a, b) {
         return getType(a) - getType(b);
     });
+
+    // Sort function bodies
+    traverse(body, function(node) {
+        if (node.type !== 'FunctionDeclaration') return;
+
+        var params = node.params.map(function(p) {
+            return p.name;
+        });
+
+        function isParamAnnotation(node) {
+            if (node.type !== 'ExpressionStatement' ||
+                node.expression.type !== 'AssignmentExpression' ||
+                node.expression.left.type !== 'Identifier' ||
+                (paramIdx = params.indexOf(node.expression.left.name)) === -1) {
+                return false;
+            }
+
+            if (node.expression.right.type === 'UnaryExpression' &&
+                node.expression.right.argument.type === 'Identifier' &&
+                node.expression.right.argument.name === node.expression.left.name) {
+                return true;
+            }
+            if (node.expression.right.type === 'BinaryExpression' &&
+                node.expression.right.left.type === 'Identifier' &&
+                node.expression.right.left.name === node.expression.left.name) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function getInnerType(node) {
+            // Identify param type annotations
+            var paramIdx;
+            if (node.type === 'ExpressionStatement' &&
+                node.expression.type === 'AssignmentExpression' &&
+                node.expression.left.type === 'Identifier' &&
+                (paramIdx = params.indexOf(node.expression.left.name)) !== -1) {
+
+                if (node.expression.right.type === 'UnaryExpression' &&
+                    node.expression.right.argument.type === 'Identifier' &&
+                    node.expression.right.argument.name === node.expression.left.name) {
+                    return paramIdx;
+                }
+                if (node.expression.right.type === 'BinaryExpression' &&
+                    node.expression.right.left.type === 'Identifier' &&
+                    node.expression.right.left.name === node.expression.left.name) {
+                    return paramIdx;
+                }
+
+            }
+            if (node.type === 'VariableDeclaration') return params.length;
+            return params.length + 1;
+        }
+        var origBody = node.body.body;
+        var bodyPrefix = [];
+        while (origBody.length && isParamAnnotation(origBody[0])) {
+            bodyPrefix.push(origBody[0]);
+            origBody.splice(0, 1);
+        }
+
+        bodyPrefix = bodyPrefix.concat(origBody.filter(function(x) {
+            return x.type === 'VariableDeclaration';
+        }));
+        origBody = origBody.filter(function(x) {
+            return x.type !== 'VariableDeclaration';
+        });
+
+        node.body.body = bodyPrefix.concat(origBody);
+    });
 }
 
 exports.optimize = function(body) {
-    var parsed = esprima.parse('(function() {' + body + '})');
+    var parsed = esprima.parse('(function() {' + body + '})', {raw: true});
     var parsedBody = parsed.body[0].expression.body;
 
     trimBody(parsedBody);
@@ -98,6 +168,11 @@ exports.optimize = function(body) {
     // console.log(Object.keys(parsed.body[0]));
 
     parsedBody.type = 'Program';
-    return escodegen.generate(parsedBody, {directive: true});
+    return escodegen.generate(
+        parsedBody,
+        {
+            directive: true,
+        }
+    );
 
 };
