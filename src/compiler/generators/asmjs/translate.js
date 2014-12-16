@@ -159,11 +159,12 @@ var NODES = {
         }
 
         var layout = baseType.getLayout();
+        var childType = this.getType(ctx);
         var typedArr = 'ptrheap';
-        if (baseType.typeName === 'float') typedArr = 'floatheap';
-        else if (baseType.typeName === 'byte') typedArr = 'memheap';
-        else if (baseType.typeName === 'bool') typedArr = 'memheap';
-        else if (baseType.typeName === 'int') typedArr = 'intheap';
+        if (childType.typeName === 'float') typedArr = 'floatheap';
+        else if (childType.typeName === 'byte') typedArr = 'memheap';
+        else if (childType.typeName === 'bool') typedArr = 'memheap';
+        else if (childType.typeName === 'int') typedArr = 'intheap';
         return typedArr + '[' + _node(this.base, env, ctx, 1) + ' + ' + layout[this.child] + HEAP_MODIFIERS[typedArr] + ']';
     },
     Assignment: function(env, ctx, prec) {
