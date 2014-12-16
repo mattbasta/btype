@@ -35,6 +35,7 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile function list callers
     body += '\n' + Object.keys(env.funcList).map(function(flist) {
+        var funcList = env.funcList[flist];
         var funcType = env.funcListReverseTypeMap[flist];
         var paramList = funcType.args.map(function(param, i) {
             return '$param' + i;
@@ -49,10 +50,10 @@ module.exports = function generate(env, ENV_VARS) {
                 return '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg);
             }).join('\n') +
             '    return ' + jsTranslate.typeAnnotation(
-                    flist + '[ptrheap[$$ctx >> 2]](' +
+                    flist + '[ptrheap[$$ctx >> 2]&' + (funcList.length - 1) + '](' +
                         paramList.join(',') +
                         (paramList.length ? ',' : '') +
-                        'ptrheap[$$ctx + 4 >> 2])',
+                        'ptrheap[$$ctx + 4 >> 2]|0)',
                     funcType.returnType
                 ) +
                 ';\n' +
