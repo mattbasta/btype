@@ -26,3 +26,5 @@ desktop.ini
 *.sublime-project
 coverage/
 demo/
+temp.html
+temp.txt

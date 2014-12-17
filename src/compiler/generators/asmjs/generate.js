@@ -5,11 +5,20 @@ var jsTranslate = require('./translate');
 var postOptimizer = require('../js/postOptimizer');
 
 
+function getHeapSize(n) {
+    // This calculates the next power of two
+    var x = Math.log(n) / Math.LN2;
+    x = Math.floor(x);
+    x += 1;
+    x = Math.pow(2, x);
+    return x;
+}
+
 function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
         'var error = function() {throw new Error()};',
-        'var heap = new ArrayBuffer(' + (ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
+        'var heap = new ArrayBuffer(' + getHeapSize(ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         'var ret = module(this, {error: error}, heap);',
         'if (ret.__init) ret.__init();',
         'return ret;',

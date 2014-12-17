@@ -73,6 +73,11 @@ func float:log(float:i) {
 }
 export log;
 
+func float:logN(float:b, float:n) {
+    return foreign.Math.log(n) / foreign.Math.log(b);
+}
+export logN;
+
 func float:sqrt(float:i) {
     return foreign.Math.sqrt(i);
 }
