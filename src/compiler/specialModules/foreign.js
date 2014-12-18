@@ -1,7 +1,8 @@
 var context = require('../context');
 var lexer = require('../../lexer');
-var parser = require('../../parser');
 var nodes = require('../nodes');
+var parser = require('../../parser');
+var types = require('../types');
 
 var MathRaw = [
     'func int:abs(int:i) {}',
@@ -44,7 +45,7 @@ function StdlibType(env, name, raw) {
     };
 }
 
-function ForeignType() {
+function ForeignType(env) {
     this._type = '_foreign';
 
     this.equals = function(x) {
@@ -52,7 +53,7 @@ function ForeignType() {
     };
 
     this.flatTypeName = this.toString = this.flatTypeName = function() {
-        return 'module';
+        return 'foreign';
     };
 
     this.hasMember = function(name) {
@@ -60,15 +61,49 @@ function ForeignType() {
     };
 
     this.getMemberType = function(name) {
-        return new StdlibType();
+        return new CurriedForeignType(env, [name]);
     };
 
 }
+
+function CurriedForeignType(env, typeChain) {
+    this._type = '_foreign_curry';
+
+    this.equals = function(x) {
+        return false;
+    };
+
+    this.flatTypeName = this.toString = this.flatTypeName = function() {
+        return 'foreign';
+    };
+
+    this.hasMember = function(name) {
+        return true;
+    };
+
+    this.getMemberType = function(name) {
+        switch (name) {
+            case 'int':
+            case 'float':
+            case 'bool':
+                return new CurriedForeignType(env, typeChain.concat([name]));
+        }
+
+        var returnType = null;
+        if (typeChain[0] !== 'null') {
+            returnType = types.resolve(typeChain[0]);
+        }
+        return new types.Func(returnType, typeChain.slice(1).map(types.resolve));
+    };
+
+}
+
 
 exports.get = function(env) {
     var ctx = new context.Context(env, new nodes.Root({body: []}));
 
     ctx.exports.Math = ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw));
+    ctx.exports.external = ctx.addVar('external', new ForeignType(env));
 
     return ctx;
 };
