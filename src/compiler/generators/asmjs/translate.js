@@ -43,10 +43,14 @@ function _binop(env, ctx, prec) {
         out = 'imul(' + left + ', ' + right + ')';
         oPrec = 18;
     } else {
+
+        if (this.left.type !== 'Literal') left = '(' + typeAnnotation(left, this.left.getType(ctx)) + ')';
+        if (this.right.type !== 'Literal') right = '(' + typeAnnotation(right, this.right.getType(ctx)) + ')';
+
         out = left + ' ' + this.operator + ' ' + right;
     }
 
-    if (oPrec < prec) {
+    if (oPrec >= prec) {
         out = '(' + out + ')';
     }
     return out;
@@ -59,6 +63,7 @@ function _node(node, env, ctx, prec, extra) {
 function typeAnnotation(base, type) {
     switch (type.typeName) {
         case 'float':
+            if (base[0] === '+') return base;
             return '+' + base;
         case 'byte':
         case 'int':
@@ -74,12 +79,14 @@ var NODES = {
     Root: function(env, ctx) {
         env.__globalPrefix = '';
         env.__stdlibRequested = {};
+        env.__foreignRequested = {};
         var output = this.body.map(function(stmt) {
             return _node(stmt, env, ctx, 0);
         }).join('\n');
         output = env.__globalPrefix + output;
         delete env.__globalPrefix;
         delete env.__stdlibRequested;
+        delete env.__foreignRequested;
         return output;
     },
     Unary: function(env, ctx, prec) {
@@ -97,7 +104,7 @@ var NODES = {
     CallRaw: function(env, ctx, prec) {
         return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
             this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
+                return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
             }).join(',') +
             ')' +
             (!prec ? ';' : '');
@@ -108,10 +115,10 @@ var NODES = {
                 _node(this.callee, env, ctx, 1) +
                     '(/* CallDecl */' +
                     this.params.map(function(param) {
-                        return _node(param, env, ctx, 18);
+                        return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
                     }).join(',') +
                     ')',
-                this.callee.getType(ctx).returnType
+                this.callee.getType(ctx).getReturnType()
             ) +
             ')' +
             (!prec ? ';' : '');
@@ -124,9 +131,9 @@ var NODES = {
                 listName + '$$call(' + _node(this.callee, env, ctx, 1) +
                     (this.params.length ? ',' : '') +
                     this.params.map(function(param) {
-                        return _node(param, env, ctx, 18);
+                        return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
                     }).join(',') + ')',
-                funcType.returnType
+                funcType.getReturnType()
             ) +
             ')' +
             (!prec ? ';' : '');
@@ -153,6 +160,23 @@ var NODES = {
             env.__globalPrefix += 'var ' + stdlibAssignedName + ' = stdlib.' + stdlibName + ';\n';
             env.__stdlibRequested[stdlibName] = stdlibAssignedName;
             return stdlibAssignedName;
+        }
+
+        if (baseType._type === '_foreign') {
+            env.foreigns.push(this.child);
+            var foreignName = 'foreign.' + this.child;
+            if (this.child in env.__foreignRequested) {
+                return env.__foreignRequested[this.child];
+            }
+
+            var foreignAssignedName = env.namer();
+            env.__globalPrefix += 'var ' + foreignAssignedName + ' = foreign.' + this.child + ';\n';
+            env.__foreignRequested[stdlibName] = foreignAssignedName;
+            return foreignAssignedName;
+        }
+
+        if (baseType._type === '_foreign_curry') {
+            return _node(this.base, env, ctx, 1);
         }
 
         var layout = baseType.getLayout();
@@ -182,7 +206,7 @@ var NODES = {
         return NODES.Declaration.apply(this, arguments);
     },
     Return: function(env, ctx, prec) {
-        return 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
+        return 'return ' + typeAnnotation('(' + _node(this.value, env, ctx, 1, 'Return') + ')', this.value.getType(ctx)) + ';';
     },
     Export: function() {return '';},
     Import: function() {return '';},
@@ -263,6 +287,14 @@ var NODES = {
         output += this.body.map(function(stmt) {
             return _node(stmt, env, ctx, 0);
         }).join('\n');
+
+        if (this.body[this.body.length - 1].type !== 'Return') {
+            output += 'return 0';
+            if (this.getType(ctx).getReturnType().typeName === 'float') {
+                output += '.0';
+            }
+        }
+
         output += '\n}';
         return output;
     },

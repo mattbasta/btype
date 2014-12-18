@@ -107,9 +107,17 @@ var NODES = {
         var base;
         if (baseType._type === '_stdlib') {
             base = 'stdlib.' + baseType.name;
+        } else if (baseType._type === '_foreign') {
+            env.foreigns.push(this.child);
+            return 'foreign.' + this.child;
         } else {
             base = _node(this.base, env, ctx, 1);
         }
+
+        if (baseType._type === '_foreign_curry') {
+            return base;
+        }
+
         return base + '.' + this.child;
     },
     Assignment: function(env, ctx, prec) {

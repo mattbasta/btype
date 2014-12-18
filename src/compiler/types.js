@@ -217,6 +217,15 @@ function Func(returnType, args) {
             }).join('$') : '') +
             '$$';
     };
+
+    this.getReturnType = function() {
+        return this.returnType;
+    };
+
+    this.getArgs = function() {
+        return this.args;
+    };
+
 }
 
 

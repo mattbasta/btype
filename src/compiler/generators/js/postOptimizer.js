@@ -158,6 +158,7 @@ function orderCode(body) {
 }
 
 exports.optimize = function(body) {
+    // process.exit(1);
     var parsed = esprima.parse('(function() {' + body + '})', {raw: true});
     var parsedBody = parsed.body[0].expression.body;
 

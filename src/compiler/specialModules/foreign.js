@@ -61,12 +61,12 @@ function ForeignType(env) {
     };
 
     this.getMemberType = function(name) {
-        return new CurriedForeignType(env, [name]);
+        return new CurriedForeignType(env, name, []);
     };
 
 }
 
-function CurriedForeignType(env, typeChain) {
+function CurriedForeignType(env, funcName, typeChain) {
     this._type = '_foreign_curry';
 
     this.equals = function(x) {
@@ -86,14 +86,23 @@ function CurriedForeignType(env, typeChain) {
             case 'int':
             case 'float':
             case 'bool':
-                return new CurriedForeignType(env, typeChain.concat([name]));
+                return new CurriedForeignType(env, funcName, typeChain.concat([name]));
         }
 
         var returnType = null;
-        if (typeChain[0] !== 'null') {
+        if (typeChain[0] !== '_null') {
             returnType = types.resolve(typeChain[0]);
         }
         return new types.Func(returnType, typeChain.slice(1).map(types.resolve));
+    };
+
+    this.getReturnType = function() {
+        if (typeChain[0] === '_null') return null;
+        return types.resolve(typeChain[0]);
+    };
+
+    this.getArgs = function() {
+        return typeChain.slice(1).map(types.resolve);
     };
 
 }

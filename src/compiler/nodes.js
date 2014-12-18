@@ -182,7 +182,7 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            return this.callee.getType(ctx).returnType;
+            return this.callee.getType(ctx).getReturnType();
         },
         validateTypes: function(ctx) {
             this.callee.validateTypes(ctx);
@@ -195,11 +195,11 @@ var NODES = {
                 return;
             }
 
-            if (base._type !== 'func') {
-                throw new Error('Call to non-executable type');
+            if (base._type !== 'func' && base._type !== '_foreign_curry') {
+                throw new Error('Call to non-executable type: ' + base.toString());
             }
 
-            var paramTypes = base.args;
+            var paramTypes = base.getArgs();
             if (this.params.length < paramTypes.length) {
                 throw new TypeError('Too few arguments passed to function call');
             } else if (this.params.length < paramTypes.length) {
@@ -408,7 +408,7 @@ var NODES = {
                 throw new TypeError('Mismatched void/typed return type');
             }
             if (!funcReturnType.equals(valueType)) {
-                throw new TypeError('Mismatched return type');
+                throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
             }
         },
         toString: function() {

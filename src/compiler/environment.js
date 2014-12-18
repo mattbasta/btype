@@ -17,12 +17,13 @@ const HEAP_SIZE = 128 * 1024 * 1024;
 var ENV_VARS = {
     HEAP_SIZE: HEAP_SIZE,
     BUDDY_SPACE: HEAP_SIZE / LOWEST_ORDER / 4,  // 4 == sizeof(uint8) / 2 bits
-    LOWEST_ORDER: LOWEST_ORDER
+    LOWEST_ORDER: LOWEST_ORDER,
 };
 
 function Environment(name) {
     this.name = name ? name.trim() : '';
     this.namer = require('./namer')();
+    this.foreigns = [];
     this.included = [];
     this.requested = null;
     this.modules = {};

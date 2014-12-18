@@ -1,0 +1,12 @@
+import foreign;
+
+
+func int:unix() {
+    return foreign.external.Datenowunix.int();
+}
+export unix;
+
+func float:unixfloat() {
+    return foreign.external.Datenowunix.float();
+}
+export unixfloat;
