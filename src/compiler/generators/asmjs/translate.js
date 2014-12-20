@@ -37,22 +37,30 @@ function _binop(env, ctx, prec) {
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
     var out;
-    var oPrec = OP_PREC[this.operator];
-    if (this.operator === '*' && this.left.getType(ctx) === types.publicTypes.int &&
-        this.right.getType(ctx) === types.publicTypes.int) {
-        out = 'imul(' + left + ', ' + right + ')';
-        oPrec = 18;
-    } else {
+    var oPrec = OP_PREC[this.operator] || 13;
 
-        if (this.left.type !== 'Literal') left = '(' + typeAnnotation(left, this.left.getType(ctx)) + ')';
-        if (this.right.type !== 'Literal') right = '(' + typeAnnotation(right, this.right.getType(ctx)) + ')';
+    switch (this.operator) {
+        case 'and':
+        case 'or':
+            throw new Error('Unconverted logical binop!');
+        case '*':
+            if (this.left.getType(ctx) === types.publicTypes.int &&
+                this.right.getType(ctx) === types.publicTypes.int) {
 
-        out = left + ' ' + this.operator + ' ' + right;
+                out = 'imul(' + left + ', ' + right + ')';
+                oPrec = 18;
+                break;
+            }
+        default:
+            if (this.left.type !== 'Literal') left = '(' + typeAnnotation(left, this.left.getType(ctx)) + ')';
+            if (this.right.type !== 'Literal') right = '(' + typeAnnotation(right, this.right.getType(ctx)) + ')';
+            out = left + ' ' + this.operator + ' ' + right;
     }
 
-    if (oPrec >= prec) {
+    if (oPrec < prec) {
         out = '(' + out + ')';
     }
+
     return out;
 }
 
@@ -94,6 +102,11 @@ var NODES = {
         var out = _node(this.base, env, ctx, 4);
         if (4 < prec) {
             out = '(' + out + ')';
+        }
+        if (this.operator === '-') {
+            out = '(-1 * ' + out + ')';
+        } else if (this.operator === '!') {
+            out = '!(' + out + '|0)';
         }
         return out;
     },
@@ -288,9 +301,10 @@ var NODES = {
             return _node(stmt, env, ctx, 0);
         }).join('\n');
 
-        if (this.body[this.body.length - 1].type !== 'Return') {
+        var returnType = this.getType(ctx).getReturnType();
+        if (returnType && this.body[this.body.length - 1].type !== 'Return') {
             output += 'return 0';
-            if (this.getType(ctx).getReturnType().typeName === 'float') {
+            if (returnType.typeName === 'float') {
                 output += '.0';
             }
         }

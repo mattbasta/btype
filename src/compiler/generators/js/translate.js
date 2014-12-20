@@ -30,13 +30,25 @@ function _binop(env, ctx, prec) {
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
     var out;
-    var oPrec = OP_PREC[this.operator];
-    if (this.operator === '*' && this.left.getType(ctx) === types.publicTypes.int &&
-        this.right.getType(ctx) === types.publicTypes.int) {
-        out = 'imul(' + left + ', ' + right + ')';
-        oPrec = 18;
-    } else {
-        out = left + ' ' + this.operator + ' ' + right;
+    var oPrec = OP_PREC[this.operator] || 13;
+
+    switch (this.operator) {
+        case 'and':
+            out = left + ' && ' + right;
+            break;
+        case 'or':
+            out = left + ' && ' + right;
+            break;
+        case '*':
+            if (this.left.getType(ctx) === types.publicTypes.int &&
+                this.right.getType(ctx) === types.publicTypes.int) {
+
+                out = 'imul(' + left + ', ' + right + ')';
+                oPrec = 18;
+                break;
+            }
+        default:
+            out = left + ' ' + this.operator + ' ' + right;
     }
 
     if (oPrec < prec) {
@@ -58,9 +70,7 @@ var NODES = {
     Unary: function(env, ctx, prec) {
         // Precedence here will always be 4.
         var out = _node(this.base, env, ctx, 4);
-        if (4 < prec) {
-            out = '(' + out + ')';
-        }
+        out = this.operator + '(' + out + ')';
         return out;
     },
     LogicalBinop: _binop,

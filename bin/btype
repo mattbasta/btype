@@ -16,9 +16,9 @@ var fs = require('fs');
 var path = require('path');
 
 
+var compiler = require('../src/compiler/compiler');
 var lexer = require('../src/lexer');
 var parser = require('../src/parser');
-var compiler = require('../src/compiler/compiler');
 
 fs.readFile(process.argv[2], function(err, data) {
     if (err) {
@@ -33,5 +33,7 @@ fs.readFile(process.argv[2], function(err, data) {
         path.basename(process.argv[2], '.bt'),
         parsed
     );
+
+    console.log(compiled);
 
 });

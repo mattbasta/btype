@@ -98,7 +98,7 @@ function orderCode(body) {
             if (node.type !== 'ExpressionStatement' ||
                 node.expression.type !== 'AssignmentExpression' ||
                 node.expression.left.type !== 'Identifier' ||
-                (paramIdx = params.indexOf(node.expression.left.name)) === -1) {
+                params.indexOf(node.expression.left.name) === -1) {
                 return false;
             }
 

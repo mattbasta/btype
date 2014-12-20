@@ -1,0 +1,10 @@
+import date;
+
+
+func func<float>:timing() {
+    var start = date.unixfloat();
+    return func<float>() {
+        return date.unixfloat() - start;
+    };
+}
+export timing;
