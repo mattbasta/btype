@@ -1,2 +1,4 @@
 var foo = func<null>() {};
 foo = func<null>() {};
+
+export foo;

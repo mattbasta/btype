@@ -88,5 +88,9 @@ describe('Lexer', function() {
             lexer('\\')();
         });
     });
+
+    it('should ignore comments at EOF', function() {
+        tokensOfType('"foo" #bar', 'string');
+    });
 });
 

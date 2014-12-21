@@ -2,3 +2,4 @@ func main() {
     var x = true;
     x = !x;
 }
+export main;

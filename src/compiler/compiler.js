@@ -6,6 +6,11 @@ module.exports = function(filename, tree, format) {
     var ctx = env.loadFile(filename, tree);
     env.markRequested(ctx);
 
+    if (!Object.keys(ctx.exports).length) {
+        console.error('Nothing exported from ' + filename);
+        return '';
+    }
+
     var output = env.make(format || 'js');
     return output;
 };

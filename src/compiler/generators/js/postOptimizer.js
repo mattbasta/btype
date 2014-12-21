@@ -31,6 +31,8 @@ function upliftDeclarations(body) {
             return;
         }
 
+        if (!stack.length) return;
+
         // Ignore everything that isn't a declaration
         if (node.type !== 'VariableDeclaration') {
             return;
@@ -40,7 +42,6 @@ function upliftDeclarations(body) {
         if (parent === stack[0]) {
             return;
         }
-        console.log(stack[0].body.body);
         stack[0].body.body.splice(0, 0, node);
         parent[member].splice(parent.body.indexOf(node), 1);
 
