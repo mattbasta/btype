@@ -15,11 +15,14 @@ func int:main() {
     if (!(2 <= 2)) return 10;
     if (!(2 >= 2)) return 11;
 
+    if (2 != 2) return 12;
+    if (!(2 == 2)) return 13;
+
 
     # Logial
 
-    #if (true and false) return 12;
-    #if (false or false) return 13;
+    #if (true and false) return 14;
+    #if (false or false) return 15;
 
 
     return 0;

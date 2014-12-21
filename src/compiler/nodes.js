@@ -158,8 +158,7 @@ var NODES = {
             var left = this.left.getType(ctx);
             var right = this.right.getType(ctx);
             if (!left.equals(right)) {
-                // TODO: implement basic casting
-                throw new TypeError('Mismatched types in binop: ' + left.toString() + ' != ' + right.toString());
+                throw new TypeError('Mismatched types in binop (' + this.operator + '): ' + left.toString() + ' != ' + right.toString());
             }
         },
         toString: function() {

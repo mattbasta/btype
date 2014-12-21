@@ -51,10 +51,7 @@ function _binop(env, ctx, prec) {
             out = left + ' ' + this.operator + ' ' + right;
     }
 
-    if (oPrec < prec) {
-        out = '(' + out + ')';
-    }
-    return out;
+    return '(' + out + ')';
 }
 
 function _node(node, env, ctx, prec) {

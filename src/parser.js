@@ -402,17 +402,26 @@ module.exports = function(tokenizer) {
     var OPERATOR_PRECEDENCE = {
         'or': 1,
         'and': 2,
+
         '==': 3,
         '!=': 3,
         '<': 4,
         '>': 4,
         '<=': 4,
         '>=': 4,
-        '+': 5,
-        '-': 5,
-        '*': 6,
-        '/': 6,
-        '%': 6,
+
+        '|': 6,
+        '^': 7,
+        '&': 8,
+
+        '<<': 8,
+        '>>': 8,
+        '+': 9,
+        '-': 9,
+        '*': 10,
+        '/': 10,
+        '%': 10,
+
     };
     var OPERATOR_NODE = {
         'or': 'LogicalBinop',
@@ -432,7 +441,6 @@ module.exports = function(tokenizer) {
         '&': 'Binop',
         '|': 'Binop',
         '^': 'Binop',
-        '~': 'Binop',
         '<<': 'Binop',
         '>>': 'Binop',
     };
@@ -471,6 +479,11 @@ module.exports = function(tokenizer) {
             case '*':
             case '/':
             case '%':
+            case '&':
+            case '|':
+            case '^':
+            case '<<':
+            case '>>':
             case '==':
             case '!=':
             case '<=':
