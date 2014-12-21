@@ -37,7 +37,7 @@ function _binop(env, ctx, prec) {
             out = left + ' && ' + right;
             break;
         case 'or':
-            out = left + ' && ' + right;
+            out = left + ' || ' + right;
             break;
         case '*':
             if (this.left.getType(ctx) === types.publicTypes.int &&

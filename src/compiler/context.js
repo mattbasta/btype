@@ -126,6 +126,11 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
             case 'Function':
                 // Remember the function in the function hierarchy.
                 contexts[0].functions.push(node);
+
+                if (!node.name) {
+                    node.name = env.namer();
+                }
+
                 // Mark the function as a variable containing a function type.
                 assignedName = contexts[0].addVar(node.name, node.getType(contexts[0]));
                 contexts[0].functionDeclarations[assignedName] = node;
@@ -182,7 +187,10 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 node.__assignedName = rootContext.exports[node.value.name] = node.value.__refName;
                 return;
             case 'Assignment':
-                // TODO: Check that function declarations are not overwritten.
+                if (node.base.type === 'Symbol' && node.base.__refContext.isFuncMap[node.base.__refName]) {
+                    throw new Error('Cannot assign values to function declarations');
+                }
+
                 function follow(node, called) {
                     switch (node.type) {
                         // x = foo;

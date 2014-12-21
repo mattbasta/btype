@@ -264,7 +264,6 @@ var NODES = {
             this.body.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n');
-            // TODO: force a break until break is supported?
     },
     If: function(env, ctx, prec) {
         return 'if (' +

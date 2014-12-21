@@ -149,7 +149,6 @@ var NODES = {
         traverse: binop_traverser,
         substitute: binop_substitution,
         getType: function(ctx) {
-            // TODO: implement basic casting
             return this.left.getType(ctx);
         },
         validateTypes: function(ctx) {
@@ -222,7 +221,6 @@ var NODES = {
         },
     },
     CallDecl: { // Calls a function declaration
-        // TODO: Roll the symbol in `callee` into this node?
         traverse: function(cb) {
             return NODES.CallRaw.traverse.call(this, cb);
         },
@@ -318,7 +316,6 @@ var NODES = {
             this.value = cb(this.value, 'value') || this.value;
         },
         getType: function(ctx) {
-            // TODO: Check that base and value are the same type.
             return this.value.getType(ctx);
         },
         validateTypes: function(ctx) {

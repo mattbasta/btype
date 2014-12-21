@@ -40,15 +40,21 @@ module.exports = function(tokenizer) {
         return temp;
     }
 
-    function parseFunction() {
+    function parseFunction(func) {
+        var hasBase = !!func;
         var func;
-        if (!(func = accept('func'))) return;
+        if (!func && !(func = accept('func'))) return;
 
-        if (peek().type === '<') {
+        if (!hasBase && peek().type === '<') {
             return parseDeclaration(func);
         }
 
-        var returnType = parseType();
+        var returnType;
+        if (hasBase) {
+            returnType = parseType(func).traits[0];
+        } else {
+            returnType = parseType();
+        }
         var identifier = null;
         if (returnType && accept(':')) {
             identifier = assert('identifier').text;
@@ -115,7 +121,6 @@ module.exports = function(tokenizer) {
                 }
             }
         }
-        // TODO: Add else clause.
         return node(
             'If',
             head.start,
@@ -270,7 +275,6 @@ module.exports = function(tokenizer) {
         var head;
         if (!(head = accept('for'))) return;
         assert('(');
-        // TODO: Add ForOf support.
         var assignment = parseAssignment();
         var condition = parseExpression();
         assert(';');
@@ -465,8 +469,6 @@ module.exports = function(tokenizer) {
         var peeked = peek();
         switch (peeked.type) {
             case '=':
-                // TODO: Multiple assignment?
-                // TODO: Chained assignment?
                 return parseAssignment(true, base);
             case '(':
                 part = parseCall(base);
@@ -571,6 +573,8 @@ module.exports = function(tokenizer) {
                     );
                 case 'identifier':
                     return parseSymbol(base);
+                case 'func':
+                    return parseFunction(base);
                 default:
                     // This catches complex expressions.
                     return base;
