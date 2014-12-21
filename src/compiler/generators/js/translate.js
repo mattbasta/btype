@@ -23,6 +23,9 @@ var OP_PREC = {
     '&': 10,
     '^': 11,
     '|': 12,
+
+    'and': 13,
+    'or': 14,
 };
 
 function _binop(env, ctx, prec) {
@@ -43,6 +46,10 @@ function _binop(env, ctx, prec) {
             if (this.left.getType(ctx) === types.publicTypes.int &&
                 this.right.getType(ctx) === types.publicTypes.int) {
 
+                if (!env.__hasImul) {
+                    env.__hasImul = true;
+                    env.__globalPrefix += 'var imul = stdlib.Math.imul;\n';
+                }
                 out = 'imul(' + left + ', ' + right + ')';
                 oPrec = 18;
                 break;
@@ -60,9 +67,14 @@ function _node(node, env, ctx, prec) {
 
 var NODES = {
     Root: function(env, ctx) {
-        return this.body.map(function(stmt) {
+        env.__globalPrefix = '';
+        var output = this.body.map(function(stmt) {
             return _node(stmt, env, ctx, 0);
         }).join('\n');
+        output = env.__globalPrefix + output;
+        delete env.__globalPrefix;
+        delete env.__hasImul;
+        return output;
     },
     Unary: function(env, ctx, prec) {
         // Precedence here will always be 4.
@@ -74,6 +86,9 @@ var NODES = {
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
+    CallStatement: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, 0);
+    },
     CallRaw: function(env, ctx, prec) {
         return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
             this.params.map(function(param) {
@@ -214,6 +229,8 @@ var NODES = {
         return this.__assignedName;
     },
     Literal: function() {
+        if (this.value === true) return '1';
+        if (this.value === false) return '0';
         return this.value.toString();
     },
     Symbol: function() {

@@ -58,12 +58,12 @@ function Context(env, scope, parent) {
     this.initializer = null;
 }
 
-Context.prototype.addVar = function(varName, type) {
+Context.prototype.addVar = function(varName, type, assignedName) {
     if (varName in this.nameMap) {
         throw new Error('Cannot redeclare symbol in context: ' + varName);
     }
 
-    var assignedName = this.nameMap[varName] = this.env.namer();
+    var assignedName = this.nameMap[varName] = assignedName || this.env.namer();
     this.typeMap[assignedName] = type;
     return assignedName;
 };
@@ -242,4 +242,5 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
     return rootContext;
 };
+
 module.exports.Context = Context;

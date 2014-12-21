@@ -20,6 +20,17 @@ module.exports.findAll = function(tree, filter) {
     return output;
 };
 
+module.exports.iterateBodies = function(tree, cb) {
+    if (tree.traverseStatements) {
+        tree.traverseStatements(cb);
+    }
+    traverse(tree, function(x) {
+        if (x.traverseStatements) {
+            x.traverseStatements(cb);
+        }
+    });
+};
+
 var findAndReplace = module.exports.findAndReplace = function(tree, filter) {
     tree.traverse.call(tree, function(node, member) {
         if (!node) return;
@@ -30,6 +41,6 @@ var findAndReplace = module.exports.findAndReplace = function(tree, filter) {
                 return replacer(sNode, member);
             });
         }
-        findAndReplace(node, filter, replacer);
+        findAndReplace(node, filter);
     });
 };

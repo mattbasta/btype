@@ -17,7 +17,6 @@ function compileIncludes(env, ENV_VARS) {
 function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
-        'var heap = new ArrayBuffer(' + (ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         'this.Math.imul = this.Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
         'var ret = module(this, {' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';
@@ -27,12 +26,10 @@ function makeModule(env, ENV_VARS, body) {
                 base += 'function() {}';
             }
             return base;
-        }).join(',') + '}, heap);',
+        }).join(',') + '});',
         'if (ret.__init) ret.__init();',
         'return ret;',
-        '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign, heap) {',
-        // '    "use asm";',
-        '    var imul = stdlib.Math.imul;',
+        '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign) {',
         body,
         '})'
     ].join('\n');

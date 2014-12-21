@@ -110,6 +110,9 @@ var NODES = {
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
+    CallStatement: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, 0);
+    },
     CallRaw: function(env, ctx, prec) {
         return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
             this.params.map(function(param) {
@@ -312,6 +315,9 @@ var NODES = {
         return this.__assignedName;
     },
     Literal: function(env, ctx) {
+        if (this.value === true) return '1';
+        if (this.value === false) return '0';
+
         var output = this.value.toString();
         if (this.getType(ctx).typeName === 'float' && output.indexOf('.') === -1) {
             output += '.0';

@@ -5,6 +5,7 @@ var parser = require('../src/parser');
 
 var node = parser.node;
 
+
 function compareTree(script, tree) {
     var parsed = parser(lexer(script));
     function compare(left, right, base, key) {
@@ -558,12 +559,19 @@ describe('Parser', function() {
                 'foo();',
                 _root([
                     node(
-                        'CallRaw',
+                        'CallStatement',
                         0,
                         6,
                         {
-                            callee: _i('foo'),
-                            params: []
+                            base: node(
+                                'CallRaw',
+                                0,
+                                6,
+                                {
+                                    callee: _i('foo'),
+                                    params: []
+                                }
+                            ),
                         }
                     )
                 ])
@@ -598,24 +606,31 @@ describe('Parser', function() {
                 'foo(x, y, bar());',
                 _root([
                     node(
-                        'CallRaw',
+                        'CallStatement',
                         0,
                         17,
                         {
-                            callee: _i('foo'),
-                            params: [
-                                _i('x'),
-                                _i('y'),
-                                node(
-                                    'CallRaw',
-                                    9,
-                                    15,
-                                    {
-                                        callee: _i('bar'),
-                                        params: []
-                                    }
-                                )
-                            ]
+                            base: node(
+                                'CallRaw',
+                                0,
+                                17,
+                                {
+                                    callee: _i('foo'),
+                                    params: [
+                                        _i('x'),
+                                        _i('y'),
+                                        node(
+                                            'CallRaw',
+                                            9,
+                                            15,
+                                            {
+                                                callee: _i('bar'),
+                                                params: []
+                                            }
+                                        )
+                                    ]
+                                }
+                            ),
                         }
                     )
                 ])
@@ -626,20 +641,27 @@ describe('Parser', function() {
                 'foo()();',
                 _root([
                     node(
-                        'CallRaw',
+                        'CallStatement',
                         0,
                         8,
                         {
-                            callee: node(
+                            base: node(
                                 'CallRaw',
                                 0,
-                                5,
+                                8,
                                 {
-                                    callee: _i('foo'),
+                                    callee: node(
+                                        'CallRaw',
+                                        0,
+                                        5,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                     params: []
                                 }
                             ),
-                            params: []
                         }
                     )
                 ])
@@ -931,12 +953,19 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 7,
                                 13,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        7,
+                                        13,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
                             )],
                             alternate: null
@@ -956,12 +985,19 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 5,
                                 12,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        5,
+                                        12,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
                             )],
                             alternate: null
@@ -981,23 +1017,37 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 7,
                                 13,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        7,
+                                        13,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
                             )],
                             alternate: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 21,
                                 27,
                                 {
-                                    callee: _i('bar'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        21,
+                                        27,
+                                        {
+                                            callee: _i('bar'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1014,23 +1064,37 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 5,
                                 12,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        5,
+                                        12,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
                             )],
                             alternate: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 17,
                                 24,
                                 {
-                                    callee: _i('bar'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        17,
+                                        24,
+                                        {
+                                            callee: _i('bar'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1047,12 +1111,19 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             consequent: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 5,
                                 12,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        5,
+                                        12,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
                             )],
                             alternate: [node(
@@ -1062,15 +1133,22 @@ describe('Parser', function() {
                                 {
                                     condition: _i('y'),
                                     consequent: [node(
-                                        'CallRaw',
+                                        'CallStatement',
                                         24,
                                         30,
                                         {
-                                            callee: _i('bar'),
-                                            params: []
+                                            base: node(
+                                                'CallRaw',
+                                                24,
+                                                30,
+                                                {
+                                                    callee: _i('bar'),
+                                                    params: []
+                                                }
+                                            ),
                                         }
                                     )],
-                                    alternate: null
+                                    alternate: null,
                                 }
                             )]
                         }
@@ -1080,8 +1158,8 @@ describe('Parser', function() {
         });
     });
 
-    describe('while loops', function() {
-        it('should parse while loops', function() {
+    describe('`while` loops', function() {
+        it('should parse `while` loops', function() {
             compareTree(
                 'while(x) {foo();}',
                 _root([
@@ -1092,20 +1170,27 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             loop: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 10,
                                 16,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        10,
+                                        16,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
             );
         });
-        it('should parse while loops without braces', function() {
+        it('should parse `while` loops without braces', function() {
             compareTree(
                 'while(x) foo();',
                 _root([
@@ -1116,14 +1201,21 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             loop: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 8,
                                 15,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        8,
+                                        15,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1131,8 +1223,8 @@ describe('Parser', function() {
         });
     });
 
-    describe('do/while loops', function() {
-        it('should parse do/while loops', function() {
+    describe('`do`/`while` loops', function() {
+        it('should parse `do`/`while` loops', function() {
             compareTree(
                 'do {foo();} while(x);',
                 _root([
@@ -1143,14 +1235,21 @@ describe('Parser', function() {
                         {
                             condition: _i('x'),
                             loop: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 4,
                                 10,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        4,
+                                        10,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1158,7 +1257,7 @@ describe('Parser', function() {
         });
     });
 
-    describe('for loops', function() {
+    describe('`for` loops', function() {
         it('should parse for loops', function() {
             compareTree(
                 'for (x = 0; x < 10; x = x + 1;) {foo();}',
@@ -1206,14 +1305,21 @@ describe('Parser', function() {
                                 }
                             ),
                             loop: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 33,
                                 39,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        33,
+                                        39,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1249,14 +1355,21 @@ describe('Parser', function() {
                             ),
                             iteration: null,
                             loop: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 22,
                                 28,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        22,
+                                        28,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1292,14 +1405,21 @@ describe('Parser', function() {
                             ),
                             iteration: null,
                             loop: [node(
-                                'CallRaw',
+                                'CallStatement',
                                 20,
                                 27,
                                 {
-                                    callee: _i('foo'),
-                                    params: []
+                                    base: node(
+                                        'CallRaw',
+                                        20,
+                                        27,
+                                        {
+                                            callee: _i('foo'),
+                                            params: []
+                                        }
+                                    ),
                                 }
-                            )]
+                            )],
                         }
                     )
                 ])
@@ -1307,7 +1427,7 @@ describe('Parser', function() {
         });
     });
 
-    describe('switch statements', function() {
+    describe('`switch` statements', function() {
         it('should parse switches', function() {
             compareTree(
                 'switch (x) {case a: return 1; case b: return 2;}',

@@ -214,7 +214,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].__context.functions.length, 0, 'The outer function should have no nested functions');
             assert.equal(ctx.functions[1].__context.functions.length, 0, 'The inner function should have no nested functions');
 
-            assert.equal(ctx.functions[0].body[0].callee.__refContext, ctx,
+            assert.equal(ctx.functions[0].body[0].base.callee.__refContext, ctx,
                          'The reference context of the call to `inner` should have been changed to the root context');
 
         });
@@ -255,10 +255,10 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].type, 'Assignment', 'The second should be an assignment');
             assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
-            assert.equal(ctx.functions[0].body[2].type, 'CallDecl', 'The third should be the call to inner');
-            assert.equal(ctx.functions[0].body[2].params.length, 2);
-            assert.equal(ctx.functions[0].body[2].params[1].type, 'Symbol', 'Passed param should be a reference to the context');
-            assert.equal(ctx.functions[0].body[2].params[1].name, ctx.functions[0].body[0].identifier, 'Passed param should point at the context');
+            assert.equal(ctx.functions[0].body[2].type, 'CallStatement', 'The third should be the call to inner');
+            assert.equal(ctx.functions[0].body[2].base.params.length, 2);
+            assert.equal(ctx.functions[0].body[2].base.params[1].type, 'Symbol', 'Passed param should be a reference to the context');
+            assert.equal(ctx.functions[0].body[2].base.params[1].name, ctx.functions[0].body[0].identifier, 'Passed param should point at the context');
             assert.equal(ctx.functions[0].body[3].type, 'Return', 'The fourth should be the return');
 
             assert.equal(Object.keys(ctx.functions[0].__context.nameMap).length, 1, 'There should only be one declared variable');
@@ -308,7 +308,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].base.type, 'Member', 'The assignment should be to the context');
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
             assert.equal(ctx.functions[0].body[1].value.name, 'mutated');
-            assert.equal(ctx.functions[0].body[2].type, 'CallDecl', 'The third should be the call to inner');
+            assert.equal(ctx.functions[0].body[2].type, 'CallStatement', 'The third should be the call to inner');
             assert.equal(ctx.functions[0].body[3].type, 'Return', 'The fourth should be the return');
 
         });

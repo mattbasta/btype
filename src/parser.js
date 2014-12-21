@@ -155,7 +155,7 @@ module.exports = function(tokenizer) {
                 case_body.length ? case_body[case_body.length - 1].end : case_col.end,
                 {
                     value: case_value,
-                    body: case_body
+                    body: case_body,
                 }
             ));
         }
@@ -300,7 +300,7 @@ module.exports = function(tokenizer) {
                 assignment: assignment,
                 condition: condition,
                 iteration: iteration || null,
-                loop: body
+                loop: body,
             }
         );
     }
@@ -346,6 +346,13 @@ module.exports = function(tokenizer) {
             }
             var expr = parseExpression(base);
             expr.end = assert(';').end;
+            if (expr.type === 'CallRaw') {
+                expr = node(
+                    'CallStatement',
+                    expr.start, expr.end,
+                    {base: expr}
+                );
+            }
             return expr;
         }
 
@@ -637,7 +644,7 @@ module.exports = function(tokenizer) {
                parseWhile() ||
                parseDoWhile() ||
                parseFor() ||
-               parseAssignment(); //call?
+               parseAssignment();
                // TODO: break, continue
     }
 

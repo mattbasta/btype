@@ -3,6 +3,7 @@ var path = require('path');
 var util = require('util');
 
 var context = require('./context');
+var flattener = require('./flattener');
 var nodes = require('./nodes');
 var specialModules = require('./specialModules/__directory');
 var transformer = require('./transformer');
@@ -60,6 +61,7 @@ Environment.prototype.loadFile = function(filename, tree) {
     tree.validateTypes(ctx);
 
     transformer(ctx);
+    flattener(ctx);
 
     this.addContext(ctx);
     this.moduleCache[filename] = ctx;

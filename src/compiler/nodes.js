@@ -13,7 +13,7 @@ function binop_substitution(cb) {
 }
 function loop_traverser(cb) {
     cb(this.condition, 'condition');
-    this.loop.forEach(oneArg(cb));
+    this.loop.forEach(function(stmt) {cb(stmt, 'loop');});
 }
 function loop_substitution(cb) {
     this.condition = cb(this.condition, 'condition') || this.condition;
@@ -51,6 +51,9 @@ var NODES = {
     Root: {
         traverse: function(cb) {
             this.body.forEach(oneArg(cb));
+        },
+        traverseStatements: function(cb) {
+            cb(this.body, 'body');
         },
         substitute: function(cb) {
             this.body = this.body.map(function(stmt) {
@@ -166,6 +169,23 @@ var NODES = {
                    indentEach(this.left.toString(), 2) + '\n' +
                    '    Right:\n' +
                    indentEach(this.right.toString(), 2) + '\n';
+        },
+    },
+    CallStatement: {
+        traverse: function(cb) {
+            cb(this.base, 'base');
+        },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
+        },
+        getType: function(ctx) {
+            return this.base.getType(ctx);
+        },
+        validateTypes: function(ctx) {
+            this.base.validateTypes(ctx);
+        },
+        toString: function() {
+            return 'CallStatement: ' + this.base.toString();
         },
     },
     CallRaw: {
@@ -388,8 +408,7 @@ var NODES = {
     },
     Return: {
         traverse: function(cb) {
-            if (this.value)
-                cb(this.value);
+            if (this.value) cb(this.value);
         },
         substitute: function(cb) {
             if (!this.value) return;
@@ -397,11 +416,12 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
+            debugger;
             var valueType = this.value.getType(ctx);
             var func = ctx.scope;
             var funcReturnType = func.returnType.getType(ctx);
             if (!!valueType !== !!funcReturnType) {
-                throw new TypeError('Mismatched void/typed return type');
+                throw new TypeError('Mismatched void/typed return type:');
             }
             if (!funcReturnType.equals(valueType)) {
                 throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
@@ -454,19 +474,54 @@ var NODES = {
         },
     },
     For: {
+        traverseStatements: function(cb) {
+            cb(this.loop, 'loop');
+        },
         traverse: loop_traverser,
         substitute: loop_substitution,
-        validateTypes: loopValidator
+        validateTypes: loopValidator,
+        toString: function() {
+            return 'For:\n' +
+                   '    Assignment:\n' +
+                   indentEach(this.assignment.toString(), 2) + '\n' +
+                   '    Condition:\n' +
+                   indentEach(this.condition.toString(), 2) + '\n' +
+                   (this.iteration ?
+                    '    Iteration:\n' +
+                    indentEach(this.iteration.toString(), 2) + '\n' : '') +
+                   '    Body:\n' +
+                   indentEach(this.loop.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
+        },
     },
     DoWhile: {
+        traverseStatements: function(cb) {
+            cb(this.loop, 'loop');
+        },
         traverse: loop_traverser,
         substitute: loop_substitution,
-        validateTypes: loopValidator
+        validateTypes: loopValidator,
+        toString: function() {
+            return 'DoWhile:\n' +
+                   '    Condition:\n' +
+                   indentEach(this.condition.toString(), 2) + '\n' +
+                   '    Body:\n' +
+                   indentEach(this.loop.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
+        },
     },
     While: {
+        traverseStatements: function(cb) {
+            cb(this.loop, 'loop');
+        },
         traverse: loop_traverser,
         substitute: loop_substitution,
-        validateTypes: loopValidator
+        validateTypes: loopValidator,
+        toString: function() {
+            return 'While:\n' +
+                   '    Condition:\n' +
+                   indentEach(this.condition.toString(), 2) + '\n' +
+                   '    Body:\n' +
+                   indentEach(this.loop.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
+        },
     },
     Switch: {
         traverse: function(cb) {
@@ -486,13 +541,16 @@ var NODES = {
         },
         toString: function() {
             return 'Switch(' + this.condition.toString() + '):\n' +
-                   indentEach(this.cases.map(function(stmt) {return stmt.toString()}).join('\n'));
+                   indentEach(this.cases.map(function(stmt) {return stmt.toString();}).join('\n'));
         },
     },
     Case: {
         traverse: function(cb) {
             cb(this.value, 'value');
             this.body.forEach(oneArg(cb));
+        },
+        traverseStatements: function(cb) {
+            cb(this.body, 'body');
         },
         substitute: function(cb) {
             this.value = cb(this.value, 'value') || this.value;
@@ -513,9 +571,18 @@ var NODES = {
     If: {
         traverse: function(cb) {
             cb(this.condition, 'condition');
-            this.consequent.forEach(oneArg(cb));
-            if (this.alternate)
-                this.alternate.forEach(oneArg(cb));
+            this.consequent.forEach(function(stmt) {
+                cb(stmt, 'consequent');
+            });
+            if (this.alternate) {
+                this.alternate.forEach(function(stmt) {
+                    cb(stmt, 'alternate');
+                });
+            }
+        },
+        traverseStatements: function(cb) {
+            cb(this.consequent, 'consequent');
+            cb(this.alternate, 'alternate');
         },
         substitute: function(cb) {
             this.condition = cb(this.condition, 'condition') || this.condition;
@@ -558,6 +625,9 @@ var NODES = {
                 cb(this.returnType, 'return');
             // this.params.forEach(cb);
             this.body.forEach(oneArg(cb));
+        },
+        traverseStatements: function(cb) {
+            cb(this.body, 'body');
         },
         substitute: function(cb) {
             this.body = this.body.map(function(stmt) {
@@ -691,7 +761,6 @@ function buildNode(proto, name) {
             end = 0;
         }
 
-        this.type = name;
         this.start = start;
         this.end = end;
         this.__base = base;
@@ -702,6 +771,7 @@ function buildNode(proto, name) {
     for(var protoMem in proto) {
         node.prototype[protoMem] = proto[protoMem];
     }
+    node.prototype.type = name;
     node.prototype.clone = function() {
         var out = new node(
             this.start,
