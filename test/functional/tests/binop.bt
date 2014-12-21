@@ -24,6 +24,12 @@ func int:main() {
     if (true and false) return 14;
     if (false or false) return 15;
 
+    bool:test = true and false;
+    if (test) return 16;
+
+    test = false or true;
+    if (!test) return 17;
+
 
     return 0;
 }
