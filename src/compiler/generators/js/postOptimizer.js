@@ -2,18 +2,19 @@ var esprima = require('esprima');
 var escodegen = require('escodegen');
 
 
-function traverse(node, cb, after) {
-    cb(node);
+function traverse(node, cb, after, parent, member) {
+    var res = cb(node, parent, member);
+    if (res === false) return;
     for (var key in node) {
         if (node.hasOwnProperty(key)) {
             var child = node[key];
             if (typeof child === 'object' && child !== null) {
                 if (Array.isArray(child)) {
-                    child.forEach(function(node) {
-                        traverse(node, cb);
+                    child.forEach(function(childNode) {
+                        traverse(childNode, cb, after, node, key);
                     });
                 } else {
-                    traverse(child, cb);
+                    traverse(child, cb, after, node, key);
                 }
             }
         }
@@ -21,6 +22,34 @@ function traverse(node, cb, after) {
     if (after) after(node);
 }
 
+
+function upliftDeclarations(body) {
+    var stack = [];
+    traverse(body, function(node, parent, member) {
+        if (node.type === 'FunctionDeclaration') {
+            stack.unshift(node);
+            return;
+        }
+
+        // Ignore everything that isn't a declaration
+        if (node.type !== 'VariableDeclaration') {
+            return;
+        }
+
+        // Ignore declarations that are already in the right place
+        if (parent === stack[0]) {
+            return;
+        }
+        console.log(stack[0].body.body);
+        stack[0].body.body.splice(0, 0, node);
+        parent[member].splice(parent.body.indexOf(node), 1);
+
+    }, function(node) {
+        if (node.type === 'FunctionDeclaration') {
+            stack.shift();
+        }
+    });
+}
 
 function trimBody(body) {
     // TODO: This doesn't work for cycles in the call graph. It should be made
@@ -167,6 +196,7 @@ exports.optimize = function(body) {
     }
     var parsedBody = parsed.body[0].expression.body;
 
+    upliftDeclarations(parsedBody);
     trimBody(parsedBody);
     orderCode(parsedBody);
 
