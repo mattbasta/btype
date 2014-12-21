@@ -1,0 +1,29 @@
+func int:main() {
+
+    int:x = 0;
+    func bool:first() {
+        x = 1;
+        return false;
+    }
+
+    func bool:second() {
+        x = 1;
+        return false;
+    }
+
+    func bool:third() {
+        x = 0;
+        return false;
+    }
+
+    if (false and first()) {
+        return 2;
+    }
+
+    if (second() or third()) {
+        return 3;
+    }
+
+    return 0;
+}
+export main;
