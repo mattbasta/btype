@@ -110,8 +110,7 @@ function getFunctionContext(ctx, name) {
 
         for (var lookup in node.__context.lexicalLookups) {
             if (lookup in mapping) continue;
-            if (node.__context.lexicalLookups[lookup] === ctx &&
-                lookup in node.__context.lexicalModifications) {
+            if (node.__context.lexicalLookups[lookup] === ctx) {
                 mapping[lookup] = ctx.typeMap[lookup];
             }
         }

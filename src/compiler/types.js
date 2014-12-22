@@ -226,6 +226,11 @@ function Func(returnType, args) {
         return this.args;
     };
 
+    this.getSize = function() {
+        // This should return the size of a function reference.
+        return 8; // 4 for functable index, 4 for pointer to context
+    };
+
 }
 
 
