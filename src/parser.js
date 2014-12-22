@@ -555,14 +555,14 @@ module.exports = function(tokenizer) {
                     );
                 case 'float':
                 case 'int':
-                case 'string':
+                case 'str':
                     return node(
                         'Literal',
                         base.start,
                         base.end,
                         {
                             litType: base.type,
-                            value: base.text
+                            value: base.text,
                         }
                     );
                 // Unary operators

@@ -22,6 +22,16 @@ function markFirstClassFunctions(context) {
 
             // Ignore non-Symbol nodes but keep them in the stack.
             if (node.type !== 'Symbol') {
+
+                // Mark function expressions directly.
+                if (node.type === 'Function') {
+                    if (marker === 'body') return;
+                    if (marker === 'loop') return;
+                    if (marker === 'consequent') return;
+                    if (marker === 'alternate') return;
+                    node.__firstClass = true;
+                }
+
                 stack.unshift(node);
                 return;
             }
@@ -38,7 +48,6 @@ function markFirstClassFunctions(context) {
             if (!node.__refContext.isFuncMap[node.__refName]) return false;
 
             node.__refContext.functionDeclarations[node.__refName].__firstClass = true;
-            // node.__refsFirstClassFunction = true;
 
             // There's nothing left to do with a symbol, so hard return.
             return false;
@@ -314,35 +323,61 @@ function processFunc(rootContext, node, context) {
     });
 
     // Replace first class function delcarations with variable declarations
-    for (var i = 0; i < node.body.length; i++) {
-        (function(iterNode, i) {
-            if (!iterNode || iterNode.type !== 'Function') return;
-            if (!iterNode.__firstClass) return false;
+    traverser.iterateBodies(node, function(body) {
+        if (!body) return;
+        for (var i = 0; i < body.length; i++) {
+            (function(iterNode, i) {
+                if (!iterNode || iterNode.type !== 'Function') return;
+                if (!iterNode.__firstClass) return false;
 
-            node.body.splice(
-                i,
-                1,
-                new nodes.Declaration(
-                    iterNode.start,
-                    iterNode.end,
-                    {
-                        declType: iterNode.getType(context),
-                        identifier: iterNode.name,
-                        __assignedName: iterNode.__assignedName,
-                        value: new nodes.FunctionReference({
-                            base: iterNode,
-                            ctx: new nodes.Symbol({
-                                name: ctxName,
-                                __refContext: context,
-                                __refType: ctxType,
-                                __refName: ctxName,
+                body.splice(
+                    i,
+                    1,
+                    new nodes.Declaration(
+                        iterNode.start,
+                        iterNode.end,
+                        {
+                            declType: iterNode.getType(context),
+                            identifier: iterNode.name,
+                            __assignedName: iterNode.__assignedName,
+                            value: new nodes.FunctionReference({
+                                base: iterNode,
+                                ctx: new nodes.Symbol({
+                                    name: ctxName,
+                                    __refContext: context,
+                                    __refType: ctxType,
+                                    __refName: ctxName,
+                                }),
                             }),
-                        }),
-                    }
-                )
-            );
-        }(node.body[i], i));
-    }
+                        }
+                    )
+                );
+            }(body[i], i));
+        }
+    });
+
+    var stack = [];
+    traverser.traverse(node, function(node) {
+        if (node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
+            stack[0].substitute(function(x) {
+                if (x !== node) return x;
+                return new nodes.FunctionReference({
+                    base: node,
+                    ctx: new nodes.Symbol({
+                        name: ctxName,
+                        __refContext: context,
+                        __refType: ctxType,
+                        __refName: ctxName,
+                    }),
+                });
+            });
+            return;
+        }
+
+        stack.unshift(node);
+    }, function(node) {
+        stack.shift();
+    });
 
 }
 
@@ -419,6 +454,8 @@ var transform = module.exports = function(rootContext) {
 
     // Perform all uplifting at the end.
     rootContext.__transformEncounteredContexts.forEach(upliftContext.bind(null, rootContext));
+
+    debugger;
 };
 
 transform.getFunctionContext = getFunctionContext;

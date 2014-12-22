@@ -266,7 +266,6 @@ var public_ = exports.publicTypes = {
     'int': new Primitive('int', 'int32'),
     'float': new Primitive('float', 'float64'),
     'bool': new Primitive('bool', 'uint8'),
-    'null': new Primitive('null', 'uint32'),
 };
 
 

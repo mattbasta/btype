@@ -3,8 +3,8 @@
 var tokens = [
     [/^(?:\r\n|\r|\n)/, null],
     [/^\s+/, null],
-    [/^"(?:\\(?:.|\r\n|\r|\n)|[^"\\\n])*"/i, 'string'],
-    [/^'(?:\\(?:.|\r\n|\r|\n)|[^'\\\n])*'/i, 'string'],
+    [/^"(?:\\(?:.|\r\n|\r|\n)|[^"\\\n])*"/i, 'str'],
+    [/^'(?:\\(?:.|\r\n|\r|\n)|[^'\\\n])*'/i, 'str'],
     [/^#[^\n\r]*/i, 'comment'],
     // Floats must be matched before integers
     [/^[1-9][0-9]*\.[0-9]+/, 'float'],

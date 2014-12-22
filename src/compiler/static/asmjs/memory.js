@@ -165,7 +165,7 @@ function free(pointer) {
     pointer = pointer | 0;  // Cast to int
 
     // Start with the lowest possible size of the block.
-    var size = $LOWEST_ORDER$;
+    var size = LOWEST_ORDER;
     var buddy = 0;
     var midpoint = 0;
     var temp = 0;
@@ -210,7 +210,7 @@ function free(pointer) {
         // Update the size to match the block.
         size = size << 1;
         // If we've freed all the way up to the size of the heap, we're done.
-        if ((size | 0) >= $HEAP_SIZE$) {
+        if ((size | 0) >= HEAP_SIZE) {
             return;
         }
         // Calculate the block's buddy.

@@ -53,22 +53,81 @@ function upliftDeclarations(body) {
 }
 
 function trimBody(body) {
-    // TODO: This doesn't work for cycles in the call graph. It should be made
-    // to be more robust.
+    var accessorToAccessed = {};
+    var accessedToAccessor = {};
 
-    var encounteredIdentifiers = {};
+    function mark(accessor, accessed) {
+        if (!(accessor in accessorToAccessed)) accessorToAccessed[accessor] = [];
+        if (!(accessed in accessedToAccessor)) accessedToAccessor[accessed] = [];
+        accessorToAccessed[accessor].push(accessed);
+        accessedToAccessor[accessed].push(accessor);
+    }
+
     var stack = [];
-    traverse(body, function(node) {
-        stack.unshift(node);
-        if (node.type !== 'Identifier') return;
-        if (stack[1].type === 'FunctionDeclaration') return;
-        if (stack[1].type === 'VariableDeclarator') return;
-        if (node.name in encounteredIdentifiers) return;
 
-        encounteredIdentifiers[node.name] = true;
+    function getAccessorName() {
+        for (var i = stack.length - 1; i >= 0; i--) {
+            if (stack[i].type === 'FunctionDeclaration') return stack[i].id.name;
+            if (stack[i].type === 'VariableDeclarator') return stack[i].id.name;
+            if (stack[i].type === 'AssignmentExpression') return stack[i].left.name;
+            if (stack[i].type === 'ReturnStatement') return 'root';
+        }
+        console.error(stack);
+        throw new Error('Unknown accessor name');
+    }
+
+    traverse(body, function(node) {
+        if (stack.length === 1 && node.type === 'ReturnStatement') {
+            node.argument.properties.forEach(function(prop) {
+                mark('root', prop.value.name);
+            });
+            return false;
+        }
+        stack.unshift(node);
+
+        // Ignore non-identifiers
+        if (node.type !== 'Identifier') return;
+        // Ignore the name of functions
+        if (stack[1].type === 'FunctionDeclaration') return;
+        // Ignore the name of declarations
+        if (stack[1].type === 'VariableDeclarator') return;
+
+        var accessor = getAccessorName();
+        if (stack.length === 3 && node.type === 'ArrayExpression') {
+            node.elements.forEach(function(elem) {
+                mark(accessor, elem.name);
+            });
+            return false;
+        } else if (node.type === 'Identifier') {
+            mark(accessor, node.name);
+        }
+
+
     }, function() {
         stack.shift();
     });
+
+    var unexploredNames = accessorToAccessed['root'];
+    var exploredNames = [];
+    var encounteredIdentifiers = {};
+
+    var current;
+    var currentBody;
+    while (unexploredNames.length) {
+        current = unexploredNames.pop();
+
+        currentBody = accessorToAccessed[current];
+        if (currentBody) {
+            currentBody.forEach(function(name) {
+                if (exploredNames.indexOf(name) !== -1) return;
+                if (unexploredNames.indexOf(name) !== -1) return;
+                unexploredNames.push(name);
+            });
+        }
+
+        encounteredIdentifiers[current] = true;
+        exploredNames.push(current);
+    }
 
     var anyRemoved = false;
     body.body = body.body.filter(function(node) {
@@ -200,9 +259,6 @@ exports.optimize = function(body) {
     upliftDeclarations(parsedBody);
     trimBody(parsedBody);
     orderCode(parsedBody);
-
-    // console.log(parsed.body[0].expression.body.body);
-    // console.log(Object.keys(parsed.body[0]));
 
     parsedBody.type = 'Program';
     return escodegen.generate(

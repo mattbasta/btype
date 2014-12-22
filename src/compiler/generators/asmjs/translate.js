@@ -65,6 +65,8 @@ function _node(node, env, ctx, prec, extra) {
 }
 
 function typeAnnotation(base, type) {
+    if (!type) return base;
+
     switch (type.typeName) {
         case 'float':
             if (base[0] === '+') return base;

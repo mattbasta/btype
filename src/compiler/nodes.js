@@ -50,7 +50,9 @@ function indentEach(input, level) {
 var NODES = {
     Root: {
         traverse: function(cb) {
-            this.body.forEach(oneArg(cb));
+            this.body.forEach(function(stmt) {
+                cb(stmt, 'body');
+            });
         },
         traverseStatements: function(cb) {
             cb(this.body, 'body');
@@ -382,7 +384,7 @@ var NODES = {
                        indentEach(this.declType.toString(), 2) + '\n'
                     ) +
                    '    Value:\n' +
-                   indentEach(this.value.toString(), 2) + '\n';
+                   indentEach(this.value.toString(), 2);
         },
     },
     ConstDeclaration: {
@@ -416,7 +418,6 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
-            debugger;
             var valueType = this.value.getType(ctx);
             var func = ctx.scope;
             var funcReturnType = func.returnType.getType(ctx);
@@ -547,7 +548,9 @@ var NODES = {
     Case: {
         traverse: function(cb) {
             cb(this.value, 'value');
-            this.body.forEach(oneArg(cb));
+            this.body.forEach(function(stmt) {
+                cb(stmt, 'body');
+            });
         },
         traverseStatements: function(cb) {
             cb(this.body, 'body');
@@ -623,8 +626,10 @@ var NODES = {
         traverse: function(cb) {
             if (this.returnType)
                 cb(this.returnType, 'return');
-            // this.params.forEach(cb);
-            this.body.forEach(oneArg(cb));
+
+            this.body.forEach(function(stmt) {
+                cb(stmt, 'body');
+            });
         },
         traverseStatements: function(cb) {
             cb(this.body, 'body');
@@ -743,11 +748,8 @@ var NODES = {
             // TODO: Check that the params match the params of the constructor
         },
         toString: function() {
-            return 'New:\n' +
-                   '    Type:\n' +
-                   indentEach(this.newType.toString(), 2) + '\n' +
-                   '    Params:\n' +
-                   indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 2);
+            return 'New: ' + this.newType.toString() + '\n' +
+                   indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
         },
     }
 };

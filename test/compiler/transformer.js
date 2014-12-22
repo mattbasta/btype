@@ -60,6 +60,17 @@ describe('transformer', function() {
 
         });
 
+        it('should mark functions initially assigned to variables', function() {
+            var ctx = getCtx([
+                'var foo = func<null>() {};',
+            ]);
+
+            transformer.markFirstClassFunctions(ctx);
+
+            assert.ok(ctx.functions[0].__firstClass);
+
+        });
+
         it('should mark functions assigned to variables', function() {
             var ctx = getCtx([
                 'func foo() {}',

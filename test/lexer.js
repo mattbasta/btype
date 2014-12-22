@@ -67,17 +67,17 @@ describe('Lexer', function() {
     });
     it('should tokenize string literals', function() {
         matches('"asdf" "foo" "123" "123\\nbar"');
-        tokensOfType('"foo"', 'string');
-        tokensOfType('"123"', 'string');
-        tokensOfType('"0.123"', 'string');
-        tokensOfType('"123.456"', 'string');
+        tokensOfType('"foo"', 'str');
+        tokensOfType('"123"', 'str');
+        tokensOfType('"0.123"', 'str');
+        tokensOfType('"123.456"', 'str');
     });
     it('should tokenize string literals with single quotes', function() {
         matches("'asdf' 'foo' '123' '123\\nbar'");
-        tokensOfType("'foo'", 'string');
-        tokensOfType("'123'", 'string');
-        tokensOfType("'0.123'", 'string');
-        tokensOfType("'123.456'", 'string');
+        tokensOfType("'foo'", 'str');
+        tokensOfType("'123'", 'str');
+        tokensOfType("'0.123'", 'str');
+        tokensOfType("'123.456'", 'str');
     });
     it('should tokenize strings with escapes', function() {
         matches("'asd\\'f' 'f\\\\oo' '1\\n23' '123\\tbar'");
@@ -90,7 +90,7 @@ describe('Lexer', function() {
     });
 
     it('should ignore comments at EOF', function() {
-        tokensOfType('"foo" #bar', 'string');
+        tokensOfType('"foo" #bar', 'str');
     });
 });
 
