@@ -161,12 +161,12 @@ describe('transformer', function() {
                 'func bar() {',
                 '    var x = 0;',
                 '    var y = 0;',
-                '    func int:inner() {x = x + 1; return y;}',
+                '    func int:inner() {x = x + 1; return x;}',
                 '}'
             ]);
 
             var fc = transformer.getFunctionContext(ctx.functions[0].__context);
-            assert.equal(Object.keys(fc.getType(ctx).contentsTypeMap).length, 1, 'Should only have a single item in the context');
+            assert.equal(Object.keys(fc.getType(ctx).contentsTypeMap).length, 1);
             assert.ok(fc.__mapping[fc.__context.nameMap.x], 'Mapping should only have the correct member');
 
         });

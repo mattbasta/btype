@@ -43,6 +43,9 @@ function markFirstClassFunctions(context) {
             // declared function doesn't make the function first-class.
             if (stack[0].type === 'CallRaw' && marker === 'callee') return false;
 
+            // Ignore symbols that are the base of Export nodes.
+            if (stack[0].type === 'Export') return false;
+
             // If it's falsey, it means that it's a variable declaration of
             // type `func`, not a function declaration.
             if (!node.__refContext.isFuncMap[node.__refName]) return false;
@@ -453,8 +456,6 @@ var transform = module.exports = function(rootContext) {
 
     // Perform all uplifting at the end.
     rootContext.__transformEncounteredContexts.forEach(upliftContext.bind(null, rootContext));
-
-    debugger;
 };
 
 transform.getFunctionContext = getFunctionContext;

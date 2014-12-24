@@ -156,6 +156,7 @@ var NODES = {
         var funcName = this.base.__refName;
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
+        console.log(env.funcList[listName])
         if (env.funcList[listName].indexOf(funcName) === -1) env.funcList[listName].push(funcName);
         return '(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ') | 0)';
     },
@@ -273,14 +274,14 @@ var NODES = {
     If: function(env, ctx, prec) {
         return 'if (' +
             _node(this.condition, env, ctx, 0) +
-            ') {' +
+            ') {\n' +
             this.consequent.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') +
-            '}' +
-            (this.alternate ? ' else {' + this.alternate.map(function(stmt) {
+            '\n}' +
+            (this.alternate ? ' else {\n' + this.alternate.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
-            }) + '}' : '');
+            }) + '\n}' : '');
     },
     'Function': function(env, ctx, prec) {
         var output = 'function ' + this.__assignedName + '(';
@@ -293,7 +294,7 @@ var NODES = {
         output += this.params.map(function(param) {
             var paramType = param.getType(ctx);
             return param.__assignedName + ' = ' + typeAnnotation(param.__assignedName, paramType) + ';';
-        }).join('');
+        }).join('\n');
 
         output += '\n';
 
@@ -303,10 +304,11 @@ var NODES = {
 
         var returnType = this.getType(ctx).getReturnType();
         if (returnType && this.body[this.body.length - 1].type !== 'Return') {
-            output += 'return 0';
+            output += '\nreturn 0';
             if (returnType.typeName === 'float') {
                 output += '.0';
             }
+            output += ';';
         }
 
         output += '\n}';

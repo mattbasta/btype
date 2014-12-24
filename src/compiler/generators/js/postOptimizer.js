@@ -249,6 +249,8 @@ function orderCode(body) {
 exports.optimize = function(body) {
     var parsed;
     try {
+        // console.log(body);
+        // process.exit(1);
         parsed = esprima.parse('(function() {' + body + '})', {raw: true});
     } catch (e) {
         console.error(body);

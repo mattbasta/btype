@@ -165,6 +165,10 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                     contexts[0].accessesGlobalScope = true;
 
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
+
+                    // Ignore calls from a nested function to itself (recursion)
+                    if (node.__isFunc && node.__refName === contexts[0].scope.__assignedName) return;
+
                     // Otherwise the lookup is lexical and needs to be marked as such.
 
                     for (var i = 0; i < contexts.length && contexts[i] !== node.__refContext; i++) {

@@ -65,8 +65,8 @@ module.exports = function generate(env, ENV_VARS) {
             '    $$ctx = $$ctx | 0;\n' +
             funcType.args.map(function(arg, i) {
                 var base = '$param' + i;
-                return '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg);
-            }).join('\n') +
+                return '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg) + ';';
+            }).join('\n') + '\n' +
             '    return ' + jsTranslate.typeAnnotation(
                     flist + '[ptrheap[$$ctx >> 2]&' + (funcList.length - 1) + '](' +
                         paramList.join(',') +

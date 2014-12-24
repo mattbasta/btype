@@ -416,6 +416,22 @@ describe('context', function() {
             assert.ok(ctx.accessesGlobalScope, 'The function accesses the global scope');
         });
 
+        it('should not treat recursion as lexical scope access', function() {
+            var ctx = prep([
+                'var globalVar = 0;',
+                'func int:foo() {',
+                '    func int:bar(int:param2) {',
+                '        return bar(param2 - 1) + param2;',
+                '    }',
+                '    return bar(123);',
+                '}'
+            ]);
+            var innerctx = ctx.functions[0].__context;
+
+            assert.ok(!innerctx.accessesLexicalScope, 'The inner function does not access the lexical scope');
+            assert.ok(!innerctx.accessesGlobalScope, 'The inner function does not access the global scope');
+        });
+
         it('should store contexts for lexical scope lookups', function() {
             var ctx = prep([
                 'func int:foo(int:param1) {',
