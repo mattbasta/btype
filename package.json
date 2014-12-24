@@ -1,7 +1,7 @@
 {
   "name": "btype",
-  "version": "0.0.1",
-  "description": "A compiled JavaScript-like language",
+  "version": "0.1.0",
+  "description": "A compiled language for the web",
   "main": "btype.js",
   "scripts": {
     "test": "mocha --recursive"
