@@ -156,7 +156,6 @@ var NODES = {
         var funcName = this.base.__refName;
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
-        console.log(env.funcList[listName])
         if (env.funcList[listName].indexOf(funcName) === -1) env.funcList[listName].push(funcName);
         return '(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ') | 0)';
     },

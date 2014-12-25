@@ -60,7 +60,6 @@ function upliftExpressionsFromBody(ctx, body) {
             if (isNodeBoundary(node, member)) return false;
 
             stack.unshift(node);
-            // console.log('start', node.toString());
 
             var i;
             if (node.type === 'LogicalBinop') {
