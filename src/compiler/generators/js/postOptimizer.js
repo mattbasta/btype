@@ -230,9 +230,13 @@ function orderCode(body) {
         }
         var origBody = node.body.body;
         var bodyPrefix = [];
-        while (origBody.length && isParamAnnotation(origBody[0])) {
-            bodyPrefix.push(origBody[0]);
-            origBody.splice(0, 1);
+        for (var i = 0; i < origBody.length; i++) {
+            if (!isParamAnnotation(origBody[i])) {
+                continue;
+            }
+            bodyPrefix.push(origBody[i]);
+            origBody.splice(i, 1);
+            i--;
         }
 
         bodyPrefix = bodyPrefix.concat(origBody.filter(function(x) {
@@ -261,6 +265,7 @@ exports.optimize = function(body) {
     orderCode(parsedBody);
 
     parsedBody.type = 'Program';
+
     return escodegen.generate(
         parsedBody,
         {

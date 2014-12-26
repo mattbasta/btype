@@ -160,6 +160,7 @@ function processContext(rootContext, ctx, tree) {
         // Process this individual context's function.
         tree = tree || ctx.scope;
         processFunc(rootContext, tree, ctx);
+        processCallNodes(tree, ctx);
 
         // Don't count encountered contexts twice.
         if (encounteredContexts.indexOf(ctx) === -1) {
@@ -299,31 +300,6 @@ function processFunc(rootContext, node, context) {
         }));
     });
 
-    // Replace calls to function declarations with CallDecl nodes and calls to
-    // references with CallRef.
-    traverser.findAndReplace(node, function(node) {
-        if (node.type !== 'CallRaw') return;
-
-        var isDeclaration = !!context.isFuncMap[node.callee.__refName];
-        if (!isDeclaration &&
-            node.callee.type === 'Member' &&
-            node.callee.base.getType(context)._type === 'module') {
-            isDeclaration = true;
-        }
-        var newNodeType = nodes[isDeclaration ? 'CallDecl' : 'CallRef'];
-        return function(node) {
-            return new newNodeType(
-                node.start,
-                node.end,
-                {
-                    callee: node.callee,
-                    params: node.params,
-                }
-            );
-        };
-
-    });
-
     // Replace first class function delcarations with variable declarations
     traverser.iterateBodies(node, function(body) {
         if (!body) return;
@@ -381,6 +357,34 @@ function processFunc(rootContext, node, context) {
         stack.shift();
     });
 
+}
+
+function processCallNodes(node, context) {
+    // Replace calls to function declarations with CallDecl nodes and calls to
+    // references with CallRef.
+    traverser.findAndReplace(node, function(node) {
+        if (node.type !== 'CallRaw') return;
+
+        var isDeclaration = !!context.isFuncMap[node.callee.__refName];
+        if (!isDeclaration && node.callee.type === 'Member') {
+            var baseType = node.callee.base.getType(context);
+            if (baseType._type === 'module' || baseType.flatTypeName() === 'foreign') {
+                isDeclaration = true;
+            }
+        }
+        var newNodeType = nodes[isDeclaration ? 'CallDecl' : 'CallRef'];
+        return function(node) {
+            return new newNodeType(
+                node.start,
+                node.end,
+                {
+                    callee: node.callee,
+                    params: node.params,
+                }
+            );
+        };
+
+    });
 }
 
 function upliftContext(rootContext, ctx) {

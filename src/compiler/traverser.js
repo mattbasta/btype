@@ -11,6 +11,12 @@ var traverse = module.exports.traverse = function(tree, callback, afterCallback)
     }
 };
 
+module.exports.traverseWithSelf = function(tree, callback, afterCallback) {
+    callback(tree);
+    traverse(tree, callback, afterCallback);
+    if (afterCallback) afterCallback(tree);
+}
+
 module.exports.findAll = function(tree, filter) {
     var output = [];
     traverse(tree, function(node) {

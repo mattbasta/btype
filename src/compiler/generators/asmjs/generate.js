@@ -43,13 +43,11 @@ function makeModule(env, ENV_VARS, body) {
 module.exports = function generate(env, ENV_VARS) {
 
     var body = '';
-    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/funcref.js')).toString();
+    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/gc.js')).toString();
+    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory.js')).toString();
 
-    // var body = env.types.map(typeTranslate).join('\n\n') + '\n';
-    // body += env.included.map(jsTranslate).join('\n\n');
     body += env.included.map(jsTranslate).join('\n\n');
-
 
     // Compile function list callers
     body += '\n' + Object.keys(env.funcList).map(function(flist) {

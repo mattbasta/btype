@@ -3,6 +3,14 @@ var traverser = require('./traverser');
 var types = require('./types');
 
 
+var safeLiteralTypes = {
+    bool: true,
+    float: true,
+    int: true,
+    'null': true,
+};
+
+
 module.exports = function(rootContext) {
     rootContext.functions.forEach(function(func) {
         traverser.iterateBodies(func, function(body, member) {
@@ -56,7 +64,7 @@ function upliftExpressionsFromBody(ctx, body) {
 
         // Mark which expressions to flatten
         var stack = [];
-        traverser.traverse(current, function(node, member) {
+        traverser.traverseWithSelf(current, function(node, member) {
             if (isNodeBoundary(node, member)) return false;
 
             stack.unshift(node);
@@ -78,7 +86,6 @@ function upliftExpressionsFromBody(ctx, body) {
                         stack[i].__shouldFlatten = true;
                     }
 
-                    // debugger;
                     if (i + 1 >= stack.length) continue;
                     if ((stack[i + 1].type === 'CallRaw' ||
                          stack[i + 1].type === 'CallDecl' ||
@@ -88,6 +95,10 @@ function upliftExpressionsFromBody(ctx, body) {
                         stack[i + 1].__shouldFlattenChildren = true;
                     }
                 }
+            } else if (stack[1] && stack[1].type === 'Return' &&
+                !(node.type === 'Literal' && node.litType in safeLiteralTypes) &&
+                node.type !== 'Symbol') {
+                node.__shouldFlatten = true;
             }
         }, function(node) {
             stack.shift();
@@ -113,10 +124,12 @@ function upliftExpressionsFromBody(ctx, body) {
             ctx.addVar(decl.identifier, type, decl.__assignedName);
             injectBefore(decl);
 
-            injectBefore(new nodes.Assignment({
-                base: getDeclReference(decl, type),
-                value: node,
-            }));
+            if (node.type !== 'Primitive' || node.value) {
+                injectBefore(new nodes.Assignment({
+                    base: getDeclReference(decl, type),
+                    value: node,
+                }));
+            }
 
             return getDeclReference(decl, type);
 

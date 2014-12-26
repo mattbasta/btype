@@ -213,7 +213,7 @@ var NODES = {
             '}' +
             (this.alternate ? ' else {' + this.alternate.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
-            }) + '}' : '');
+            }).join('\n') + '}' : '');
     },
     'Function': function(env, ctx, prec) {
         return 'function ' + this.__assignedName + '(' +

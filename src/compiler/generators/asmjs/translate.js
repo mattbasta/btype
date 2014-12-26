@@ -66,6 +66,9 @@ function _node(node, env, ctx, prec, extra) {
 
 function typeAnnotation(base, type) {
     if (!type) return base;
+    if (/^[\d\.]+$/.exec(base)) return base;
+
+    base = '(' + base + ')';
 
     switch (type.typeName) {
         case 'float':
@@ -201,26 +204,35 @@ var NODES = {
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
-        var lookup = typedArr + '[' + _node(this.base, env, ctx, 1) + ' + ' + layout[this.child] + HEAP_MODIFIERS[typedArr] + ']';
+        var lookup = typedArr + '[' + _node(this.base, env, ctx, 1) + ' + ' + (layout[this.child] + 8) + HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
         }
         return lookup;
     },
     Assignment: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' + _node(this.value, env, ctx, 1) + ';';
+        return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' +
+            typeAnnotation(_node(this.value, env, ctx, 1), this.value.getType(ctx)) + ';';
     },
     Declaration: function(env, ctx, prec) {
         var type = this.value.getType(ctx);
+        var output = 'var ' + this.__assignedName + ' = ';
+
+        if (this.value.type === 'Literal') {
+            output += this.value.value.toString() + ';';
+            return output;
+        }
+
         var def = type && type.typeName === 'float' ? '0.0' : '0';
-        return 'var ' + this.__assignedName + ' = ' + def + '; ' +
-            this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
+        output += def + ';\n';
+        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
+        return output;
     },
     ConstDeclaration: function() {
         return NODES.Declaration.apply(this, arguments);
     },
     Return: function(env, ctx, prec) {
-        return 'return ' + typeAnnotation('(' + _node(this.value, env, ctx, 1, 'Return') + ')', this.value.getType(ctx)) + ';';
+        return 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
     },
     Export: function() {return '';},
     Import: function() {return '';},
@@ -280,7 +292,7 @@ var NODES = {
             '\n}' +
             (this.alternate ? ' else {\n' + this.alternate.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
-            }) + '\n}' : '');
+            }).join('\n') + '\n}' : '');
     },
     'Function': function(env, ctx, prec) {
         var output = 'function ' + this.__assignedName + '(';
@@ -290,12 +302,14 @@ var NODES = {
         output += '){\n';
 
         // asm.js parameter annotations
-        output += this.params.map(function(param) {
-            var paramType = param.getType(ctx);
-            return param.__assignedName + ' = ' + typeAnnotation(param.__assignedName, paramType) + ';';
-        }).join('\n');
+        if (this.params.length) {
+            output += this.params.map(function(param) {
+                var paramType = param.getType(ctx);
+                return param.__assignedName + ' = ' + typeAnnotation(param.__assignedName, paramType) + ';';
+            }).join('\n');
 
-        output += '\n';
+            output += '\n';
+        }
 
         output += this.body.map(function(stmt) {
             return _node(stmt, env, ctx, 0);
@@ -331,7 +345,7 @@ var NODES = {
         return this.__refName;
     },
     New: function(env, ctx) {
-        return '(malloc(' + this.getType(ctx).getSize() + ')|0)';
+        return '(gcref(malloc(' + (this.getType(ctx).getSize() + 8) + '))|0)';
     }
 };
 
