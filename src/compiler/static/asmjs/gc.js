@@ -14,6 +14,9 @@ function gcget(ptr) {
  */
 function gcref(ptr) {
     ptr = ptr | 0;
+    if ((ptr | 0) == 0) {
+        return 0;
+    }
     ptrheap[ptr + 4 >> 2] = (ptrheap[ptr + 4 >> 2] | 0) + 1 | 0;
     return ptr | 0;
 }
@@ -24,6 +27,10 @@ function gcref(ptr) {
  */
 function gcderef(ptr) {
     ptr = ptr | 0;
+
+    if ((ptr | 0) == 0) {
+        return;
+    }
 
     var newRC = 0;
     newRC = (ptrheap[ptr + 4 >> 2] | 0) - 1 | 0;

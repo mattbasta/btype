@@ -190,6 +190,7 @@ function processFunc(rootContext, node, context) {
     node.body.unshift(funcctx);
 
     var ctxType = funcctx.declType.getType(context);
+    context.addVar(ctxName, ctxType, ctxName);
 
     function getReference(name) {
         return new nodes.Member({
@@ -271,7 +272,7 @@ function processFunc(rootContext, node, context) {
             __refContext: context,
         }));
 
-        ctx.addVar(ctxName, ctxType);
+        ctx.addVar(ctxName, ctxType, ctxName);
     });
 
     // Remove all of the converted variables from the `typeMap` and

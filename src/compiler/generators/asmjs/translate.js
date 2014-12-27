@@ -68,16 +68,18 @@ function typeAnnotation(base, type) {
     if (!type) return base;
     if (/^[\d\.]+$/.exec(base)) return base;
 
+    var origBase = base;
     base = '(' + base + ')';
 
     switch (type.typeName) {
         case 'float':
-            if (base[0] === '+') return base;
+            if (origBase[0] === '+') return base;
             return '+' + base;
         case 'byte':
         case 'int':
         case 'uint':
         default:
+            if (origBase.substr(-2) === '|0') return base;
             return base + '|0';
     }
 
@@ -107,7 +109,7 @@ var NODES = {
         if (this.operator === '-') {
             out = '(-1 * ' + out + ')';
         } else if (this.operator === '!') {
-            out = '!(' + out + '|0)';
+            out = '!(' + typeAnnotation(out, types.publicTypes.int) + ')';
         }
         return out;
     },
@@ -160,7 +162,7 @@ var NODES = {
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
         if (env.funcList[listName].indexOf(funcName) === -1) env.funcList[listName].push(funcName);
-        return '(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ') | 0)';
+        return '(gcref(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ')) | 0)';
     },
     Member: function(env, ctx, prec, parent) {
         var baseType = this.base.getType(ctx);
@@ -232,7 +234,30 @@ var NODES = {
         return NODES.Declaration.apply(this, arguments);
     },
     Return: function(env, ctx, prec) {
-        return 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
+        var output = '';
+
+        var params = ctx.scope.params.map(function(p) {
+            return p.__assignedName;
+        });
+        Object.keys(ctx.typeMap).forEach(function(name) {
+            var type = ctx.typeMap[name];
+            if (type._type === 'primitive') return;
+
+            // Ignore returned symbols
+            if (this.value.type === 'Symbol' && this.value.__refName === name) return;
+
+            // Ignore recursion
+            if (this.value.type === 'Symbol' && this.value.__refName === ctx.scope.__assignedName) {
+                return;
+            }
+
+            // Ignore parameters
+            if (params.indexOf(name) !== -1) return;
+
+            output += 'gcderef(' + name + ');\n';
+        }, this);
+
+        return output + 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
     },
     Export: function() {return '';},
     Import: function() {return '';},
@@ -294,7 +319,8 @@ var NODES = {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') + '\n}' : '');
     },
-    'Function': function(env, ctx, prec) {
+    'Function': function(env, _, prec) {
+        var ctx = this.__context;
         var output = 'function ' + this.__assignedName + '(';
         output += this.params.map(function(param) {
             return _node(param, env, ctx, 1);
