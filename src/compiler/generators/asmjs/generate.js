@@ -18,8 +18,11 @@ function getHeapSize(n) {
 function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
+        // Create the heap
         'var heap = new ArrayBuffer(' + getHeapSize(ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
+        // Shim imul if it doesn't exist (*COUGH* NODE *COUGH*)
         'this.Math.imul = this.Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
+        // Get an instance of the asm module, passing in all of the externally requested items
         'var ret = module(this, {' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';
             if (foreign in externalFuncs) {
@@ -29,10 +32,15 @@ function makeModule(env, ENV_VARS, body) {
             }
             return base;
         }).join(',') + '}, heap);',
-        'if (ret.__init) ret.__init();',
+        // If there's an init method, call it and remove it.
+        'if (ret.__init) {ret.$init(); delete ret.$init;}',
+        // Return the processed asm module
         'return ret;',
+        // Declare the asm module
         '})(function' + (env.name ? ' ' + env.name : ' module') + '(stdlib, foreign, heap) {',
+        // asm.js pragma
         '    "use asm";',
+        // Always add imul since it's used for integer multiplication
         '    var imul = stdlib.Math.imul;',
         body,
         '})'
@@ -43,10 +51,13 @@ function makeModule(env, ENV_VARS, body) {
 module.exports = function generate(env, ENV_VARS) {
 
     var body = '';
+
+    // Include static modules
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/funcref.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/gc.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory.js')).toString();
 
+    // Translate and output each included context
     body += env.included.map(jsTranslate).join('\n\n');
 
     // Compile function list callers
@@ -83,7 +94,7 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile exports for the code.
     body += '\n    return {\n' +
-        // 'malloc: malloc,\nfree: free,\n' +
+        'malloc: malloc,\nfree: free,\n' +
         Object.keys(env.requested.exports).map(function(e) {
         return '        ' + e + ': ' + env.requested.exports[e];
     }).join(',\n    ') + '\n    };';
