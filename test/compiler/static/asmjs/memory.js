@@ -55,15 +55,37 @@ describe('Memory special module', function() {
             }
         });
 
-        it('should not return the same pointer twice', function() {
+        it('should return only valid pointers', function() {
             var pointers = [];
             var x;
+            var size = LOWEST_ORDER * 128;
+            var max_ptr = HEAP_SIZE + BUDDY_SPACE;
             while (1) {
-                x = mod.malloc(LOWEST_ORDER * 128);
+                x = mod.malloc(size);
                 if (x === 0) break;
+                assert.ok(x > 0);
+                assert.ok(x < max_ptr);
                 assert.equal(pointers.indexOf(x), -1);
-                pointers.push(x);
+                pointers.push(x | 0);
             }
+
+            pointers = pointers.sort(function(a, b) {
+                if (a < b) {
+                    return -1;
+                }
+                if (a > b) {
+                    return 1;
+                }
+                return 0;
+            });
+
+            // Test that the pointers do not overlap
+            pointers.forEach(function(ptr, i) {
+                if (pointers[i + 1]) {
+                    assert.ok(pointers[i + 1] - size >= ptr);
+                }
+            });
+
         });
 
     });
@@ -192,6 +214,24 @@ describe('Memory special module', function() {
     });
 
     describe('free', function() {
-        //
+        it('should return memory to the application', function() {
+            var pointers = [];
+            var x;
+            var size = LOWEST_ORDER * 128;
+            var max_ptr = HEAP_SIZE + BUDDY_SPACE;
+            while (1) {
+                x = mod.malloc(size);
+                if (x === 0) break;
+                pointers.push(x | 0);
+            }
+
+            var freeable = pointers.shift();
+            mod.free(freeable);
+            assert.notEqual(x = mod.malloc(size), 0);
+            assert.equal(mod.malloc(size), 0);
+            assert.equal(freeable, x);
+
+        });
+
     });
 });
