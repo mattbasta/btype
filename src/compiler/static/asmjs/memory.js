@@ -114,7 +114,7 @@ function _malloc_search(pointer, pairSize, requestedSize, midpoint) {
             return 0;
         }
         _malloc_toggle(temp, 1);
-        return temp + 1 | 0;
+        return temp + BUDDY_SPACE | 0;
     }
 
     // If the current block is not split...
@@ -164,18 +164,17 @@ function _malloc_search(pointer, pairSize, requestedSize, midpoint) {
 function malloc(bytes) {
     bytes = bytes | 0;  // Cast to int
 
+    // Don't allow requesting more memory than the size of the heap
+    if ((bytes | 0) > HEAP_SIZE) {
+        return 0;
+    }
+
     var halfHeap = 0;
     var midpoint = 0;
     bytes = bytes + 8 | 0;  // Account for reference count and object shape (4 bytes each)
     halfHeap = HEAP_SIZE >> 1;
     midpoint = _malloc_lookup(halfHeap, 0) | 0;
-
-    var result = 0;
-    result = _malloc_search(halfHeap, HEAP_SIZE, bytes, midpoint) | 0;
-    if (result) {
-        result = result + BUDDY_SPACE | 0;
-    }
-    return result | 0;
+    return _malloc_search(halfHeap, HEAP_SIZE, bytes, midpoint) | 0;
 }
 
 /**
@@ -206,7 +205,7 @@ function free(pointer) {
     // Free the block straight away.
     _malloc_toggle(pointer, 1);
 
-    while ((temp | 0) == 0) {
+    do {
         // Calculate the position of the buddy (pos XOR size)
         buddy = pointer ^ size;
         if ((buddy | 0) < (pointer | 0)) {
@@ -216,23 +215,30 @@ function free(pointer) {
         }
         temp = _malloc_lookup(midpoint, 0) | 0;
         size = size << 1;
-    }
+    } while ((temp | 0) == 0);
 
     // At this point, we've found the first full pair:
     //  - buddy:  The address of the buddy.
-    //  - midpoint:  The midpoint of the block being freed and its buddy.
+    //  - midpoint:  The point between the block being freed and its buddy.
     //  - size: The size of the block containing the block to be freed and its buddy.
 
     while (1) {
-        // If the buddy is split or allocated, we're done.
-        if ((_malloc_lookup(buddy + (size >> 1) | 0, 0) | 0) |
-            (_malloc_lookup(buddy, 1) | 0)) {
+        // If the buddy is split, we're done.
+        if ((size | 0) != (LOWEST_ORDER << 1 | 0)) { // The buddy is not the smallest size
+            if (_malloc_lookup(buddy + (size >> 1) | 0, 0) | 0) { // The buddy is split.
+                return;
+            }
+        }
+        // If the buddy is allocated, we're done.
+        if (_malloc_lookup(buddy, 1) | 0) {
             return;
         }
         // Unsplit the current block.
         _malloc_toggle(midpoint, 0);
         // Put the pointer at the start of the block.
-        pointer = midpoint - size | 0;
+        if ((buddy | 0) < (pointer | 0)) {
+            pointer = buddy;
+        }
         // Update the size to match the block.
         size = size << 1;
         // If we've freed all the way up to the size of the heap, we're done.

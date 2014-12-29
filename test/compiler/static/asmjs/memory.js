@@ -5,14 +5,19 @@ var path = require('path');
 
 var memModule = fs.readFileSync(path.resolve(__dirname, '../../../../src/compiler/static/asmjs/memory.js')).toString();
 
+
+var HEAP_SIZE = 1024 * 1024;
+var LOWEST_ORDER = 16;
+var BUDDY_SPACE = HEAP_SIZE / LOWEST_ORDER / 4;
+
 function getInstance() {
     var setup = [
         'var stdlib = this;',
-        'var HEAP_SIZE = 1024 * 1024;',
-        'var LOWEST_ORDER = 16;',
+        'var HEAP_SIZE = ' + HEAP_SIZE + ';',
+        'var LOWEST_ORDER = ' + LOWEST_ORDER + ';',
         'var LOWEST_ORDER_POWER = 4;',
-        'var BUDDY_SPACE = HEAP_SIZE / LOWEST_ORDER / 4;',
-        'var heap = new ArrayBuffer(HEAP_SIZE + BUDDY_SPACE);',
+        'var BUDDY_SPACE = ' + BUDDY_SPACE + ';',
+        'var heap = new ArrayBuffer(HEAP_SIZE + BUDDY_SPACE);', // We don't need to make this a power of two for tests.
     ].join('\n');
 
     var returns = [
@@ -35,7 +40,32 @@ describe('Memory special module', function() {
     });
 
     describe('malloc', function() {
-        //
+        it('should return the null pointer if the requested size is larger than the heap', function() {
+            assert.equal(mod.malloc(HEAP_SIZE + 1), 0);
+        });
+
+        it('should return the null pointer if there is no space left', function() {
+            assert.equal(mod.malloc(HEAP_SIZE), BUDDY_SPACE);
+            assert.equal(mod.malloc(1), 0);
+        });
+
+        it('should always return pointers that are multiples of the lowest order', function() {
+            for (var i = 0; i < 1024; i += 1) {
+                assert.ok(mod.malloc(i) % LOWEST_ORDER === 0);
+            }
+        });
+
+        it('should not return the same pointer twice', function() {
+            var pointers = [];
+            var x;
+            while (1) {
+                x = mod.malloc(LOWEST_ORDER * 128);
+                if (x === 0) break;
+                assert.equal(pointers.indexOf(x), -1);
+                pointers.push(x);
+            }
+        });
+
     });
 
     describe('_malloc_toggle', function() {
@@ -129,7 +159,6 @@ describe('Memory special module', function() {
             assert.equal(mod.view[0], 0);
             assert.equal(mod.view[1], 1);
         });
-
     });
 
     describe('_malloc_lookup', function() {
@@ -160,7 +189,6 @@ describe('Memory special module', function() {
             assert.equal(mod._malloc_lookup(7, 0), 1);
             assert.equal(mod._malloc_lookup(7, 1), 0);
         });
-
     });
 
     describe('free', function() {
