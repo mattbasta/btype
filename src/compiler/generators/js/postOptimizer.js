@@ -90,7 +90,7 @@ function trimBody(body) {
         // Ignore the name of functions
         if (stack[1].type === 'FunctionDeclaration') return;
         // Ignore the name of declarations
-        if (stack[1].type === 'VariableDeclarator') return;
+        if (stack[1].type === 'VariableDeclarator' && node === stack[1].id) return;
 
         var accessor = getAccessorName();
         if (stack.length === 3 && node.type === 'ArrayExpression') {
@@ -261,7 +261,7 @@ exports.optimize = function(body) {
     var parsedBody = parsed.body[0].expression.body;
 
     upliftDeclarations(parsedBody);
-    trimBody(parsedBody);
+    // trimBody(parsedBody);
     orderCode(parsedBody);
 
     parsedBody.type = 'Program';

@@ -145,6 +145,21 @@ var NODES = {
     CallRef: function(env, ctx, prec) {
         var funcType = this.callee.getType(ctx);
         var listName = env.getFuncListName(funcType);
+
+        if (env.funcList[listName].length === 1) {
+            return '(' +
+                typeAnnotation(
+                    env.funcList[listName][0] + '(/* CallRef;Compacted */' +
+                    this.params.map(function(param) {
+                        return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
+                    }).join(',') +
+                    ')',
+                    funcType.getReturnType()
+                ) +
+                ')';
+        }
+
+
         return '(' +
             typeAnnotation(
                 listName + '$$call(' + _node(this.callee, env, ctx, 1) +
@@ -161,7 +176,6 @@ var NODES = {
         var funcName = this.base.__refName;
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
-        if (env.funcList[listName].indexOf(funcName) === -1) env.funcList[listName].push(funcName);
         return '(gcref(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ')) | 0)';
     },
     Member: function(env, ctx, prec, parent) {
@@ -360,6 +374,7 @@ var NODES = {
     Literal: function(env, ctx) {
         if (this.value === true) return '1';
         if (this.value === false) return '0';
+        if (this.value === null) return '0';
 
         var output = this.value.toString();
         if (this.getType(ctx).typeName === 'float' && output.indexOf('.') === -1) {

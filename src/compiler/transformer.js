@@ -68,6 +68,7 @@ function removeItem(array, item) {
             return array;
         }
     }
+    return array;
 }
 function removeElement(obj, val) {
     var out = {};
@@ -179,127 +180,146 @@ function processContext(rootContext, ctx, tree) {
 
 function processFunc(rootContext, node, context) {
 
-    if (!willFunctionNeedContext(context)) return;
+    var ctxName;
+    var funcctx;
+    var ctxMapping;
+    var ctxType;
 
-    var ctxName = context.env.namer();
-
-    var funcctx = getFunctionContext(context, ctxName);
-    context.__funcctx = funcctx;
-
-    var ctxMapping = funcctx.__mapping;
-    node.body.unshift(funcctx);
-
-    var ctxType = funcctx.declType.getType(context);
-    context.addVar(ctxName, ctxType, ctxName);
-
-    function getReference(name) {
-        return new nodes.Member({
-            base: new nodes.Symbol({
-                name: ctxName,
-                __refContext: context,
-                __refType: ctxType,
-                __refName: ctxName,
-            }),
-            child: name,
-        });
-    }
-
-    // Replace symbols referencing declarations that are now inside the
-    // funcctx with member expressions
-    traverser.findAndReplace(node, function(node) {
-        if (node.type === 'Symbol' &&
-            node.__refContext === context &&
-            node.__refName in ctxMapping) {
-
-            return function(node) {
-                return getReference(node.__refName);
-            };
+    function getContextReference() {
+        if (!funcctx) {
+            return new nodes.Literal({
+                litType: 'null',
+                value: null,
+            });
         }
 
-        if (node.type === 'Declaration' &&
-            node.__assignedName in ctxMapping) {
-            // Delete the node.
-            return function(node) {
-                return new nodes.Assignment(
-                    node.start,
-                    node.end,
-                    {
-                        base: getReference(node.__assignedName),
-                        value: node.value,
-                    }
-                );
-            };
-        }
-    });
-
-    // Put initial parameter values into the context
-    context.scope.params.forEach(function(param) {
-        var assignedName = context.nameMap[param.name];
-        if (!(assignedName in ctxMapping)) return;
-        var assign = new nodes.Assignment({
-            base: getReference(assignedName),
-            value: new nodes.Symbol({
-                name: param.name,
-                __refContext: context,
-                __refType: param.getType(context),
-                __refName: assignedName,
-            }),
-        });
-        node.body.splice(1, 0, assign);
-    });
-
-    // Remove lexical lookups from the context objects and add the parameter
-    traverser.traverse(node, function(node) {
-        if (!node || node.type !== 'Function') return;
-
-        if (!node.__originalType) {
-            node.__originalType = node.getType(node.__context);
-        }
-
-        var ctx = node.__context;
-        for (var mem in ctxMapping) {
-            if (!(mem in ctx.lexicalLookups)) return; // Ignore lexical lookups not in this scope
-            if (ctx.lexicalLookups[mem] !== context) return; // Ignore lexical lookups from other scopes
-
-            delete ctx.lexicalLookups[mem];
-        }
-
-        node.params.push(new nodes.TypedIdentifier({
-            idType: funcctx.__ctxTypeNode,
-            name: ctxName,
-            __assignedName: ctxName,
-            __context: ctx,
-            __refContext: context,
-        }));
-
-        ctx.addVar(ctxName, ctxType, ctxName);
-    });
-
-    // Remove all of the converted variables from the `typeMap` and
-    // `nameMap` fields.
-    for (var name in ctxMapping) {
-        delete context.nameMap[name];
-        delete context.typeMap[name];
-        context.nameMap = removeElement(context.nameMap, name);
-    }
-
-    // Finally, find all of the calls to the functions and add the appropriate
-    // new parameter.
-    traverser.traverse(node, function(node) {
-        if (!node || node.type !== 'CallRaw') return;
-        // Ignore calls to non-symbols
-        if (node.callee.type !== 'Symbol') return false;
-        // Ignore calls to non-functions
-        if (!node.callee.__isFunc) return false;
-
-        node.params.push(new nodes.Symbol({
+        return new nodes.Symbol({
             name: ctxName,
             __refContext: context,
-            __refName: ctxName,
             __refType: ctxType,
+            __refName: ctxName,
             __isFunc: false,
-        }));
-    });
+        });
+
+    }
+
+    if (willFunctionNeedContext(context)) {
+
+        ctxName = context.env.namer();
+
+        funcctx = getFunctionContext(context, ctxName);
+        context.__funcctx = funcctx;
+
+        ctxMapping = funcctx.__mapping;
+        node.body.unshift(funcctx);
+
+        ctxType = funcctx.declType.getType(context);
+        context.addVar(ctxName, ctxType, ctxName);
+
+        function getReference(name) {
+            return new nodes.Member({
+                base: new nodes.Symbol({
+                    name: ctxName,
+                    __refContext: context,
+                    __refType: ctxType,
+                    __refName: ctxName,
+                }),
+                child: name,
+            });
+        }
+
+        // Replace symbols referencing declarations that are now inside the
+        // funcctx with member expressions
+        traverser.findAndReplace(node, function(node) {
+            if (node.type === 'Symbol' &&
+                node.__refContext === context &&
+                node.__refName in ctxMapping) {
+
+                return function(node) {
+                    return getReference(node.__refName);
+                };
+            }
+
+            if (node.type === 'Declaration' &&
+                node.__assignedName in ctxMapping) {
+                // Delete the node.
+                return function(node) {
+                    return new nodes.Assignment(
+                        node.start,
+                        node.end,
+                        {
+                            base: getReference(node.__assignedName),
+                            value: node.value,
+                        }
+                    );
+                };
+            }
+        });
+
+        // Put initial parameter values into the context
+        context.scope.params.forEach(function(param) {
+            var assignedName = context.nameMap[param.name];
+            if (!(assignedName in ctxMapping)) return;
+            var assign = new nodes.Assignment({
+                base: getReference(assignedName),
+                value: new nodes.Symbol({
+                    name: param.name,
+                    __refContext: context,
+                    __refType: param.getType(context),
+                    __refName: assignedName,
+                }),
+            });
+            node.body.splice(1, 0, assign);
+        });
+
+        // Remove lexical lookups from the context objects and add the parameter
+        traverser.traverse(node, function(node) {
+            if (!node || node.type !== 'Function') return;
+
+            if (!node.__originalType) {
+                node.__originalType = node.getType(node.__context);
+            }
+
+            var ctx = node.__context;
+            for (var mem in ctxMapping) {
+                if (!(mem in ctx.lexicalLookups)) return; // Ignore lexical lookups not in this scope
+                if (ctx.lexicalLookups[mem] !== context) return; // Ignore lexical lookups from other scopes
+
+                delete ctx.lexicalLookups[mem];
+            }
+
+            node.params.push(new nodes.TypedIdentifier({
+                idType: funcctx.__ctxTypeNode,
+                name: ctxName,
+                __assignedName: ctxName,
+                __context: ctx,
+                __refContext: context,
+            }));
+
+            ctx.addVar(ctxName, ctxType, ctxName);
+        });
+
+        // Remove all of the converted variables from the `typeMap` and
+        // `nameMap` fields.
+        for (var name in ctxMapping) {
+            delete context.nameMap[name];
+            delete context.typeMap[name];
+            context.nameMap = removeElement(context.nameMap, name);
+        }
+
+        // Finally, find all of the calls to the functions and add the appropriate
+        // new parameter.
+        traverser.traverse(node, function(node) {
+            if (!node || node.type !== 'CallRaw') return;
+            // Ignore calls to non-symbols
+            if (node.callee.type !== 'Symbol') return false;
+            // Ignore calls to non-functions
+            if (!node.callee.__isFunc) return false;
+
+            node.params.push(getContextReference());
+        });
+
+    }
 
     // Replace first class function delcarations with variable declarations
     traverser.iterateBodies(node, function(body) {
@@ -309,6 +329,8 @@ function processFunc(rootContext, node, context) {
                 if (!iterNode || iterNode.type !== 'Function') return;
                 if (!iterNode.__firstClass) return false;
 
+                var type = iterNode.getType(context);
+                context.env.registerFunc(iterNode);
                 body.splice(
                     i,
                     1,
@@ -316,17 +338,15 @@ function processFunc(rootContext, node, context) {
                         iterNode.start,
                         iterNode.end,
                         {
-                            declType: iterNode.getType(context),
+                            declType: new nodes.Type({
+                                __type: type,
+                                name: type.typeName || type._type,
+                            }),
                             identifier: iterNode.name,
                             __assignedName: iterNode.__assignedName,
                             value: new nodes.FunctionReference({
                                 base: iterNode,
-                                ctx: new nodes.Symbol({
-                                    name: ctxName,
-                                    __refContext: context,
-                                    __refType: ctxType,
-                                    __refName: ctxName,
-                                }),
+                                ctx: getContextReference(),
                             }),
                         }
                     )
@@ -337,19 +357,24 @@ function processFunc(rootContext, node, context) {
 
     var stack = [];
     traverser.traverse(node, function(node) {
-        if (node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
-            stack[0].substitute(function(x) {
-                if (x !== node) return x;
-                return new nodes.FunctionReference({
-                    base: node,
-                    ctx: new nodes.Symbol({
-                        name: ctxName,
-                        __refContext: context,
-                        __refType: ctxType,
-                        __refName: ctxName,
-                    }),
-                });
+        function replacer(x) {
+            if (x !== node) return x;
+            context.env.registerFunc(node);
+            return new nodes.FunctionReference({
+                base: node,
+                ctx: getContextReference(),
             });
+        }
+
+        if (node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
+            stack[0].substitute(replacer);
+            return;
+
+        } else if (node.type === 'Symbol' &&
+                   node.__refType instanceof types.Func &&
+                   node.__refName in node.__refContext.functionDeclarations &&
+                   node.__refContext.functionDeclarations[node.__refName].__firstClass) {
+            stack[0].substitute(replacer);
             return;
         }
 
@@ -372,6 +397,8 @@ function processCallNodes(node, context) {
             if (baseType._type === 'module' || baseType.flatTypeName() === 'foreign') {
                 isDeclaration = true;
             }
+        } else if (!isDeclaration && node.callee.type === 'Symbol') {
+            isDeclaration = node.callee.__refContext.isFuncMap[node.callee.__refName];
         }
         var newNodeType = nodes[isDeclaration ? 'CallDecl' : 'CallRef'];
         return function(node) {
@@ -410,39 +437,35 @@ function upliftContext(rootContext, ctx) {
     traverser.traverse(ctxparent.scope, function(iterNode, marker) {
         if (!iterNode) return false;
 
-        if (iterNode === node) {
-            marker = marker || 'body';
-            if (stack[0][marker] instanceof Array) {
-                stack[0][marker] = removeItem(stack[0][marker], iterNode);
-            } else {
-                newName = node.__assignedName = ctx.env.namer();
-                stack[0][marker] = new nodes.Symbol({
-                    name: node.name,
-                    __refContext: rootContext,
-                    __refType: node.getType(ctxparent),
-                    __refName: newName,
-                });
-            }
-            return false;
+        // If you encounter someting other than the function, ignore it and
+        // push it to the stack.
+        if (iterNode !== node) {
+            stack.unshift(iterNode);
+            return;
         }
 
-        stack.unshift(iterNode);
+        // Figure out how to replace the element in its parent.
+        marker = marker || 'body';
+        if (stack[0][marker] instanceof Array) {
+            // If it's an array member in the parent, use `removeItem` to
+            // remove it.
+            stack[0][marker] = removeItem(stack[0][marker], iterNode);
+        } else {
+            // Otherwise, replace the function with a symbol referencing the
+            // function.
+            stack[0][marker] = new nodes.Symbol({
+                name: node.name,
+                __refContext: rootContext,
+                __refType: node.getType(ctxparent),
+                __refName: node.__assignedName,
+            });
+        }
+        return false;
     }, function(iterNode) {
         if (!iterNode) return false;
         stack.shift();
     });
 
-    // If we gave the function a new name to prevent collisions with local
-    // variables, we need to update CallDecl nodes that point at the old name.
-    if (newName) {
-        traverser.traverse(ctxparent.scope, function(iterNode, marker) {
-            if (!iterNode || iterNode.type !== 'CallDecl') return;
-            if (iterNode.callee.type !== 'Symbol') return;
-            if (iterNode.callee.__refName !== oldName) return;
-
-            iterNode.callee.__refName = newName;
-        });
-    }
     rootContext.scope.body.push(node);
 
     // NOTE: We do not update `ctxparent.functionDeclarations` since it

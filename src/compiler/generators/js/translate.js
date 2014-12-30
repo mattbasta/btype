@@ -231,6 +231,7 @@ var NODES = {
     Literal: function() {
         if (this.value === true) return '1';
         if (this.value === false) return '0';
+        if (this.value === null) return '0';
         return this.value.toString();
     },
     Symbol: function() {

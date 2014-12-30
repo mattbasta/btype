@@ -38,6 +38,7 @@ module.exports.iterateBodies = function(tree, cb) {
 };
 
 var findAndReplace = module.exports.findAndReplace = function(tree, filter) {
+    if (!tree.traverse) console.log(tree.toString());
     tree.traverse.call(tree, function(node, member) {
         if (!node) return;
         var replacer;

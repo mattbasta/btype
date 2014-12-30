@@ -1,6 +1,5 @@
 var fs = require('fs');
 var path = require('path');
-var util = require('util');
 
 var context = require('./context');
 var flattener = require('./flattener');
@@ -11,8 +10,8 @@ var types = require('./types');
 
 
 // TODO: Make these customizable.
-const LOWEST_ORDER = 128;
-const HEAP_SIZE = 128 * 1024 * 1024;
+const LOWEST_ORDER = 16;
+const HEAP_SIZE = 64 * 1024 * 1024;
 
 // Declare a set of project environment variables.
 var ENV_VARS = {
@@ -121,10 +120,6 @@ Environment.prototype.registerType = function(assignedName, type) {
     this.types.push(type);
 };
 
-Environment.prototype.resolveTypeType = function(assignedName) {
-    return this.typeMap[assignedName];
-};
-
 Environment.prototype.markRequested = function(context) {
     this.requested = context;
 };
@@ -157,7 +152,7 @@ Environment.prototype.make = function(outputLanguage) {
         throw new Error('No context was requested for export.');
     }
 
-    var generator = require('./generators/' + outputLanguage + '/generate.js');
+    var generator = require('./generators/' + outputLanguage + '/generate');
     return generator(this, ENV_VARS);
 };
 

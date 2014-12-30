@@ -39,13 +39,21 @@ describe('Parity tests', function() {
         var parsed = parser(lexer(code));
         var compiled = compiler('test', parsed, format);
 
-        var mod = (new Function('return ' + compiled))();
+        var mod;
         try {
-            assert.equal(mod.main(), expectation);
+            mod = (new Function('return ' + compiled))();
+        } catch (e) {
+            assert.fail('Error during initialization: ' + e.toString());
+        }
+
+        var result;
+        try {
+            result = mod.main();
         } catch (e) {
             console.error(compiled);
             throw e;
         }
+        assert.equal(result, expectation);
     }
 
     globEach(

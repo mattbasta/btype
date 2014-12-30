@@ -11,6 +11,6 @@ module.exports = function(filename, tree, format) {
         return '';
     }
 
-    var output = env.make(format || 'asmjs');
+    var output = env.make(format || 'js');
     return output;
 };

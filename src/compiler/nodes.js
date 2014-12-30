@@ -358,8 +358,7 @@ var NODES = {
     },
     Declaration: {
         traverse: function(cb) {
-            if (this.declType && this.declType.type)
-                cb(this.declType, 'type');
+            if (this.declType) cb(this.declType, 'type');
             cb(this.value, 'value');
         },
         substitute: function(cb) {
@@ -378,7 +377,7 @@ var NODES = {
             }
         },
         toString: function() {
-            return 'Declaration(' + this.identifier + '):\n' +
+            return 'Declaration(' + this.identifier + (this.__assignedName ? '::' + this.__assignedName : '') + '):\n' +
                    (!this.declType ? '' :
                        '    Type:\n' +
                        indentEach(this.declType.toString(), 2) + '\n'
@@ -420,9 +419,9 @@ var NODES = {
             this.value.validateTypes(ctx);
             var valueType = this.value.getType(ctx);
             var func = ctx.scope;
-            var funcReturnType = func.returnType.getType(ctx);
+            var funcReturnType = func.returnType && func.returnType.getType(ctx);
             if (!!valueType !== !!funcReturnType) {
-                throw new TypeError('Mismatched void/typed return type:');
+                throw new TypeError('Mismatched void/typed return type');
             }
             if (!funcReturnType.equals(valueType)) {
                 throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
@@ -658,7 +657,7 @@ var NODES = {
             });
         },
         toString: function() {
-            return 'Function ' + this.name +
+            return 'Function ' + this.name + (this.__assignedName ? '::' + this.__assignedName : '') +
                        '(' + this.params.map(function(param) {return param.toString();}).join(', ') + ') ' +
                        (this.returnType ? this.returnType.toString() : 'void') + '\n' +
                    indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
@@ -666,7 +665,7 @@ var NODES = {
     },
     Type: {
         traverse: function(cb) {
-            this.traits.forEach(oneArg(cb));
+            if (this.traits) this.traits.forEach(oneArg(cb));
         },
         substitute: function() {},
         getType: function(ctx) {
@@ -726,7 +725,7 @@ var NODES = {
         },
         validateTypes: function() {},
         toString: function() {
-            return 'Symbol(' + this.name + ')';
+            return 'Symbol(' + this.name + (this.__refName ? '::' + this.__refName : '') + ')';
         },
     },
     New: {

@@ -59,6 +59,18 @@ describe('transformer', function() {
             assert.ok(ctx.functions[0].__firstClass);
 
         });
+        it('should mark any functions that are eventually assigned to variables', function() {
+            var ctx = getCtx([
+                'func x() {}',
+                'var y = x;',
+                'y();'
+            ]);
+
+            transformer.markFirstClassFunctions(ctx);
+
+            assert.ok(ctx.functions[0].__firstClass);
+
+        });
 
         it('should mark functions initially assigned to variables', function() {
             var ctx = getCtx([
@@ -259,7 +271,7 @@ describe('transformer', function() {
             assert.equal(ctx.functions[1].__context.functions.length, 0, 'The inner function should have no nested functions');
 
             // Test that the funcctx was created in the outer function:
-            assert.equal(ctx.functions[0].body.length, 4, 'There should be four items in the body');
+            assert.equal(ctx.functions[0].body.length, 4);
             assert.equal(ctx.functions[0].body[0].type, 'Declaration', 'The first should be a declaration');
             assert.equal(ctx.functions[0].body[0].value.type, 'New', 'The declaration should create the context');
             assert.equal(ctx.functions[0].body[0].value.newType.getType(ctx).typeName, 'outer$fctx');

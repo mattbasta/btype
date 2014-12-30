@@ -149,10 +149,6 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
                 return false; // `false` to block the traverser from going deeper.
 
-            case 'Declaration':
-                node.__assignedName = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
-                return;
-
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
                 node.__refName = node.__refContext.nameMap[node.name];
@@ -184,12 +180,6 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
     function after(node) {
         switch (node.type) {
-            case 'Export':
-                if (contexts.length > 1) {
-                    throw new Error('Unexpected export: all exports must be in the global scope');
-                }
-                node.__assignedName = rootContext.exports[node.value.name] = node.value.__refName;
-                return;
             case 'Assignment':
                 if (node.base.type === 'Symbol' && node.base.__refContext.isFuncMap[node.base.__refName]) {
                     throw new Error('Cannot assign values to function declarations');
@@ -229,7 +219,18 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 if (hasSideEffects) {
                     contexts[0].sideEffectFree = false;
                 }
-                break;
+                return;
+
+            case 'Declaration':
+                node.__assignedName = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
+                return;
+
+            case 'Export':
+                if (contexts.length > 1) {
+                    throw new Error('Unexpected export: all exports must be in the global scope');
+                }
+                node.__assignedName = rootContext.exports[node.value.name] = node.value.__refName;
+                return;
         }
     }
 

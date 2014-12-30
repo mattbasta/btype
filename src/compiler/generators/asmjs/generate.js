@@ -37,7 +37,7 @@ function makeModule(env, ENV_VARS, body) {
         // Return the processed asm module
         'return ret;',
         // Declare the asm module
-        '})(function' + (env.name ? ' ' + env.name : ' module') + '(stdlib, foreign, heap) {',
+        '})(function' + (env.name ? ' ' + env.name : ' module_') + '(stdlib, foreign, heap) {',
         // asm.js pragma
         '    "use asm";',
         // Always add imul since it's used for integer multiplication
@@ -89,8 +89,11 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile function lists
     body += '\n' + Object.keys(env.funcList).map(function(flist) {
+        if (env.funcList[flist].length === 1) {
+            return '';
+        }
         return '    var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
-    }).join('\n');
+    }).filter(function(x) {return !!x;}).join('\n');
 
     // Compile exports for the code.
     body += '\n    return {\n' +

@@ -1,0 +1,15 @@
+func func<int, int>:ident(func<int, int>:param) {
+    return param;
+}
+
+func int:main() {
+    var f = func<int>(int:x) {
+        return x;
+    };
+
+    f = ident(f);
+
+    return f(123);
+
+}
+export main;

@@ -70,7 +70,7 @@ module.exports = function(tokenizer) {
         }
         assert('{');
 
-        if (returnType && !identifier) {
+        if (!hasBase && returnType && !identifier) {
             identifier = returnType.name;
             returnType = null;
         }
