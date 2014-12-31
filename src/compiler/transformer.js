@@ -369,13 +369,6 @@ function processFunc(rootContext, node, context) {
         if (node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
             stack[0].substitute(replacer);
             return;
-
-        } else if (node.type === 'Symbol' &&
-                   node.__refType instanceof types.Func &&
-                   node.__refName in node.__refContext.functionDeclarations &&
-                   node.__refContext.functionDeclarations[node.__refName].__firstClass) {
-            stack[0].substitute(replacer);
-            return;
         }
 
         stack.unshift(node);
@@ -457,7 +450,8 @@ function upliftContext(rootContext, ctx) {
                 name: node.name,
                 __refContext: rootContext,
                 __refType: node.getType(ctxparent),
-                __refName: node.__assignedName,
+                __refName: node.__assignedName + '$$origFunc$',
+                __refIndex: node.__funclistIndex,
             });
         }
         return false;
@@ -467,6 +461,38 @@ function upliftContext(rootContext, ctx) {
     });
 
     rootContext.scope.body.push(node);
+    var oldName = node.__assignedName;
+    var newName = node.__assignedName += '$$origFunc$';
+
+    // Replace the old assigned name with the new one within the uplifted
+    // function.
+    traverser.traverse(node, function(x) {
+        if (x.type !== 'Symbol') return;
+        if (x.__refName !== oldName) return;
+        x.__refName = newName;
+    });
+
+    // Replace the old function name in the old parent context.
+    var stack = [];
+    traverser.traverse(ctxparent.scope, function(x) {
+        if (x.type !== 'Symbol') {
+            stack.unshift(x);
+            return;
+        }
+        if (!stack[0]) return;
+        if (stack[0].type !== 'CallDecl') return;
+        if (x.__refName !== oldName) return;
+        x.__refName = newName;
+        x.__refContext = rootContext;
+    }, function() {
+        stack.shift();
+    });
+
+    // If the function is in a function table, update it there as well.
+    if (node.__funcList) {
+        rootContext.env.funcList[node.__funcList][node.__funclistIndex] = newName;
+    }
+
 
     // NOTE: We do not update `ctxparent.functionDeclarations` since it
     // shouldn't be used for anything after type checking, name

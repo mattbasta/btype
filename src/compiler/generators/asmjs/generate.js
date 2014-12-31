@@ -96,11 +96,11 @@ module.exports = function generate(env, ENV_VARS) {
     }).filter(function(x) {return !!x;}).join('\n');
 
     // Compile exports for the code.
-    body += '\n    return {\n' +
-        'malloc: malloc,\nfree: free,\n' +
+    body += '\n    return {\n        ' +
+        'malloc: malloc,\n        free: free,\n        ' +
         Object.keys(env.requested.exports).map(function(e) {
-        return '        ' + e + ': ' + env.requested.exports[e];
-    }).join(',\n    ') + '\n    };';
+        return e + ': ' + env.requested.exports[e];
+    }).join(',\n        ') + '\n    };';
 
     body = postOptimizer.optimize(body);
 

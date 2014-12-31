@@ -72,11 +72,6 @@ module.exports = function generate(env, ENV_VARS) {
     // body += env.included.map(jsTranslate).join('\n\n');
     body += env.included.map(jsTranslate).join('\n\n');
 
-    // Compile function lists
-    body += '\n' + Object.keys(env.funcList).map(function(flist) {
-        return '    var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
-    }).join('\n');
-
     // Compile exports for the code.
     body += '\n    return {\n' + Object.keys(env.requested.exports).map(function(e) {
         return '        ' + e + ': ' + env.requested.exports[e];

@@ -1,2 +1,3 @@
 func foo() {}
 foo = func<null>() {};
+export foo;

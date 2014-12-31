@@ -107,10 +107,8 @@ var NODES = {
             (!prec ? ';' : '');
     },
     CallRef: function(env, ctx, prec) {
-        // FIXME: This doesn't pass the context because outputting the callee
-        // twice can cause unwanted side effects
         return _node(this.callee, env, ctx, 1) +
-            '.func(/* CallRef */' +
+            '(/* CallRef */' +
             this.params.map(function(param) {
                 return _node(param, env, ctx, 18);
             }).join(',') +
@@ -118,7 +116,12 @@ var NODES = {
             (!prec ? ';' : '');
     },
     FunctionReference: function(env, ctx, prec) {
-        return '{func:' + _node(this.base, env, ctx, 1) + ',ctx:' + _node(this.ctx, env, ctx) + '}';
+        var ctx = _node(this.ctx, env, ctx);
+        if (ctx === '0') {
+            return _node(this.base, env, ctx, 1);
+        }
+        // TODO: optimize this by adding the function prototype directly
+        return '(function($$ctx) {return ' + _node(this.base, env, ctx, 1) + '.apply(null, Array.prototype.slice.call(arguments, 1).concat([$$ctx]))}.bind(null, ' + _node(this.ctx, env, ctx) + '))';
     },
     Member: function(env, ctx, prec) {
         var baseType = this.base.getType(ctx);

@@ -1,1 +1,3 @@
+func foo() {}
+export foo;
 return;

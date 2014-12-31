@@ -176,7 +176,11 @@ var NODES = {
         var funcName = this.base.__refName;
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
-        return '(gcref(getfuncref(' + env.funcList[listName].indexOf(funcName) + ', ' + _node(this.ctx, env, ctx) + ')) | 0)';
+
+        // TODO: Optimize this for the case that there is only one function in
+        // the table.
+
+        return '(gcref(getfuncref(' + this.base.__refIndex + ', ' + _node(this.ctx, env, ctx) + ')) | 0)';
     },
     Member: function(env, ctx, prec, parent) {
         var baseType = this.base.getType(ctx);
@@ -333,31 +337,35 @@ var NODES = {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') + '\n}' : '');
     },
-    'Function': function(env, _, prec) {
+    Function: function(env, _, prec) {
         var ctx = this.__context;
         var output = 'function ' + this.__assignedName + '(';
         output += this.params.map(function(param) {
             return _node(param, env, ctx, 1);
         }).join(',');
-        output += '){\n';
+        output += '){';
+        if (this.name) {
+            output += ' /* ' + this.name + ' */';
+        }
+        output += '\n';
 
         // asm.js parameter annotations
         if (this.params.length) {
-            output += this.params.map(function(param) {
+            output += '    ' + this.params.map(function(param) {
                 var paramType = param.getType(ctx);
                 return param.__assignedName + ' = ' + typeAnnotation(param.__assignedName, paramType) + ';';
-            }).join('\n');
+            }).join('\n    ');
 
             output += '\n';
         }
 
-        output += this.body.map(function(stmt) {
+        output += '    ' + this.body.map(function(stmt) {
             return _node(stmt, env, ctx, 0);
-        }).join('\n');
+        }).join('\n    ');
 
         var returnType = this.getType(ctx).getReturnType();
         if (returnType && this.body[this.body.length - 1].type !== 'Return') {
-            output += '\nreturn 0';
+            output += '\n     return 0';
             if (returnType.typeName === 'float') {
                 output += '.0';
             }

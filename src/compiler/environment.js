@@ -124,9 +124,9 @@ Environment.prototype.markRequested = function(context) {
     this.requested = context;
 };
 
-Environment.prototype.getFuncListName = function(funcType) {
+Environment.prototype.getFuncListName = function(funcType, noAdd) {
     var fts = funcType.toString();
-    if (!(fts in this.funcListTypeMap)) {
+    if (!(fts in this.funcListTypeMap) && !noAdd) {
         var name = this.funcListTypeMap[fts] = this.namer();
         this.funcListReverseTypeMap[name] = funcType;
         this.funcList[name] = [];
@@ -135,11 +135,19 @@ Environment.prototype.getFuncListName = function(funcType) {
 };
 
 Environment.prototype.registerFunc = function(funcNode) {
+    // If the function was already registered, return the cached index.
     if ('__funclistIndex' in funcNode) return funcNode.__funclistIndex;
+
+    // Get the function's type and use that to determine the table.
     var ft = funcNode.getType(funcNode.__context);
     var funcList = this.getFuncListName(ft);
+    // If the table doesn't exist yet, create it.
     if (!(funcList in this.funcList)) this.funcList[funcList] = [];
+    // Add the function's assigned name to the table.
     this.funcList[funcList].push(funcNode.__assignedName);
+
+    // Cache and return the function's index in the table.
+    funcNode.__funcList = funcList;
     return funcNode.__funclistIndex = this.funcList[funcList].length - 1;
 };
 
