@@ -261,7 +261,7 @@ exports.optimize = function(body) {
     var parsedBody = parsed.body[0].expression.body;
 
     upliftDeclarations(parsedBody);
-    // trimBody(parsedBody);
+    trimBody(parsedBody);
     orderCode(parsedBody);
 
     parsedBody.type = 'Program';

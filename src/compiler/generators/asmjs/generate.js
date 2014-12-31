@@ -62,6 +62,7 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile function list callers
     body += '\n' + Object.keys(env.funcList).map(function(flist) {
+        if (env.funcList[flist].length === 1) return '';
         var funcList = env.funcList[flist];
         var funcType = env.funcListReverseTypeMap[flist];
         var paramList = funcType.args.map(function(param, i) {
@@ -89,9 +90,7 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile function lists
     body += '\n' + Object.keys(env.funcList).map(function(flist) {
-        if (env.funcList[flist].length === 1) {
-            return '';
-        }
+        if (env.funcList[flist].length === 1) return '';
         return '    var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
     }).filter(function(x) {return !!x;}).join('\n');
 
