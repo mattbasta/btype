@@ -1,0 +1,8 @@
+func int:main() {
+    return 16 + 4;
+}
+export main;
+
+operator (int:x + int:y) int {
+    return x / y;
+}

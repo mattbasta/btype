@@ -24,6 +24,7 @@ At the time of writing, BType is still in an extremely early phase of developmen
 # Features
 
 - Tree shaking
-- Lexical scope
+- Lexical scope, closures
 - First-class functions
 - Compiles directly to asm.js
+- Operator overloading

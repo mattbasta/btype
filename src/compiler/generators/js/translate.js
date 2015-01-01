@@ -29,10 +29,20 @@ var OP_PREC = {
 };
 
 function _binop(env, ctx, prec) {
+    var out;
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
-    var out;
+    var leftType = this.left.getType(ctx).toString();
+    var rightType = this.right.getType(ctx).toString();
+    if (ctx.env.registeredOperators[leftType] &&
+        ctx.env.registeredOperators[leftType][rightType] &&
+        ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+
+        var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
+        return operatorStmtFunc + '(' + left + ',' + right + ')';
+    }
+
     var oPrec = OP_PREC[this.operator] || 13;
 
     switch (this.operator) {

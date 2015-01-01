@@ -48,7 +48,6 @@ function _binop(env, ctx, prec) {
         return typeAnnotation(out, ctx.env.registeredOperatorReturns[operatorStmtFunc]);
     }
 
-
     var oPrec = OP_PREC[this.operator] || 13;
 
     switch (this.operator) {
