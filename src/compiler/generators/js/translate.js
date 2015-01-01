@@ -218,11 +218,19 @@ var NODES = {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') + '}' : '');
     },
-    'Function': function(env, ctx, prec) {
+    Function: function(env, ctx, prec) {
         return 'function ' + this.__assignedName + '(' +
             this.params.map(function(param) {
                 return _node(param, env, ctx, 1);
             }).join(',') + ') {\n' +
+            this.body.map(function(stmt) {
+                return _node(stmt, env, ctx, 0);
+            }).join('\n') + '\n}';
+    },
+    OperatorStatement: function(env, ctx, prec) {
+        return 'function ' + this.__assignedName + '(' +
+            _node(this.left, env, ctx, 1) + ', ' +
+            _node(this.right, env, ctx, 1) + ') {\n' +
             this.body.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') + '\n}';

@@ -33,10 +33,22 @@ var HEAP_MODIFIERS = {
 };
 
 function _binop(env, ctx, prec) {
+    var out;
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
-    var out;
+    var leftType = this.left.getType(ctx).toString();
+    var rightType = this.right.getType(ctx).toString();
+    if (ctx.env.registeredOperators[leftType] &&
+        ctx.env.registeredOperators[leftType][rightType] &&
+        ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+
+        var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
+        out = operatorStmtFunc + '(' + left + ',' + right + ')';
+        return typeAnnotation(out, ctx.env.registeredOperatorReturns[operatorStmtFunc]);
+    }
+
+
     var oPrec = OP_PREC[this.operator] || 13;
 
     switch (this.operator) {
@@ -254,9 +266,17 @@ var NODES = {
     Return: function(env, ctx, prec) {
         var output = '';
 
-        var params = ctx.scope.params.map(function(p) {
-            return p.__assignedName;
-        });
+        var params;
+        if (ctx.scope.type === 'Function') {
+            params = ctx.scope.params.map(function(p) {
+                return p.__assignedName;
+            });
+        } else {
+            params = [
+                ctx.scope.left.__assignedName,
+                ctx.scope.right.__assignedName,
+            ];
+        }
         Object.keys(ctx.typeMap).forEach(function(name) {
             var type = ctx.typeMap[name];
             if (type._type === 'primitive') return;
@@ -377,6 +397,34 @@ var NODES = {
 
         output += '\n}';
         return output;
+    },
+    OperatorStatement: function(env, ctx, prec) {
+        var ctx = this.__context;
+        var output = 'function ' + this.__assignedName + '(' +
+            _node(this.left, env, ctx, 1) + ', ' +
+            _node(this.right, env, ctx, 1) + ') {\n';
+
+        var leftType = this.left.getType(ctx);
+        output += this.left.__assignedName + ' = ' + typeAnnotation(this.left.__assignedName, leftType) + ';';
+        var rightType = this.right.getType(ctx);
+        output += this.right.__assignedName + ' = ' + typeAnnotation(this.right.__assignedName, rightType) + ';';
+
+        output += '    ' + this.body.map(function(stmt) {
+            return _node(stmt, env, ctx, 0);
+        }).join('\n    ');
+
+        var returnType = this.getType(ctx).getReturnType();
+        if (returnType && this.body[this.body.length - 1].type !== 'Return') {
+            output += '\n     return 0';
+            if (returnType.typeName === 'float') {
+                output += '.0';
+            }
+            output += ';';
+        }
+
+        output += '\n}';
+        return output;
+
     },
     Type: function() {return '';},
     TypedIdentifier: function(env, ctx, prec) {

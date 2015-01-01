@@ -96,7 +96,7 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile exports for the code.
     body += '\n    return {\n        ' +
-        'malloc: malloc,\n        free: free,\n        ' +
+        // 'malloc: malloc,\n        free: free,\n        ' +
         Object.keys(env.requested.exports).map(function(e) {
         return e + ': ' + env.requested.exports[e];
     }).join(',\n        ') + '\n    };';

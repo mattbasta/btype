@@ -1845,6 +1845,7 @@ describe('Parser', function() {
                 parser(lexer('continue;'));
             });
         });
+
     });
 
     describe('invalid assertions', function() {
@@ -1876,4 +1877,5 @@ describe('Parser', function() {
         });
 
     });
+
 });

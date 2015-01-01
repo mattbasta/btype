@@ -44,6 +44,13 @@ function Environment(name) {
     this.funcList = {};  // Mapping of func list assigned names to arrays of func assigned names
     this.funcListTypeMap = {};  // Mapping of serialized func types to names of func lists
     this.funcListReverseTypeMap = {};  // Mapping of func list assigned names to func types
+
+    // Map of left type names to map of right type names to map of operators to
+    // operator statement assigned names
+    this.registeredOperators = {}
+    // Map of operator statement assigned names to their return types
+    this.registeredOperatorReturns = {}
+
 }
 
 Environment.prototype.loadFile = function(filename, tree) {

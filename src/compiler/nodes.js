@@ -663,6 +663,50 @@ var NODES = {
                    indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
         },
     },
+    OperatorStatement: {
+        traverse: function(cb) {
+            cb(this.left, 'left');
+            cb(this.right, 'right');
+            cb(this.returnType, 'returnType');
+            this.body.forEach(function(stmt) {
+                cb(stmt, 'body');
+            });
+        },
+        substitute: function(cb) {
+            this.left = cb(this.left, 'left') || this.left;
+            this.right = cb(this.right, 'right') || this.right;
+            this.returnType = cb(this.returnType, 'returnType') || this.returnType;
+            this.body = this.body.map(function(stmt) {
+                return cb(stmt, 'body');
+            }).filter(ident);
+        },
+        getType: function(ctx) {
+            if (this.__originalType) {
+                return this.__originalType;
+            }
+            var returnType = this.returnType ? this.returnType.getType(ctx) : null;
+            return new types.Func(
+                returnType,
+                [
+                    this.left.getType(),
+                    this.right.getType(),
+                ]
+            );
+        },
+        validateTypes: function() {
+            var context = this.__context;
+            this.body.forEach(function(stmt) {
+                stmt.validateTypes(context);
+            });
+        },
+        toString: function() {
+            return 'Operator(' + this.operator + '): ' + this.returnType.toString() + '\n' +
+                '    Left: ' + this.left.toString() + '\n' +
+                '    Right: ' + this.right.toString() + '\n' +
+                '    Body:\n' +
+                indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'), 2);
+        },
+    },
     Type: {
         traverse: function(cb) {
             if (this.traits) this.traits.forEach(oneArg(cb));
@@ -768,51 +812,6 @@ var NODES = {
         validateTypes: function() {},
         toString: function() {
             return 'Continue';
-        },
-    },
-
-    OperatorStatement: {
-        traverse: function(cb) {
-            cb(this.left, 'left');
-            cb(this.right, 'right');
-            cb(this.returnType, 'returnType');
-            this.body.forEach(function(stmt) {
-                cb(stmt, 'body');
-            });
-        },
-        substitute: function(cb) {
-            this.left = cb(this.left, 'left') || this.left;
-            this.right = cb(this.right, 'right') || this.right;
-            this.returnType = cb(this.returnType, 'returnType') || this.returnType;
-            this.body = this.body.map(function(stmt) {
-                return cb(stmt, 'body');
-            }).filter(ident);
-        },
-        getType: function() {
-            if (this.__originalType) {
-                return this.__originalType;
-            }
-            var returnType = this.returnType ? this.returnType.getType(ctx) : null;
-            return new types.Func(
-                returnType,
-                [
-                    this.left.getType(),
-                    this.left.getType(),
-                ]
-            );
-        },
-        validateTypes: function() {
-            var context = this.__context;
-            this.body.forEach(function(stmt) {
-                stmt.validateTypes(context);
-            });
-        },
-        toString: function() {
-            return 'Operator(' + this.operator + '): ' + this.returnType.toString() + '\n' +
-                '    Left: ' + this.left.toString() + '\n' +
-                '    Right: ' + this.right.toString() + '\n' +
-                '    Body:\n' +
-                indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'), 2);
         },
     },
 };

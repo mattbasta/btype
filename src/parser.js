@@ -470,7 +470,6 @@ module.exports = function(tokenizer) {
     function parseOperator(left, newPrec) {
         var operator = pop();
         var precedence = newPrec;
-        debugger;
         var right = parseExpression(null, precedence);
         return node(
             OPERATOR_NODE[operator.type],
@@ -709,6 +708,7 @@ module.exports = function(tokenizer) {
             case '==':
             case '!=':
                 binOp = pop().type;
+                break;
 
             default:
                 throw new Error('Overriding invalid operator: ' + peek().text);
@@ -732,13 +732,14 @@ module.exports = function(tokenizer) {
                 right: right,
                 operator: binOp,
                 body: body,
+                returnType: returnType,
             }
         );
     }
 
-    function parseStatement() {
+    function parseStatement(isRoot) {
         return parseFunction() ||
-               parseOperatorStatement() ||
+               isRoot && parseOperatorStatement() ||
                parseIf() ||
                parseSwitch() ||
                parseReturn() ||
@@ -752,13 +753,13 @@ module.exports = function(tokenizer) {
                parseAssignment();
     }
 
-    function parseStatements(endTokens) {
+    function parseStatements(endTokens, isRoot) {
         endTokens = Array.isArray(endTokens) ? endTokens : [endTokens];
         var statements = [];
         var temp = peek();
         while (endTokens.indexOf(temp) === -1 &&
                (temp.type && endTokens.indexOf(temp.type) === -1)) {
-            var statement = parseStatement();
+            var statement = parseStatement(isRoot);
             if (!statement) {
                 throw new Error('Invalid statement');
             }
@@ -769,7 +770,7 @@ module.exports = function(tokenizer) {
     }
 
     function parseRoot() {
-        return node('Root', null, null, {body: parseStatements('EOF')});
+        return node('Root', null, null, {body: parseStatements('EOF', true)});
     }
 
     return parseRoot();

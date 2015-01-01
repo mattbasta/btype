@@ -149,6 +149,40 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
                 return false; // `false` to block the traverser from going deeper.
 
+
+            case 'OperatorStatement':
+                // Remember the function in the function hierarchy.
+                contexts[0].functions.push(node);
+
+                // Mark the function as a variable containing a function type.
+                assignedName = env.namer();
+                contexts[0].functionDeclarations[assignedName] = node;
+                contexts[0].isFuncMap[assignedName] = true;
+                node.__assignedName = assignedName;
+                node.__firstClass = false;
+
+                var newContext = new Context(env, node, contexts[0]);
+                // Add all the parameters of the nested function to the new scope.
+                node.left.__assignedName = newContext.addVar(node.left.name, node.left.getType(newContext));
+                node.right.__assignedName = newContext.addVar(node.right.name, node.right.getType(newContext));
+
+                innerFunctions[0].push(node);
+
+                var leftType = node.left.getType(node.__context).toString();
+                if (!(leftType in env.registeredOperators)) env.registeredOperators[leftType] = {};
+                var rightType = node.right.getType(node.__context).toString();
+                if (!(rightType in env.registeredOperators[leftType])) env.registeredOperators[leftType][rightType] = {};
+
+                if (env.registeredOperators[leftType][rightType][node.operator]) {
+                    throw new Error('Cannot redeclare operator overload for ' +
+                        '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
+                }
+
+                env.registeredOperators[leftType][rightType][node.operator] = node.__assignedName;
+                env.registeredOperatorReturns[node.__assignedName] = node.returnType.getType(contexts[0]);
+
+                return false; // `false` to block the traverser from going deeper.
+
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
                 node.__refName = node.__refContext.nameMap[node.name];
