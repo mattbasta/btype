@@ -242,7 +242,14 @@ var NODES = {
     },
     New: function(env, ctx) {
         return 'new ' + this.getType(ctx).typeName + '()';
-    }
+    },
+
+    Break: function() {
+        return 'break';
+    },
+    Continue: function() {
+        return 'continue';
+    },
 };
 
 module.exports = function translate(ctx) {

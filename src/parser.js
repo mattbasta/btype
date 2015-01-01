@@ -230,6 +230,8 @@ module.exports = function(tokenizer) {
             }
         );
     }
+
+    var loopDepth = 0;
     function parseWhile() {
         var head;
         if (!(head = accept('while'))) return;
@@ -240,10 +242,14 @@ module.exports = function(tokenizer) {
         var body;
         var end;
         if (hasBraces) {
+            loopDepth++;
             body = parseStatements('}');
+            loopDepth--;
             end = assert('}');
         } else {
+            loopDepth++;
             body = [parseStatement()];
+            loopDepth--;
             end = body[0];
         }
         return node(
@@ -257,7 +263,9 @@ module.exports = function(tokenizer) {
         var head;
         if (!(head = accept('do'))) return;
         assert('{');
+        loopDepth++;
         var body = parseStatements('}');
+        loopDepth--;
         assert('}');
         assert('while');
         assert('(');
@@ -286,10 +294,14 @@ module.exports = function(tokenizer) {
         var end;
         var body;
         if (!!accept('{')) {
+            loopDepth++;
             body = parseStatements('}');
+            loopDepth--;
             end = assert('}');
         } else {
+            loopDepth++;
             body = [parseStatement()];
+            loopDepth--;
             end = body[0];
         }
         return node(
@@ -634,6 +646,37 @@ module.exports = function(tokenizer) {
         );
     }
 
+    function parseBreak() {
+        var stmt;
+        if (stmt = accept('break')) {
+            if (!loopDepth) {
+                throw new Error('Cannot use `break` when not within a loop');
+            }
+            assert(';');
+            return node(
+                'Break',
+                stmt.start,
+                stmt.end,
+                {}
+            );
+        }
+    };
+    function parseContinue() {
+        var stmt;
+        if (stmt = accept('continue')) {
+            if (!loopDepth) {
+                throw new Error('Cannot use `continue` when not within a loop');
+            }
+            assert(';');
+            return node(
+                'Continue',
+                stmt.start,
+                stmt.end,
+                {}
+            );
+        }
+    };
+
     function parseStatement() {
         return parseFunction() ||
                parseIf() ||
@@ -644,8 +687,9 @@ module.exports = function(tokenizer) {
                parseWhile() ||
                parseDoWhile() ||
                parseFor() ||
+               parseBreak() ||
+               parseContinue() ||
                parseAssignment();
-               // TODO: break, continue
     }
 
     function parseStatements(endTokens) {
@@ -655,6 +699,9 @@ module.exports = function(tokenizer) {
         while (endTokens.indexOf(temp) === -1 &&
                (temp.type && endTokens.indexOf(temp.type) === -1)) {
             var statement = parseStatement();
+            if (!statement) {
+                throw new Error('Invalid statement');
+            }
             temp = peek();
             statements.push(statement);
         }

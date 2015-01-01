@@ -750,7 +750,26 @@ var NODES = {
             return 'New: ' + this.newType.toString() + '\n' +
                    indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
         },
-    }
+    },
+
+    Break: {
+        traverse: function() {},
+        substitute: function() {},
+        getType: function() {return null;},
+        validateTypes: function() {},
+        toString: function() {
+            return 'Break';
+        },
+    },
+    Continue: {
+        traverse: function() {},
+        substitute: function() {},
+        getType: function() {return null;},
+        validateTypes: function() {},
+        toString: function() {
+            return 'Continue';
+        },
+    },
 };
 
 function buildNode(proto, name) {

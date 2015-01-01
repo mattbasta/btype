@@ -395,7 +395,14 @@ var NODES = {
     },
     New: function(env, ctx) {
         return '(gcref(malloc(' + (this.getType(ctx).getSize() + 8) + '))|0)';
-    }
+    },
+
+    Break: function() {
+        return 'break';
+    },
+    Continue: function() {
+        return 'continue';
+    },
 };
 
 module.exports = function translate(ctx) {
