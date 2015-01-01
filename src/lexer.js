@@ -67,6 +67,7 @@ var tokens = [
     [/^import(?!\w)/, 'import'],
     [/^export(?!\w)/, 'export'],
     [/^operator(?!\w)/, 'operator'],
+    [/^object(?!\w)/, 'object'],
 
     [/^[a-zA-Z_][\w\-_]*/, 'identifier'],
 ];

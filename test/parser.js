@@ -1848,6 +1848,79 @@ describe('Parser', function() {
 
     });
 
+    describe('operator overload declarations', function() {
+        it('should parse fine', function() {
+            compareTree(
+                'operator (int:x * int:y) int {return x - y;}',
+                _root([
+                    node(
+                        'OperatorStatement',
+                        0,
+                        44,
+                        {
+                            left: _typed('x', _type('int')),
+                            right: _typed('x', _type('int')),
+                            returnType: _type('int'),
+                            operator: '*',
+                            body: [node(
+                                'Return',
+                                30,
+                                43,
+                                {
+                                    value: node(
+                                        'Binop',
+                                        36,
+                                        42,
+                                        {
+                                            left: _i('x'),
+                                            right: _i('y'),
+                                            operator: '-',
+                                        }
+                                    ),
+                                }
+                            )],
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse fine for double-character operators', function() {
+            compareTree(
+                'operator (int:x << int:y) int {return x - y;}',
+                _root([
+                    node(
+                        'OperatorStatement',
+                        0,
+                        45,
+                        {
+                            left: _typed('x', _type('int')),
+                            right: _typed('x', _type('int')),
+                            returnType: _type('int'),
+                            operator: '<<',
+                            body: [node(
+                                'Return',
+                                31,
+                                44,
+                                {
+                                    value: node(
+                                        'Binop',
+                                        37,
+                                        43,
+                                        {
+                                            left: _i('x'),
+                                            right: _i('y'),
+                                            operator: '-',
+                                        }
+                                    ),
+                                }
+                            )],
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
     describe('invalid assertions', function() {
 
         // Some examples of invalid code
