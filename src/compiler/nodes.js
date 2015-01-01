@@ -24,6 +24,20 @@ function loop_substitution(cb) {
 function boolType() {
     return types.publicTypes.bool;
 }
+function binopType(ctx) {
+    var leftType = this.left.getType(ctx);
+    var rightType = this.right.getType(ctx);
+
+    var temp;
+    if ((temp = ctx.env.registeredOperators[leftType.toString()]) &&
+        (temp = temp[rightType.toString()]) &&
+        (temp = temp[this.operator])) {
+
+        return ctx.env.registeredOperatorReturns[temp];
+    }
+
+    return boolType();
+}
 function loopValidator(ctx) {
     this.condition.validateTypes(ctx);
     this.loop.forEach(function(stmt) {stmt.validateTypes(ctx);});
@@ -99,7 +113,7 @@ var NODES = {
     LogicalBinop: {
         traverse: binop_traverser,
         substitute: binop_substitution,
-        getType: boolType,
+        getType: binopType,
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
@@ -115,7 +129,7 @@ var NODES = {
     EqualityBinop: {
         traverse: binop_traverser,
         substitute: binop_substitution,
-        getType: boolType,
+        getType: binopType,
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
@@ -134,7 +148,7 @@ var NODES = {
     RelativeBinop: {
         traverse: binop_traverser,
         substitute: binop_substitution,
-        getType: boolType,
+        getType: binopType,
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
@@ -154,7 +168,17 @@ var NODES = {
         traverse: binop_traverser,
         substitute: binop_substitution,
         getType: function(ctx) {
-            return this.left.getType(ctx);
+            var leftType = this.left.getType(ctx);
+            var rightType = this.right.getType(ctx);
+
+            var temp;
+            if ((temp = ctx.env.registeredOperators[leftType.toString()]) &&
+                (temp = temp[rightType.toString()]) &&
+                (temp = temp[this.operator])) {
+
+                return ctx.env.registeredOperatorReturns[temp];
+            }
+            return leftType;
         },
         validateTypes: function(ctx) {
             this.left.validateTypes(ctx);

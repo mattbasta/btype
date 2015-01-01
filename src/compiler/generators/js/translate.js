@@ -64,6 +64,14 @@ function _binop(env, ctx, prec) {
                 oPrec = 18;
                 break;
             }
+        case '/':
+            if (this.left.getType(ctx) === types.publicTypes.int &&
+                this.right.getType(ctx) === types.publicTypes.int) {
+
+                out = '(' + left + ' / ' + right + ' | 0)';
+                oPrec = 18;
+                break;
+            }
         default:
             out = left + ' ' + this.operator + ' ' + right;
     }

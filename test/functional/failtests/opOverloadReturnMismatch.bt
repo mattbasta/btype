@@ -1,0 +1,8 @@
+func int:main() {
+    return 2 / 1; # Normally an int, but the overload makes it a float
+}
+export main;
+
+operator (int:x / int:y) float {
+    return 1.23; # Just a float, for the test
+}
