@@ -470,6 +470,7 @@ module.exports = function(tokenizer) {
     function parseOperator(left, newPrec) {
         var operator = pop();
         var precedence = newPrec;
+        debugger;
         var right = parseExpression(null, precedence);
         return node(
             OPERATOR_NODE[operator.type],
@@ -595,6 +596,10 @@ module.exports = function(tokenizer) {
                 case 'func':
                     return parseFunction(base);
                 default:
+                    if (base.isToken) {
+                        throw new Error('Invalid token found while parsing expression: ' + base.text);
+                    }
+
                     // This catches complex expressions.
                     return base;
             }
@@ -660,7 +665,7 @@ module.exports = function(tokenizer) {
                 {}
             );
         }
-    };
+    }
     function parseContinue() {
         var stmt;
         if (stmt = accept('continue')) {
@@ -675,10 +680,65 @@ module.exports = function(tokenizer) {
                 {}
             );
         }
-    };
+    }
+
+    function parseOperatorStatement() {
+        var operator = accept('operator');
+        if (!operator) return;
+
+        assert('(');
+        var left = parseTypedIdentifier();
+        var binOp;
+        switch (peek().type) {
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+            case '%':
+            case '&':
+            case '|':
+            case '^':
+            case '<<':
+            case '>>':
+            case 'and':
+            case 'or':
+            case '<':
+            case '<=':
+            case '>':
+            case '>=':
+            case '==':
+            case '!=':
+                binOp = pop().type;
+
+            default:
+                throw new Error('Overriding invalid operator: ' + peek().text);
+        }
+        var right = parseTypedIdentifier();
+
+        assert(')');
+
+        var returnType = parseType();
+
+        assert('{');
+        var body = parseStatements('}');
+        var endBrace = assert('}');
+
+        return node(
+            'OperatorStatement',
+            operator.start,
+            endBrace.end,
+            {
+                left: left,
+                right: right,
+                operator: binOp,
+                body: body,
+            }
+        );
+    }
 
     function parseStatement() {
         return parseFunction() ||
+               parseOperatorStatement() ||
                parseIf() ||
                parseSwitch() ||
                parseReturn() ||

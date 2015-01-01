@@ -280,6 +280,7 @@ var NODES = {
     Export: function() {return '';},
     Import: function() {return '';},
     For: function(env, ctx, prec) {
+        // FIXME: Make this valid asm
         return 'for (' +
             _node(this.assignment, env, ctx, 0) +
             _node(this.condition, env, ctx, 0) + ';' +
@@ -291,6 +292,7 @@ var NODES = {
             '}';
     },
     DoWhile: function(env, ctx, prec) {
+        // FIXME: Make this valid asm
         return 'do {' +
             this.loop.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
@@ -300,6 +302,7 @@ var NODES = {
             ');';
     },
     While: function(env, ctx, prec) {
+        // FIXME: Make this valid asm
         return 'while (' +
             _node(this.condition, env, ctx, 0) +
             ') {' +

@@ -66,6 +66,7 @@ var tokens = [
     [/^return(?!\w)/, 'return'],
     [/^import(?!\w)/, 'import'],
     [/^export(?!\w)/, 'export'],
+    [/^operator(?!\w)/, 'operator'],
 
     [/^[a-zA-Z_][\w\-_]*/, 'identifier'],
 ];
@@ -75,6 +76,10 @@ function Token(text, type, start, end) {
     this.type = type;
     this.start = start;
     this.end = end;
+}
+Token.prototype.isToken = true;
+Token.prototype.toString = function() {
+    return '[token ' + this.type + ']';
 };
 
 module.exports = function(data) {

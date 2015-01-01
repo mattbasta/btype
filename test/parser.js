@@ -1847,13 +1847,33 @@ describe('Parser', function() {
         });
     });
 
-    it('should fail on invalid assertions', function() {
+    describe('invalid assertions', function() {
+
         // Some examples of invalid code
-        assert.throws(function() {
-            parser(lexer('func () {}'));
+        [
+            'func () {}',
+            ';',
+            'x++;',
+            'if (x || y) {}',
+            'if (x and and y) {}',
+            '// lol this is not a comment',
+            // NOTE: Until we have augmented assignment operators, these are invalid.
+            'x += 1;',
+            'x -= 1;',
+        ].forEach(function(str) {
+            it('should fail for "' + str + '"', function() {
+                var output;
+
+                try {
+                    assert.throws(function() {
+                        output = parser(lexer(str));
+                    });
+                } catch (e) {
+                    console.error(output.toString());
+                    throw e;
+                }
+            });
         });
-        assert.throws(function() {
-            parser(lexer(';'));
-        });
+
     });
 });
