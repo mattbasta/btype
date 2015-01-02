@@ -1921,6 +1921,146 @@ describe('Parser', function() {
         });
     });
 
+    describe('object declarations', function() {
+        it('should parse when empty', function() {
+            compareTree(
+                'object foo {}',
+                _root([
+                    node(
+                        'ObjectDeclaration',
+                        0,
+                        13,
+                        {
+                            name: 'foo',
+                            members: [],
+                            methods: [],
+                        }
+                    )
+                ])
+            );
+        });
+
+        it('should parse when members are present', function() {
+            compareTree(
+                'object foo {\nint:x;\n}',
+                _root([
+                    node(
+                        'ObjectDeclaration',
+                        0,
+                        21,
+                        {
+                            name: 'foo',
+                            members: [node(
+                                'ObjectMember',
+                                12,
+                                18,
+                                {
+                                    memberType: _typed('x', _type('int')),
+                                    value: null,
+                                }
+                            )],
+                            methods: [],
+                        }
+                    )
+                ])
+            );
+        });
+
+        it('should parse when methods are present', function() {
+            compareTree(
+                'object foo {\nint:foo(float:bar) {return 123;}\n}',
+                _root([
+                    node(
+                        'ObjectDeclaration',
+                        0,
+                        47,
+                        {
+                            name: 'foo',
+                            methods: [node(
+                                'ObjectMethod',
+                                12,
+                                45,
+                                {
+                                    name: 'foo',
+                                    base: node(
+                                        'Function',
+                                        12,
+                                        45,
+                                        {
+                                            returnType: _type('int'),
+                                            name: 'foo',
+                                            params: [_typed('bar', _type('float'))],
+                                            body: [node(
+                                                'Return',
+                                                33,
+                                                44,
+                                                {
+                                                    value: _int(123),
+                                                }
+                                            )],
+                                        }
+                                    ),
+                                }
+                            )],
+                            members: [],
+                        }
+                    )
+                ])
+            );
+        });
+
+        it('should parse when methods and members are present', function() {
+            compareTree(
+                'object foo {\nint:foo(float:bar) {return 123;}\nbool:zap;\n}',
+                _root([
+                    node(
+                        'ObjectDeclaration',
+                        0,
+                        57,
+                        {
+                            name: 'foo',
+                            methods: [node(
+                                'ObjectMethod',
+                                12,
+                                45,
+                                {
+                                    name: 'foo',
+                                    base: node(
+                                        'Function',
+                                        12,
+                                        45,
+                                        {
+                                            returnType: _type('int'),
+                                            name: 'foo',
+                                            params: [_typed('bar', _type('float'))],
+                                            body: [node(
+                                                'Return',
+                                                33,
+                                                44,
+                                                {
+                                                    value: _int(123),
+                                                }
+                                            )],
+                                        }
+                                    ),
+                                }
+                            )],
+                            members: [node(
+                                'ObjectMember',
+                                45,
+                                54,
+                                {
+                                    value: null,
+                                    memberType: _typed('x', _type('int')),
+                                }
+                            )],
+                        }
+                    )
+                ])
+            );
+        });
+    });
+
     describe('invalid assertions', function() {
 
         // Some examples of invalid code

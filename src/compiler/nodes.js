@@ -838,6 +838,81 @@ var NODES = {
             return 'Continue';
         },
     },
+
+    ObjectDeclaration: {
+        traverse: function(cb) {
+            this.members.forEach(function(stmt) {
+                cb(stmt, 'members');
+            });
+            this.methods.forEach(function(stmt) {
+                cb(stmt, 'methods');
+            });
+        },
+        substitute: function(cb) {
+            this.members = this.members.map(function(stmt) {
+                return cb(stmt, 'members');
+            }).filter(ident);
+            this.methods = this.methods.map(function(stmt) {
+                return cb(stmt, 'methods');
+            }).filter(ident);
+        },
+        getType: function(ctx) {
+            return new types.Struct(this.name, this.members.map(function(ctx) {
+                return member.getType(ctx);
+            }));
+        },
+        validateTypes: function(ctx) {
+            this.members.forEach(function(stmt) {
+                stmt.validateTypes(ctx);
+            });
+            this.methods.forEach(function(stmt) {
+                stmt.validateTypes(ctx);
+            });
+        },
+        toString: function() {
+            return 'Object(' + this.name + '):\n' +
+                '    Members:\n' +
+                indentEach(this.members.map(function(member) {return member.toString();}).join('\n'), 2) + '\n' +
+                '    Methods:\n' +
+                indentEach(this.methods.map(function(method) {
+                    return method.name + ': ' + method.toString();
+                }).join('\n'), 2);
+        },
+    },
+    ObjectMember: {
+        traverse: function(cb) {
+            cb(this.value, 'value');
+        },
+        substitute: function(cb) {
+            this.value = cb(this.value, 'value') || this.value;
+        },
+        getType: function(ctx) {
+            return this.memberType.getType(ctx);
+        },
+        validateTypes: function(ctx) {
+            this.value.validateTypes(ctx);
+        },
+        toString: function() {
+            return this.memberType.toString();
+        },
+    },
+    ObjectMethod: {
+        traverse: function() {
+            cb(this.base, 'base');
+        },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
+        },
+        getType: function(ctx) {
+            return this.base.getType(ctx);
+        },
+        validateTypes: function(ctx) {
+            return this.base.validateTypes(ctx);
+        },
+        toString: function() {
+            return this.base.toString();
+        },
+    },
 };
 
 function buildNode(proto, name) {

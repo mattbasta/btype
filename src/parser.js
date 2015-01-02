@@ -86,7 +86,7 @@ module.exports = function(tokenizer) {
                 returnType: returnType,
                 name: identifier,
                 params: parameters,
-                body: body
+                body: body,
             }
         );
     }
@@ -737,9 +737,85 @@ module.exports = function(tokenizer) {
         );
     }
 
+    function parseObjectDeclaration() {
+        var obj = accept('object');
+        if (!obj) return;
+
+        var name = assert('identifier');
+
+        assert('{');
+
+        var members = [];
+        var methods = [];
+
+        var memberType;
+        var methodSignature;
+        var methodBody;
+        var methodEndBrace;
+        var endBrace;
+        while (!(endBrace = accept('}'))) {
+            memberType = parseTypedIdentifier();
+
+            if (accept(';')) {
+                members.push(node(
+                    'ObjectMember',
+                    memberType.start,
+                    memberType.end,
+                    {
+                        memberType: memberType,
+                        value: null,
+                    }
+                ));
+                continue;
+            } else if (accept('(')) {
+                methodSignature = parseSignature(true, ')');
+                assert(')');
+                assert('{');
+                methodBody = parseStatements('}');
+                methodEndBrace = assert('}');
+
+                methods.push(node(
+                    'ObjectMethod',
+                    memberType.start,
+                    methodEndBrace.end,
+                    {
+                        name: memberType.name,
+                        base: node(
+                            'Function',
+                            memberType.start,
+                            methodEndBrace.end,
+                            {
+                                returnType: memberType.idType,
+                                name: memberType.name,
+                                params: methodSignature,
+                                body: methodBody,
+                            }
+                        ),
+                    }
+                ));
+                continue;
+            }
+
+            throw new SyntaxError('Unknown token in object definition: ' + peek().text);
+
+        }
+
+        return node(
+            'ObjectDeclaration',
+            obj.start,
+            endBrace.end,
+            {
+                name: name.text,
+                members: members,
+                methods: methods,
+            }
+        );
+    }
+
     function parseStatement(isRoot) {
         return parseFunction() ||
                isRoot && parseOperatorStatement() ||
+               isRoot && parseObjectDeclaration() ||
                parseIf() ||
                parseSwitch() ||
                parseReturn() ||
