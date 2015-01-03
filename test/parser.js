@@ -1956,6 +1956,7 @@ describe('Parser', function() {
                                 18,
                                 {
                                     memberType: _typed('x', _type('int')),
+                                    name: 'x',
                                     value: null,
                                 }
                             )],
@@ -2051,6 +2052,7 @@ describe('Parser', function() {
                                 54,
                                 {
                                     value: null,
+                                    name: 'zap',
                                     memberType: _typed('x', _type('int')),
                                 }
                             )],

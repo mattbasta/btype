@@ -100,7 +100,7 @@ function Struct(name, contentsTypeMap) {
         var i = 0;
         layout.forEach(function(key) {
             var size = contentsTypeMap[key].getSize();
-            offsets[key] = size;
+            offsets[key] = i;
             i += size;
         });
         return offsets;

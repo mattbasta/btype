@@ -349,7 +349,7 @@ var NODES = {
         },
         toString: function() {
             return 'Member(' + this.child + '):\n' +
-                   indentEach(this.base.toString()) + '\n';
+                   indentEach(this.base.toString());
         },
     },
     Assignment: {
@@ -377,7 +377,7 @@ var NODES = {
                    '    Lval:\n' +
                    indentEach(this.base.toString(), 2) + '\n' +
                    '    Rval:\n' +
-                   indentEach(this.value.toString(), 2) + '\n';
+                   indentEach(this.value.toString(), 2);
         },
     },
     Declaration: {
@@ -811,11 +811,16 @@ var NODES = {
         getType: function(ctx) {
             return this.newType.getType(ctx);
         },
-        validateTypes: function() {
+        validateTypes: function(ctx) {
+            var type = this.getType(ctx);
+            debugger;
+            if (type._type === 'primitive') {
+                throw new Error('Cannot create instance of primitive: ' + type.toString());
+            }
             // TODO: Check that the params match the params of the constructor
         },
         toString: function() {
-            return 'New: ' + this.newType.toString() + '\n' +
+            return 'New: ' + this.newType.toString() + (this.params.length ? '\n' : '') +
                    indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
         },
     },
@@ -857,9 +862,11 @@ var NODES = {
             }).filter(ident);
         },
         getType: function(ctx) {
-            return new types.Struct(this.name, this.members.map(function(ctx) {
-                return member.getType(ctx);
-            }));
+            var mapping = {};
+            this.members.forEach(function(member) {
+                mapping[member.name] = member.getType(ctx);
+            });
+            return new types.Struct(this.name, mapping);
         },
         validateTypes: function(ctx) {
             this.members.forEach(function(stmt) {
@@ -870,7 +877,7 @@ var NODES = {
             });
         },
         toString: function() {
-            return 'Object(' + this.name + '):\n' +
+            return 'Object(' + this.name + (this.__assignedName ? '::' + this.__assignedName : '') + '):\n' +
                 '    Members:\n' +
                 indentEach(this.members.map(function(member) {return member.toString();}).join('\n'), 2) + '\n' +
                 '    Methods:\n' +
@@ -881,16 +888,19 @@ var NODES = {
     },
     ObjectMember: {
         traverse: function(cb) {
-            cb(this.value, 'value');
+            if (this.value) cb(this.value, 'value');
+            cb(this.memberType, 'memberType');
         },
         substitute: function(cb) {
             this.value = cb(this.value, 'value') || this.value;
+            this.memberType = cb(this.memberType, 'memberType') || this.memberType;
         },
         getType: function(ctx) {
             return this.memberType.getType(ctx);
         },
         validateTypes: function(ctx) {
-            this.value.validateTypes(ctx);
+            if (this.value) this.value.validateTypes(ctx);
+            this.memberType.validateTypes(ctx);
         },
         toString: function() {
             return this.memberType.toString();

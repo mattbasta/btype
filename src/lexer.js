@@ -63,6 +63,7 @@ var tokens = [
     [/^or(?!\w)/, 'or'],
     [/^and(?!\w)/, 'and'],
     [/^func(?!\w)/, 'func'],
+    [/^new(?!\w)/, 'new'],
     [/^return(?!\w)/, 'return'],
     [/^import(?!\w)/, 'import'],
     [/^export(?!\w)/, 'export'],

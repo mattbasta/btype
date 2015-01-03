@@ -209,6 +209,12 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
                 }
                 return;
+
+            case 'ObjectDeclaration':
+                var objType = node.getType(contexts[0]);
+                contexts[0].registerType(node.name, objType);
+                node.__assignedName = objType.__assignedName;
+                return false;
         }
     }
 

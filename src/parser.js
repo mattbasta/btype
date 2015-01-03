@@ -587,7 +587,21 @@ module.exports = function(tokenizer) {
                         parsed.end,
                         {
                             base: parsed,
-                            operator: base.type
+                            operator: base.type,
+                        }
+                    );
+                case 'new':
+                    parsed = parseType();
+                    assert('(');
+                    var params = parseSignature(false, ')');
+                    var closingParen = assert(')');
+                    return node(
+                        'New',
+                        parsed.start,
+                        closingParen.end,
+                        {
+                            newType: parsed,
+                            params: params,
                         }
                     );
                 case 'identifier':
@@ -763,6 +777,7 @@ module.exports = function(tokenizer) {
                     memberType.end,
                     {
                         memberType: memberType,
+                        name: memberType.name,
                         value: null,
                     }
                 ));
