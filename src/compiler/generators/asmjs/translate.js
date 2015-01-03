@@ -389,15 +389,18 @@ var NODES = {
             return _node(stmt, env, ctx, 0);
         }).join('\n    ');
 
-        output += getFunctionDerefs(ctx);
 
         var returnType = this.getType(ctx).getReturnType();
-        if (returnType && this.body[this.body.length - 1].type !== 'Return') {
+        var hasReturnStatement = this.body.length && this.body[this.body.length - 1].type === 'Return';
+        if (returnType && !hasReturnStatement) {
+            output += getFunctionDerefs(ctx);
             output += '\n     return 0';
             if (returnType.typeName === 'float') {
                 output += '.0';
             }
             output += ';';
+        } else if (!hasReturnStatement) {
+            output += getFunctionDerefs(ctx);
         }
 
         output += '\n}';

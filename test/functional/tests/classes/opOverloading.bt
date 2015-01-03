@@ -1,0 +1,31 @@
+object Point {
+    float:x;
+    float:y;
+    float:z;
+}
+
+
+operator (Point:left + Point:right) Point {
+    var newPoint = new Point();
+    newPoint.x = left.x + right.x;
+    newPoint.y = left.y + right.y;
+    newPoint.z = left.z + right.z;
+    return newPoint;
+}
+
+
+func float:main() {
+    var foo = new Point();
+    foo.x = 1.0;
+    foo.y = 2.0;
+    foo.z = 3.0;
+
+    var bar = new Point();
+    bar.x = 4.0;
+    bar.y = 5.0;
+    bar.z = 6.0;
+
+    var zap = foo + bar;
+    return zap.x;
+}
+export main;

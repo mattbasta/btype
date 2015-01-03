@@ -167,7 +167,19 @@ var NODES = {
         return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1) + ';';
     },
     Declaration: function(env, ctx, prec) {
-        return 'var ' + this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
+        var type = this.value.getType(ctx);
+        var output = 'var ' + this.__assignedName + ' = ';
+
+        if (this.value.type === 'Literal') {
+            output += this.value.value.toString() + ';';
+            return output;
+        }
+
+        var def = type && type.typeName === 'float' ? '0.0' : '0';
+        output += def + ';\n';
+
+        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
+        return output;
     },
     ConstDeclaration: function() {
         return NODES.Declaration.apply(this, arguments);
@@ -275,6 +287,16 @@ var NODES = {
     },
     Continue: function() {
         return 'continue';
+    },
+
+    ObjectDeclaration: function() {
+        return '';
+    },
+    ObjectMember: function() {
+        return '';
+    },
+    ObjectMethod: function() {
+        return '';
     },
 };
 
