@@ -85,6 +85,8 @@ function Struct(name, contentsTypeMap) {
     this.typeName = name;
     this.contentsTypeMap = contentsTypeMap;
 
+    this.objConstructor = null;
+
     function getLayout() {
         var keys = Object.keys(contentsTypeMap);
         keys.sort(function(a, b) {

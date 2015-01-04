@@ -27,7 +27,7 @@ function makeModule(env, ENV_VARS, body) {
             }
             return base;
         }).join(',') + '});',
-        'if (ret.__init) ret.__init();',
+        'if (ret.$init) ret.$init();',
         'return ret;',
         '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign) {',
         body,
@@ -69,13 +69,21 @@ function typeTranslate(type) {
 module.exports = function generate(env, ENV_VARS) {
 
     var body = env.types.map(typeTranslate).join('\n\n') + '\n';
-    // body += env.included.map(jsTranslate).join('\n\n');
     body += env.included.map(jsTranslate).join('\n\n');
 
+    if (env.inits.length) {
+        body += '\nfunction $init() {\n' +
+            '    ' + env.inits.map(function(init) {
+                return init.__assignedName + '();';
+            }).join('\n    ') + '\n' +
+            '}\n';
+        env.requested.exports['$init'] = '$init';
+    }
+
     // Compile exports for the code.
-    body += '\n    return {\n' + Object.keys(env.requested.exports).map(function(e) {
+    body += '\n    return {\n    ' + Object.keys(env.requested.exports).map(function(e) {
         return '        ' + e + ': ' + env.requested.exports[e];
-    }).join(';\n    ') + '\n    };';
+    }).join(',\n    ') + '\n    };';
 
     body = postOptimizer.optimize(body);
 

@@ -26,12 +26,13 @@ module.exports.findAll = function(tree, filter) {
     return output;
 };
 
-module.exports.iterateBodies = function(tree, cb) {
-    if (tree.traverseStatements) {
+module.exports.iterateBodies = function(tree, cb, filter) {
+    if (tree.traverseStatements && (!filter || filter(tree) !== false)) {
         tree.traverseStatements(cb);
     }
     traverse(tree, function(x) {
         if (x.traverseStatements) {
+            if (filter && filter(x) === false) return false;
             x.traverseStatements(cb);
         }
     });

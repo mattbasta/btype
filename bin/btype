@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+var argv = require('minimist')(process.argv.slice(2));
+
+
 function help() {
     console.log([
         'Usage:',
@@ -20,7 +23,7 @@ var compiler = require('../src/compiler/compiler');
 var lexer = require('../src/lexer');
 var parser = require('../src/parser');
 
-fs.readFile(process.argv[2], function(err, data) {
+fs.readFile(argv._[0], function(err, data) {
     if (err) {
         console.error('Could not read file.');
         console.error(err);
@@ -30,8 +33,9 @@ fs.readFile(process.argv[2], function(err, data) {
 
     var parsed = parser(lexer(data + ''));
     var compiled = compiler(
-        path.basename(process.argv[2], '.bt'),
-        parsed
+        path.basename(argv._[0], '.bt'),
+        parsed,
+        argv.target
     );
 
     console.log(compiled);

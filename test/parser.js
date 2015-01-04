@@ -1934,6 +1934,7 @@ describe('Parser', function() {
                             name: 'foo',
                             members: [],
                             methods: [],
+                            objConstructor: null,
                         }
                     )
                 ])
@@ -1961,6 +1962,7 @@ describe('Parser', function() {
                                 }
                             )],
                             methods: [],
+                            objConstructor: null,
                         }
                     )
                 ])
@@ -2004,6 +2006,7 @@ describe('Parser', function() {
                                 }
                             )],
                             members: [],
+                            objConstructor: null,
                         }
                     )
                 ])
@@ -2056,6 +2059,7 @@ describe('Parser', function() {
                                     memberType: _typed('x', _type('int')),
                                 }
                             )],
+                            objConstructor: null,
                         }
                     )
                 ])

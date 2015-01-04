@@ -1,0 +1,9 @@
+object foo {
+    new() {}
+    new() {}
+}
+
+func main() {
+    var x = new foo();
+}
+export main;

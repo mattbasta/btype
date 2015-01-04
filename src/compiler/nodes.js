@@ -389,7 +389,7 @@ var NODES = {
             this.value = cb(this.value, 'value') || this.value;
         },
         getType: function(ctx) {
-            return this.declType.getType(ctx);
+            return (this.declType || this.value).getType(ctx);
         },
         validateTypes: function(ctx) {
             this.value.validateTypes(ctx);
@@ -401,7 +401,7 @@ var NODES = {
             }
         },
         toString: function() {
-            return 'Declaration(' + this.identifier + (this.__assignedName ? '::' + this.__assignedName : '') + '):\n' +
+            return 'Declaration(' + this.identifier + (this.__assignedName ? '::' + this.__assignedName : '') + ')\n' +
                    (!this.declType ? '' :
                        '    Type:\n' +
                        indentEach(this.declType.toString(), 2) + '\n'
@@ -423,7 +423,7 @@ var NODES = {
         validateTypes: function(ctx) {
             var valueType = this.value.getType(ctx);
             if (valueType._type !== 'primitive') {
-                throw new TypeError('Cannot assign non-primitive values to constants');
+                throw new TypeError('Cannot assign non-primitive values to constants: ' + valueType.toString());
             }
             return NODES.Declaration.validateTypes.call(this, ctx);
         },
@@ -813,7 +813,6 @@ var NODES = {
         },
         validateTypes: function(ctx) {
             var type = this.getType(ctx);
-            debugger;
             if (type._type === 'primitive') {
                 throw new Error('Cannot create instance of primitive: ' + type.toString());
             }
@@ -852,6 +851,7 @@ var NODES = {
             this.methods.forEach(function(stmt) {
                 cb(stmt, 'methods');
             });
+            if (this.objConstructor) cb(this.objConstructor, 'objConstructor');
         },
         substitute: function(cb) {
             this.members = this.members.map(function(stmt) {
@@ -860,6 +860,7 @@ var NODES = {
             this.methods = this.methods.map(function(stmt) {
                 return cb(stmt, 'methods');
             }).filter(ident);
+            this.objConstructor = cb(this.objConstructor, 'objConstructor') || this.objConstructor;
         },
         getType: function(ctx) {
             var mapping = {};
@@ -880,6 +881,8 @@ var NODES = {
             return 'Object(' + this.name + (this.__assignedName ? '::' + this.__assignedName : '') + '):\n' +
                 '    Members:\n' +
                 indentEach(this.members.map(function(member) {return member.toString();}).join('\n'), 2) + '\n' +
+                '    Constructor:\n' +
+                (this.objConstructor ? indentEach(this.objConstructor.toString, 2) : '        void') + '\n' +
                 '    Methods:\n' +
                 indentEach(this.methods.map(function(method) {
                     return method.name + ': ' + method.toString();
@@ -907,6 +910,23 @@ var NODES = {
         },
     },
     ObjectMethod: {
+        traverse: function() {
+            cb(this.base, 'base');
+        },
+        substitute: function(cb) {
+            this.base = cb(this.base, 'base') || this.base;
+        },
+        getType: function(ctx) {
+            return this.base.getType(ctx);
+        },
+        validateTypes: function(ctx) {
+            return this.base.validateTypes(ctx);
+        },
+        toString: function() {
+            return this.base.toString();
+        },
+    },
+    ObjectConstructor: {
         traverse: function() {
             cb(this.base, 'base');
         },

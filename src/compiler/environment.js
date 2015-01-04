@@ -3,6 +3,7 @@ var path = require('path');
 
 var context = require('./context');
 var flattener = require('./flattener');
+var globalInit = require('./globalInit');
 var nodes = require('./nodes');
 var specialModules = require('./specialModules/__directory');
 var transformer = require('./transformer');
@@ -63,11 +64,14 @@ Environment.prototype.loadFile = function(filename, tree) {
     }
 
     var ctx = context(this, tree, filename);
+
     // Perform simple inline type checking.
     tree.validateTypes(ctx);
 
     transformer(ctx);
     flattener(ctx);
+
+    globalInit(ctx, this);
 
     this.addContext(ctx);
     this.moduleCache[filename] = ctx;

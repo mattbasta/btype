@@ -759,16 +759,58 @@ module.exports = function(tokenizer) {
 
         assert('{');
 
+        var constructor = null;
         var members = [];
         var methods = [];
 
+        var constructorBase;
         var memberType;
         var methodSignature;
         var methodBody;
         var methodEndBrace;
         var endBrace;
         while (!(endBrace = accept('}'))) {
+
+            if (constructorBase = accept('new')) {
+
+                if (constructor) {
+                    throw new SyntaxError('Cannot have multiple constructors in the same object declaration');
+                }
+
+                assert('(');
+                methodSignature = parseSignature(true, ')');
+                assert(')');
+                assert('{');
+                methodBody = parseStatements('}');
+                endBrace = assert('}');
+
+                constructor = node(
+                    'ObjectConstructor',
+                    constructorBase.start,
+                    endBrace.end,
+                    {
+                        base: node(
+                            'Function',
+                            constructorBase.start,
+                            endBrace.end,
+                            {
+                                name: null,
+                                returnType: null,
+                                params: methodSignature,
+                                body: methodBody,
+                            }
+                        ),
+                    }
+                );
+
+                continue;
+            }
+
             memberType = parseTypedIdentifier();
+            if (members.some(function(member) {return member.name === memberType.name;}) ||
+                methods.some(function(method) {return method.name === memberType.name;})) {
+                throw new SyntaxError('Class "' + name + '" cannot declare "' + memberType.name + '" more than once.');
+            }
 
             if (accept(';')) {
                 members.push(node(
@@ -811,7 +853,7 @@ module.exports = function(tokenizer) {
                 continue;
             }
 
-            throw new SyntaxError('Unknown token in object definition: ' + peek().text);
+            throw new SyntaxError('Unknown token in class definition: ' + peek().text);
 
         }
 
@@ -821,6 +863,7 @@ module.exports = function(tokenizer) {
             endBrace.end,
             {
                 name: name.text,
+                objConstructor: constructor,
                 members: members,
                 methods: methods,
             }

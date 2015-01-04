@@ -284,7 +284,7 @@ var NODES = {
         var output = 'var ' + this.__assignedName + ' = ';
 
         if (this.value.type === 'Literal') {
-            output += this.value.value.toString() + ';';
+            output += (this.value.value || 'null').toString() + ';';
             return output;
         }
 

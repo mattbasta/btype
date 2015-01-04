@@ -1,0 +1,6 @@
+var foo = 3;
+
+func int:main() {
+    return foo;
+}
+export main;

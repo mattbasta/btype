@@ -99,9 +99,11 @@ Context.prototype.resolveType = function(typeName) {
 };
 
 module.exports = function generateContext(env, tree, filename, rootContext) {
-    rootContext = rootContext || new Context(env, tree);
-    if (filename) {
-        rootContext.filename = filename;
+    if (!rootContext) {
+        rootContext = new Context(env, tree);
+        if (filename) {
+            rootContext.filename = filename;
+        }
     }
     var contexts = [rootContext];
 
@@ -113,7 +115,6 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
     function before(node) {
         if (!node) return false;
-
         var assignedName;
 
         node.__context = contexts[0];
@@ -214,6 +215,13 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 var objType = node.getType(contexts[0]);
                 contexts[0].registerType(node.name, objType);
                 node.__assignedName = objType.__assignedName;
+
+                if (node.objConstructor) {
+                    innerFunctions[0].push(node.objConstructor);
+                }
+                node.methods.forEach(function(method) {
+                    innerFunctions[0].push(method.base);
+                });
                 return false;
         }
     }
@@ -270,6 +278,13 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                     throw new Error('Unexpected export: all exports must be in the global scope');
                 }
                 node.__assignedName = rootContext.exports[node.value.name] = node.value.__refName;
+                return;
+
+            case 'ObjectDeclaration':
+                var objType = node.getType(contexts[0]);
+                if (node.objConstructor) {
+                    objType.objConstructor = node.objConstructor.__assignedName;
+                }
                 return;
         }
     }

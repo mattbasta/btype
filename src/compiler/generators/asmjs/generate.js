@@ -33,7 +33,7 @@ function makeModule(env, ENV_VARS, body) {
             return base;
         }).join(',') + '}, heap);',
         // If there's an init method, call it and remove it.
-        'if (ret.__init) {ret.$init(); delete ret.$init;}',
+        'if (ret.$init) {ret.$init(); delete ret.$init;}',
         // Return the processed asm module
         'return ret;',
         // Declare the asm module
@@ -59,6 +59,15 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Translate and output each included context
     body += env.included.map(jsTranslate).join('\n\n');
+
+    if (env.inits.length) {
+        body += '\nfunction $init() {\n' +
+            '    ' + env.inits.map(function(init) {
+                return init.__assignedName + '();';
+            }).join('\n    ') + '\n' +
+            '}\n';
+        env.requested.exports['$init'] = '$init';
+    }
 
     // Compile function list callers
     body += '\n' + Object.keys(env.funcList).map(function(flist) {
