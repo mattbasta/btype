@@ -1,4 +1,4 @@
-var foo = func<null>() {};
-foo = func<null>() {};
+var foo = func() {};
+foo = func() {};
 
 export foo;

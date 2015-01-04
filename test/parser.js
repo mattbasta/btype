@@ -332,6 +332,142 @@ describe('Parser', function() {
                 ])
             );
         });
+        it('should parse function expressions', function() {
+            compareTree(
+                'var foo = func int() {return 1;};',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        33,
+                        {
+                            declType: null,
+                            identifier: 'foo',
+                            value: node(
+                                'Function',
+                                9,
+                                32,
+                                {
+                                    returnType: _type('int'),
+                                    name: null,
+                                    params: [],
+                                    body: [
+                                        node(
+                                            'Return',
+                                            22,
+                                            31,
+                                            {value: _int(1)}
+                                        )
+                                    ]
+                                }
+                            ),
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse function expressions with no parameter list', function() {
+            compareTree(
+                'var foo = func int {return 1;};',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        31,
+                        {
+                            declType: null,
+                            identifier: 'foo',
+                            value: node(
+                                'Function',
+                                9,
+                                30,
+                                {
+                                    returnType: _type('int'),
+                                    name: null,
+                                    params: [],
+                                    body: [
+                                        node(
+                                            'Return',
+                                            20,
+                                            29,
+                                            {value: _int(1)}
+                                        )
+                                    ]
+                                }
+                            ),
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse void function expressions', function() {
+            compareTree(
+                'var foo = func() {return;};',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        27,
+                        {
+                            declType: null,
+                            identifier: 'foo',
+                            value: node(
+                                'Function',
+                                9,
+                                26,
+                                {
+                                    returnType: null,
+                                    name: null,
+                                    params: [],
+                                    body: [
+                                        node(
+                                            'Return',
+                                            18,
+                                            25,
+                                            {value: null}
+                                        )
+                                    ]
+                                }
+                            ),
+                        }
+                    )
+                ])
+            );
+        });
+        it('should parse void function expressions with no parameter list', function() {
+            compareTree(
+                'var foo = func {return;};',
+                _root([
+                    node(
+                        'Declaration',
+                        0,
+                        25,
+                        {
+                            declType: null,
+                            identifier: 'foo',
+                            value: node(
+                                'Function',
+                                9,
+                                24,
+                                {
+                                    returnType: null,
+                                    name: null,
+                                    params: [],
+                                    body: [
+                                        node(
+                                            'Return',
+                                            16,
+                                            23,
+                                            {value: null}
+                                        )
+                                    ]
+                                }
+                            ),
+                        }
+                    )
+                ])
+            );
+        });
     });
 
     describe('exports', function() {

@@ -1,6 +1,8 @@
 var fs = require('fs');
 var path = require('path');
 
+var argv = require('minimist')(process.argv.slice(2));
+
 var context = require('./context');
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
@@ -10,9 +12,8 @@ var transformer = require('./transformer');
 var types = require('./types');
 
 
-// TODO: Make these customizable.
-const LOWEST_ORDER = 16;
-const HEAP_SIZE = 64 * 1024 * 1024;
+const LOWEST_ORDER = argv.minblocksize || 16;
+const HEAP_SIZE = argv.heapsize || 64 * 1024 * 1024;
 
 // Declare a set of project environment variables.
 var ENV_VARS = {
@@ -68,9 +69,12 @@ Environment.prototype.loadFile = function(filename, tree) {
     // Perform simple inline type checking.
     tree.validateTypes(ctx);
 
+    // Flatten lexical scope
     transformer(ctx);
+    // Flatten complex expressions
     flattener(ctx);
 
+    // Move global statements to init functions
     globalInit(ctx, this);
 
     this.addContext(ctx);

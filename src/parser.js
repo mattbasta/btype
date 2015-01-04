@@ -40,28 +40,26 @@ module.exports = function(tokenizer) {
         return temp;
     }
 
-    function parseFunction(func) {
-        var hasBase = !!func;
+    function parseFunctionDeclaration() {
         var func;
-        if (!func && !(func = accept('func'))) return;
+        if (!(func = accept('func'))) return;
 
-        if (!hasBase && peek().type === '<') {
+        if (peek().type === '<') {
             return parseDeclaration(func);
         }
 
-        var returnType;
-        if (hasBase) {
-            returnType = parseType(func).traits[0];
-        } else {
-            returnType = parseType();
-        }
+        var returnType = parseType();
         var identifier = null;
-        if (returnType && accept(':')) {
-            identifier = assert('identifier').text;
+
+        // If no return type is specified, swap the return type and name
+        if (accept(':')) {
+            var identifier = assert('identifier').text;
+        } else {
+            identifier = returnType.name;
+            returnType = null;
         }
+
         var parameters = [];
-        var param_type;
-        var param_name;
         // Parameter lists are optional.
         if (accept('(')) {
             // If it's not an empty parameter list, start parsing.
@@ -69,11 +67,6 @@ module.exports = function(tokenizer) {
             assert(')');
         }
         assert('{');
-
-        if (!hasBase && returnType && !identifier) {
-            identifier = returnType.name;
-            returnType = null;
-        }
 
         var body = parseStatements('}');
         var end = assert('}');
@@ -85,6 +78,38 @@ module.exports = function(tokenizer) {
             {
                 returnType: returnType,
                 name: identifier,
+                params: parameters,
+                body: body,
+            }
+        );
+    }
+
+    function parseFunctionExpression(func) {
+        var returnType = null;
+
+        if (peek().type === 'identifier') {
+            returnType = parseType();
+        }
+
+        var parameters = [];
+        // Parameter lists are optional.
+        if (accept('(')) {
+            // If it's not an empty parameter list, start parsing.
+            parameters = parseSignature(true, ')');
+            assert(')');
+        }
+        assert('{');
+
+        var body = parseStatements('}');
+        var end = assert('}');
+
+        return node(
+            'Function',
+            func.start,
+            end.end,
+            {
+                returnType: returnType,
+                name: null,
                 params: parameters,
                 body: body,
             }
@@ -607,7 +632,7 @@ module.exports = function(tokenizer) {
                 case 'identifier':
                     return parseSymbol(base);
                 case 'func':
-                    return parseFunction(base);
+                    return parseFunctionExpression(base);
                 default:
                     if (base.isToken) {
                         throw new Error('Invalid token found while parsing expression: ' + base.text);
@@ -871,14 +896,14 @@ module.exports = function(tokenizer) {
     }
 
     function parseStatement(isRoot) {
-        return parseFunction() ||
+        return parseFunctionDeclaration() ||
                isRoot && parseOperatorStatement() ||
                isRoot && parseObjectDeclaration() ||
                parseIf() ||
                parseSwitch() ||
                parseReturn() ||
-               parseExport() ||
-               parseImport() ||
+               isRoot && parseExport() ||
+               isRoot && parseImport() ||
                parseWhile() ||
                parseDoWhile() ||
                parseFor() ||

@@ -49,6 +49,10 @@ describe('Memory special module', function() {
             assert.equal(mod.malloc(1), 0);
         });
 
+        it('should return the null pointer if the requested size is zero', function() {
+            assert.equal(mod.malloc(0), 0);
+        });
+
         it('should always return pointers that are multiples of the lowest order', function() {
             for (var i = 0; i < 1024; i += 1) {
                 assert.ok(mod.malloc(i) % LOWEST_ORDER === 0);

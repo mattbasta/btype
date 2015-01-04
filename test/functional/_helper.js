@@ -65,11 +65,11 @@ describe('Parity tests', function() {
 
             describe(btPath, function() {
 
-                it('in JS', function() {
+                it('in JS', function jsFunctionalTestBody() {
                     run(read, 'js', readExpectation);
                 });
 
-                it('in Asm.js', function() {
+                it('in Asm.js', function asmjsFunctionalTestBody() {
                     run(read, 'asmjs', readExpectation);
                 });
 
@@ -88,7 +88,7 @@ describe('Compile tests', function() {
         function(btPath) {
             var read = fs.readFileSync(btPath).toString();
 
-            it(btPath, function() {
+            it(btPath, function compileTestBody() {
                 var parsed = parser(lexer(read));
                 var compiled = compiler('test', parsed);
                 assert.ok(compiled);
@@ -108,7 +108,7 @@ describe('Failure tests', function() {
         function(btPath) {
             var read = fs.readFileSync(btPath).toString();
 
-            it(btPath, function() {
+            it(btPath, function failTestBody() {
                 assert.throws(function() {
                     compiler('test', parser(lexer(read)));
                 });

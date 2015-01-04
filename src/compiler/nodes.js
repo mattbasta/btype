@@ -63,41 +63,41 @@ function indentEach(input, level) {
 
 var NODES = {
     Root: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             this.body.forEach(function(stmt) {
                 cb(stmt, 'body');
             });
         },
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.body, 'body');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.body = this.body.map(function(stmt) {
                 return cb(stmt, 'body');
             }).filter(ident);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
             });
         },
-        toString: function() {
+        toString: function toString() {
             return 'Root:\n' + indentEach(this.body.map(function(stmt) {
                 return stmt.toString();
             }).join('\n')) + '\n';
         },
     },
     Unary: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.base);
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
             return this.operator === '-' ? this.base.getType(ctx) : boolType();
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.base.validateTypes(ctx);
             if (this.operator === '-') {
                 var baseType = this.base.getType(ctx);
@@ -106,7 +106,7 @@ var NODES = {
                 }
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'Unary(' + this.operator + '): ' + this.base.toString() + '\n';
         },
     },
@@ -114,11 +114,11 @@ var NODES = {
         traverse: binop_traverser,
         substitute: binop_substitution,
         getType: binopType,
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'LogicalBinop(' + this.operator + '):\n' +
                    '    Left:\n' +
                    indentEach(this.left.toString(), 2) + '\n' +
@@ -130,14 +130,14 @@ var NODES = {
         traverse: binop_traverser,
         substitute: binop_substitution,
         getType: binopType,
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Equality operations may only be performed against same types');
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'EqualityBinop(' + this.operator + '):\n' +
                    '    Left:\n' +
                    indentEach(this.left.toString(), 2) + '\n' +
@@ -149,14 +149,14 @@ var NODES = {
         traverse: binop_traverser,
         substitute: binop_substitution,
         getType: binopType,
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
             if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
                 throw new TypeError('Comparison operations may only be performed against same types');
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'RelativeBinop(' + this.operator + '):\n' +
                    '    Left:\n' +
                    indentEach(this.left.toString(), 2) + '\n' +
@@ -180,7 +180,7 @@ var NODES = {
             }
             return leftType;
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.left.validateTypes(ctx);
             this.right.validateTypes(ctx);
             var left = this.left.getType(ctx);
@@ -189,7 +189,7 @@ var NODES = {
                 throw new TypeError('Mismatched types in binop (' + this.operator + '): ' + left.toString() + ' != ' + right.toString());
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'Binop(' + this.operator + '):\n' +
                    '    Left:\n' +
                    indentEach(this.left.toString(), 2) + '\n' +
@@ -198,28 +198,28 @@ var NODES = {
         },
     },
     CallStatement: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.base, 'base');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
             return this.base.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.base.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'CallStatement: ' + this.base.toString();
         },
     },
     CallRaw: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.callee, 'callee');
             this.params.forEach(oneArg(cb));
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.callee = cb(this.callee, 'callee') || this.callee;
             this.params = this.params.map(function(stmt) {
                 return cb(stmt, 'params');
@@ -228,7 +228,7 @@ var NODES = {
         getType: function(ctx) {
             return this.callee.getType(ctx).getReturnType();
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.callee.validateTypes(ctx);
             this.params.forEach(function(p) {p.validateTypes(ctx);});
 
@@ -258,7 +258,7 @@ var NODES = {
         __getName: function() {
             return 'CallRaw';
         },
-        toString: function() {
+        toString: function toString() {
             return this.__getName() + ':\n' +
                    '    Base:\n' +
                    indentEach(this.callee.toString(), 2) + '\n' +
@@ -267,70 +267,70 @@ var NODES = {
         },
     },
     CallDecl: { // Calls a function declaration
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             return NODES.CallRaw.traverse.call(this, cb);
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             return NODES.CallRaw.substitute.call(this, cb);
         },
         getType: function(ctx) {
             return NODES.CallRaw.getType.call(this, ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             return NODES.CallRaw.validateTypes.call(this, ctx);
         },
         __getName: function() {
             return 'CallDecl';
         },
-        toString: function() {
+        toString: function toString() {
             return NODES.CallRaw.toString.call(this);
         },
     },
     CallRef: { // Calls a reference to a function
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             return NODES.CallRaw.traverse.call(this, cb);
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             return NODES.CallRaw.substitute.call(this, cb);
         },
         getType: function(ctx) {
             return NODES.CallRaw.getType.call(this, ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             return NODES.CallRaw.validateTypes.call(this, ctx);
         },
         __getName: function() {
             return 'CallRef';
         },
-        toString: function() {
+        toString: function toString() {
             return NODES.CallRaw.toString.call(this);
         },
     },
     FunctionReference: { // Wraps a symbol pointing at a function so that it can become a reference
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.base, 'base');
             cb(this.ctx, 'ctx');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
             this.ctx = cb(this.ctx, 'ctx') || this.ctx;
         },
         getType: function(ctx) {
             return this.base.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             return this.base.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'FunctionReference(' + this.ctx.toString() + '):\n' +
                 indentEach(this.base.toString()) + '\n';
         },
     },
     Member: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.base, 'base');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
@@ -340,31 +340,31 @@ var NODES = {
             }
             return baseType.getMemberType(this.child);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             var baseType = this.base.getType(ctx);
             if (!baseType.hasMember(this.child)) {
                 throw new TypeError('Requesting incompatible member (' + this.child + ') from type');
             }
             this.base.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'Member(' + this.child + '):\n' +
                    indentEach(this.base.toString());
         },
     },
     Assignment: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.base, 'base');
             cb(this.value, 'value');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
             this.value = cb(this.value, 'value') || this.value;
         },
         getType: function(ctx) {
             return this.value.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             var baseType = this.base.getType(ctx);
             var valueType = this.value.getType(ctx);
             if (!baseType.equals(valueType)) {
@@ -372,7 +372,7 @@ var NODES = {
             }
             this.value.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'Assignment:\n' +
                    '    Lval:\n' +
                    indentEach(this.base.toString(), 2) + '\n' +
@@ -381,17 +381,17 @@ var NODES = {
         },
     },
     Declaration: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             if (this.declType) cb(this.declType, 'type');
             cb(this.value, 'value');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.value = cb(this.value, 'value') || this.value;
         },
         getType: function(ctx) {
             return (this.declType || this.value).getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.value.validateTypes(ctx);
             if (!this.declType) return;
             var declType = this.declType.getType(ctx);
@@ -400,7 +400,7 @@ var NODES = {
                 throw new TypeError('Mismatched types in declaration: ' + declType.toString() + ' != ' + valueType.toString());
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'Declaration(' + this.identifier + (this.__assignedName ? '::' + this.__assignedName : '') + ')\n' +
                    (!this.declType ? '' :
                        '    Type:\n' +
@@ -411,35 +411,35 @@ var NODES = {
         },
     },
     ConstDeclaration: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             return NODES.Declaration.traverse.call(this, cb);
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             return NODES.Declaration.substitute.call(this, cb);
         },
         getType: function(ctx) {
             return NODES.Declaration.getType.call(this, ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             var valueType = this.value.getType(ctx);
             if (valueType._type !== 'primitive') {
                 throw new TypeError('Cannot assign non-primitive values to constants: ' + valueType.toString());
             }
             return NODES.Declaration.validateTypes.call(this, ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'Const' + NODES.Declaration.toString.call(this);
         },
     },
     Return: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             if (this.value) cb(this.value);
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             if (!this.value) return;
             this.value = cb(this.value, 'value') || this.value;
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.value.validateTypes(ctx);
             var valueType = this.value.getType(ctx);
             var func = ctx.scope;
@@ -451,41 +451,41 @@ var NODES = {
                 throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'Return:\n' +
                    indentEach(this.value.toString()) + '\n';
         },
     },
     Export: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.value);
         },
-        substitute: function() {},
-        validateTypes: function(ctx) {
+        substitute: function substitute() {},
+        validateTypes: function validateTypes(ctx) {
             this.value.validateTypes(ctx);
             var valueType = this.value.getType(ctx);
             if (valueType._type !== 'func') {
                 throw new TypeError('Cannot export non-executable objects');
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'Export:\n' +
                    indentEach(this.value.toString()) + '\n';
         },
     },
     Import: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.base, 'base');
             if (this.member) cb(this.member, 'member');
             if (this.alias) cb(this.alias, 'alias');
         },
-        substitute: function() {},
-        validateTypes: function(ctx) {
+        substitute: function substitute() {},
+        validateTypes: function validateTypes(ctx) {
             // this.base.validateTypes(ctx);
             // if (this.member) this.member.validateTypes(ctx);
             // if (this.alias) this.alias.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return 'Import:\n' +
                    '    Base:\n' +
                    indentEach(this.base.toString(), 2) + '\n' +
@@ -498,13 +498,13 @@ var NODES = {
         },
     },
     For: {
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.loop, 'loop');
         },
         traverse: loop_traverser,
         substitute: loop_substitution,
         validateTypes: loopValidator,
-        toString: function() {
+        toString: function toString() {
             return 'For:\n' +
                    '    Assignment:\n' +
                    indentEach(this.assignment.toString(), 2) + '\n' +
@@ -518,13 +518,13 @@ var NODES = {
         },
     },
     DoWhile: {
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.loop, 'loop');
         },
         traverse: loop_traverser,
         substitute: loop_substitution,
         validateTypes: loopValidator,
-        toString: function() {
+        toString: function toString() {
             return 'DoWhile:\n' +
                    '    Condition:\n' +
                    indentEach(this.condition.toString(), 2) + '\n' +
@@ -533,13 +533,13 @@ var NODES = {
         },
     },
     While: {
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.loop, 'loop');
         },
         traverse: loop_traverser,
         substitute: loop_substitution,
         validateTypes: loopValidator,
-        toString: function() {
+        toString: function toString() {
             return 'While:\n' +
                    '    Condition:\n' +
                    indentEach(this.condition.toString(), 2) + '\n' +
@@ -548,54 +548,54 @@ var NODES = {
         },
     },
     Switch: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.condition, 'condition');
             this.cases.forEach(oneArg(cb));
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.condition = cb(this.condition, 'condition') || this.condition;
             this.cases = this.cases.map(function(case_) {
                 return cb(case_, 'case');
             }).filter(ident);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.cases.forEach(function(c) {
                 c.validateTypes(ctx);
             });
         },
-        toString: function() {
+        toString: function toString() {
             return 'Switch(' + this.condition.toString() + '):\n' +
                    indentEach(this.cases.map(function(stmt) {return stmt.toString();}).join('\n'));
         },
     },
     Case: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.value, 'value');
             this.body.forEach(function(stmt) {
                 cb(stmt, 'body');
             });
         },
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.body, 'body');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.value = cb(this.value, 'value') || this.value;
             this.body = this.body.map(function(stmt) {
                 return cb(stmt, 'stmt');
             }).filter(ident);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
             });
         },
-        toString: function() {
+        toString: function toString() {
             return 'Case(' + this.value.toString() + '):\n' +
                    indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
         },
     },
     If: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.condition, 'condition');
             this.consequent.forEach(function(stmt) {
                 cb(stmt, 'consequent');
@@ -606,11 +606,11 @@ var NODES = {
                 });
             }
         },
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.consequent, 'consequent');
             cb(this.alternate, 'alternate');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.condition = cb(this.condition, 'condition') || this.condition;
             this.consequent = this.consequent.map(function(stmt) {
                 return cb(stmt, 'consequent');
@@ -620,7 +620,7 @@ var NODES = {
                 return cb(stmt, 'alternate');
             }).filter(ident);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.condition.validateTypes(ctx);
             if(!this.condition.getType(ctx).equals(boolType()))
                 throw new TypeError('Unexpected type passed as condition');
@@ -633,7 +633,7 @@ var NODES = {
                 });
             }
         },
-        toString: function() {
+        toString: function toString() {
             return 'If:\n' +
                    '    Condition:\n' +
                    indentEach(this.condition.toString(), 2) + '\n' +
@@ -646,7 +646,7 @@ var NODES = {
         },
     },
     Function: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             if (this.returnType)
                 cb(this.returnType, 'return');
 
@@ -654,10 +654,10 @@ var NODES = {
                 cb(stmt, 'body');
             });
         },
-        traverseStatements: function(cb) {
+        traverseStatements: function traverseStatements(cb) {
             cb(this.body, 'body');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.body = this.body.map(function(stmt) {
                 return cb(stmt, 'stmt');
             }).filter(ident);
@@ -674,13 +674,13 @@ var NODES = {
                 })
             );
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             var context = this.__context;
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(context);
             });
         },
-        toString: function() {
+        toString: function toString() {
             return 'Function ' + this.name + (this.__assignedName ? '::' + this.__assignedName : '') +
                        '(' + this.params.map(function(param) {return param.toString();}).join(', ') + ') ' +
                        (this.returnType ? this.returnType.toString() : 'void') + '\n' +
@@ -688,7 +688,7 @@ var NODES = {
         },
     },
     OperatorStatement: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.left, 'left');
             cb(this.right, 'right');
             cb(this.returnType, 'returnType');
@@ -696,7 +696,7 @@ var NODES = {
                 cb(stmt, 'body');
             });
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.left = cb(this.left, 'left') || this.left;
             this.right = cb(this.right, 'right') || this.right;
             this.returnType = cb(this.returnType, 'returnType') || this.returnType;
@@ -717,13 +717,13 @@ var NODES = {
                 ]
             );
         },
-        validateTypes: function() {
+        validateTypes: function validateTypes() {
             var context = this.__context;
             this.body.forEach(function(stmt) {
                 stmt.validateTypes(context);
             });
         },
-        toString: function() {
+        toString: function toString() {
             return 'Operator(' + this.operator + '): ' + this.returnType.toString() + '\n' +
                 '    Left: ' + this.left.toString() + '\n' +
                 '    Right: ' + this.right.toString() + '\n' +
@@ -732,10 +732,10 @@ var NODES = {
         },
     },
     Type: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             if (this.traits) this.traits.forEach(oneArg(cb));
         },
-        substitute: function() {},
+        substitute: function substitute() {},
         getType: function(ctx) {
             if (this.__type) {
                 return this.__type;
@@ -754,55 +754,55 @@ var NODES = {
 
             return this.__type = ctx.resolveType(this.name);
         },
-        validateTypes: function() {},
-        toString: function() {
+        validateTypes: function validateTypes() {},
+        toString: function toString() {
             return '<' + this.name + (this.traits.length ? '; ' + this.traits.map(function(trait) {return trait ? trait.toString() : 'null';}).join(', ') : '') + '>';
         },
     },
     TypedIdentifier: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             cb(this.idType);
         },
-        substitute: function() {},
+        substitute: function substitute() {},
         getType: function(ctx) {
             return this.idType.getType(ctx);
         },
-        validateTypes: function() {},
-        toString: function() {
+        validateTypes: function validateTypes() {},
+        toString: function toString() {
             return 'TypedId(' + this.name + ': ' + this.idType.toString() + ')';
         },
     },
     Literal: {
-        traverse: function(cb) {},
-        substitute: function() {},
+        traverse: function traverse(cb) {},
+        substitute: function substitute() {},
         getType: function() {
             return types.resolve(this.litType);
         },
-        validateTypes: function() {},
-        toString: function() {
+        validateTypes: function validateTypes() {},
+        toString: function toString() {
             return 'Literal(' + this.value + ')';
         },
     },
     Symbol: {
-        traverse: function(cb) {},
-        substitute: function() {},
+        traverse: function traverse(cb) {},
+        substitute: function substitute() {},
         getType: function(ctx) {
             if (this.__refType) return this.__refType;
             var objContext = ctx.lookupVar(this.name);
             return objContext.typeMap[this.__refName];
         },
-        validateTypes: function() {},
-        toString: function() {
+        validateTypes: function validateTypes() {},
+        toString: function toString() {
             return 'Symbol(' + this.name + (this.__refName ? '::' + this.__refName : '') + ')';
         },
     },
     New: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             if (this.newType && this.newType.type)
                 cb(this.newType);
             this.params.forEach(oneArg(cb));
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.callee = cb(this.callee, 'callee') || this.callee;
             this.params = this.params.map(function(stmt) {
                 return cb(stmt, 'params');
@@ -811,40 +811,40 @@ var NODES = {
         getType: function(ctx) {
             return this.newType.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             var type = this.getType(ctx);
             if (type._type === 'primitive') {
                 throw new Error('Cannot create instance of primitive: ' + type.toString());
             }
             // TODO: Check that the params match the params of the constructor
         },
-        toString: function() {
+        toString: function toString() {
             return 'New: ' + this.newType.toString() + (this.params.length ? '\n' : '') +
                    indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
         },
     },
 
     Break: {
-        traverse: function() {},
-        substitute: function() {},
+        traverse: function traverse() {},
+        substitute: function substitute() {},
         getType: function() {return null;},
-        validateTypes: function() {},
-        toString: function() {
+        validateTypes: function validateTypes() {},
+        toString: function toString() {
             return 'Break';
         },
     },
     Continue: {
-        traverse: function() {},
-        substitute: function() {},
+        traverse: function traverse() {},
+        substitute: function substitute() {},
         getType: function() {return null;},
-        validateTypes: function() {},
-        toString: function() {
+        validateTypes: function validateTypes() {},
+        toString: function toString() {
             return 'Continue';
         },
     },
 
     ObjectDeclaration: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             this.members.forEach(function(stmt) {
                 cb(stmt, 'members');
             });
@@ -853,7 +853,7 @@ var NODES = {
             });
             if (this.objConstructor) cb(this.objConstructor, 'objConstructor');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.members = this.members.map(function(stmt) {
                 return cb(stmt, 'members');
             }).filter(ident);
@@ -869,7 +869,7 @@ var NODES = {
             });
             return new types.Struct(this.name, mapping);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             this.members.forEach(function(stmt) {
                 stmt.validateTypes(ctx);
             });
@@ -877,7 +877,7 @@ var NODES = {
                 stmt.validateTypes(ctx);
             });
         },
-        toString: function() {
+        toString: function toString() {
             return 'Object(' + this.name + (this.__assignedName ? '::' + this.__assignedName : '') + '):\n' +
                 '    Members:\n' +
                 indentEach(this.members.map(function(member) {return member.toString();}).join('\n'), 2) + '\n' +
@@ -890,56 +890,56 @@ var NODES = {
         },
     },
     ObjectMember: {
-        traverse: function(cb) {
+        traverse: function traverse(cb) {
             if (this.value) cb(this.value, 'value');
             cb(this.memberType, 'memberType');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.value = cb(this.value, 'value') || this.value;
             this.memberType = cb(this.memberType, 'memberType') || this.memberType;
         },
         getType: function(ctx) {
             return this.memberType.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             if (this.value) this.value.validateTypes(ctx);
             this.memberType.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return this.memberType.toString();
         },
     },
     ObjectMethod: {
-        traverse: function() {
+        traverse: function traverse() {
             cb(this.base, 'base');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
             return this.base.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             return this.base.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return this.base.toString();
         },
     },
     ObjectConstructor: {
-        traverse: function() {
+        traverse: function traverse(cb) {
             cb(this.base, 'base');
         },
-        substitute: function(cb) {
+        substitute: function substitute(cb) {
             this.base = cb(this.base, 'base') || this.base;
         },
         getType: function(ctx) {
             return this.base.getType(ctx);
         },
-        validateTypes: function(ctx) {
+        validateTypes: function validateTypes(ctx) {
             return this.base.validateTypes(ctx);
         },
-        toString: function() {
+        toString: function toString() {
             return this.base.toString();
         },
     },
@@ -965,7 +965,7 @@ function buildNode(proto, name) {
         node.prototype[protoMem] = proto[protoMem];
     }
     node.prototype.type = name;
-    node.prototype.clone = function() {
+    node.prototype.clone = function clone() {
         var out = new node(
             this.start,
             this.end,

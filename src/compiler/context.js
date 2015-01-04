@@ -113,7 +113,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
     // after themselves in the current scope.
     var innerFunctions = [];
 
-    function before(node) {
+    function preTraverseContext(node) {
         if (!node) return false;
         var assignedName;
 
@@ -215,18 +215,11 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 var objType = node.getType(contexts[0]);
                 contexts[0].registerType(node.name, objType);
                 node.__assignedName = objType.__assignedName;
-
-                if (node.objConstructor) {
-                    innerFunctions[0].push(node.objConstructor);
-                }
-                node.methods.forEach(function(method) {
-                    innerFunctions[0].push(method.base);
-                });
-                return false;
+                return;
         }
     }
 
-    function after(node) {
+    function postTraverseContext(node) {
         switch (node.type) {
             case 'Assignment':
                 if (node.base.type === 'Symbol' && node.base.__refContext.isFuncMap[node.base.__refName]) {
@@ -274,9 +267,6 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 return;
 
             case 'Export':
-                if (contexts.length > 1) {
-                    throw new Error('Unexpected export: all exports must be in the global scope');
-                }
                 node.__assignedName = rootContext.exports[node.value.name] = node.value.__refName;
                 return;
 
@@ -291,8 +281,8 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
     function doTraverse(tree) {
         innerFunctions.unshift([]);
-        traverser.traverse(tree, before, after);
-        innerFunctions.shift().forEach(function(node) {
+        traverser.traverse(tree, preTraverseContext, postTraverseContext);
+        innerFunctions.shift().forEach(function contextInnerFunctionIterator(node) {
             contexts.unshift(node.__context);
             doTraverse(node);
             contexts.shift();

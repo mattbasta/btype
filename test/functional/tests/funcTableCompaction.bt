@@ -3,7 +3,7 @@ func func<int, int>:ident(func<int, int>:param) {
 }
 
 func int:main() {
-    var f = func<int>(int:x) {
+    var f = func int(int:x) {
         return x;
     };
 

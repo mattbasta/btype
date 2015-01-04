@@ -169,6 +169,11 @@ function malloc(bytes) {
         return 0;
     }
 
+    // Anything requesting zero bytes should be just as happy with the null pointer.
+    if ((bytes | 0) == 0) {
+        return 0;
+    }
+
     var halfHeap = 0;
     var midpoint = 0;
     bytes = bytes + 8 | 0;  // Account for reference count and object shape (4 bytes each)
