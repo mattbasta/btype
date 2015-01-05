@@ -1,0 +1,29 @@
+var indentEach = require('./_utils').indentEach;
+
+
+exports.traverse = function traverse(cb) {
+    if (this.value) cb(this.value);
+};
+
+exports.substitute = function substitute(cb) {
+    if (!this.value) return;
+    this.value = cb(this.value, 'value') || this.value;
+};
+
+exports.validateTypes = function validateTypes(ctx) {
+    this.value.validateTypes(ctx);
+    var valueType = this.value.getType(ctx);
+    var func = ctx.scope;
+    var funcReturnType = func.returnType && func.returnType.getType(ctx);
+    if (!!valueType !== !!funcReturnType) {
+        throw new TypeError('Mismatched void/typed return type');
+    }
+    if (!funcReturnType.equals(valueType)) {
+        throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
+    }
+};
+
+exports.toString = function toString() {
+    return 'Return:\n' +
+           indentEach(this.value.toString()) + '\n';
+};
