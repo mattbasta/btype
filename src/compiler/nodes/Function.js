@@ -47,5 +47,5 @@ exports.toString = function toString() {
     return 'Function ' + this.name + (this.__assignedName ? '::' + this.__assignedName : '') +
                '(' + this.params.map(function(param) {return param.toString();}).join(', ') + ') ' +
                (this.returnType ? this.returnType.toString() : 'void') + '\n' +
-           indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
+           indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'));
 };

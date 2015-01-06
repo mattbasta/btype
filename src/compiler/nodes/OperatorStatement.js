@@ -48,5 +48,5 @@ exports.toString = function toString() {
         '    Left: ' + this.left.toString() + '\n' +
         '    Right: ' + this.right.toString() + '\n' +
         '    Body:\n' +
-        indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'), 2);
+        indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'), 2);
 };

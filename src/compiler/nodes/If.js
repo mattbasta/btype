@@ -51,9 +51,9 @@ exports.toString = function toString() {
            '    Condition:\n' +
            indentEach(this.condition.toString(), 2) + '\n' +
            '    Consequent:\n' +
-           indentEach(this.consequent.map(function(stmt) {return stmt.toString()}).join('\n'), 2) +
+           indentEach(this.consequent.map(function(stmt) {return stmt.toString();}).join('\n'), 2) +
            (!this.alternate ? '' :
                '\n    Alternate:\n' +
-               indentEach(this.alternate.map(function(stmt) {return stmt.toString()}).join('\n'), 2)
+               indentEach(this.alternate.map(function(stmt) {return stmt.toString();}).join('\n'), 2)
             );
 };

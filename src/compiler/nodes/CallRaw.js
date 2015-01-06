@@ -55,5 +55,5 @@ exports.toString = function toString() {
            '    Base:\n' +
            indentEach(this.callee.toString(), 2) + '\n' +
            '    Args:\n' +
-           indentEach(this.params.map(function(param) {return param.toString()}).join('\n'), 2) + '\n';
+           indentEach(this.params.map(function(param) {return param.toString();}).join('\n'), 2) + '\n';
 };

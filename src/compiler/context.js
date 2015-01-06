@@ -31,15 +31,6 @@ function Context(env, scope, parent) {
     // Boolean representing whether the context access its lexical scope.
     this.accessesLexicalScope = false;
 
-    /*
-    Side effect-free
-        The function has no side effects at all.
-    Lexical side effect-free
-        The function does not modify the values of any variables in the lexical
-        scope. It may modify members of objects referenced by pointers in the
-        lexical scope or variables in the global scope.
-    */
-
     // Boolean representing whether the context is side effect-free.
     this.sideEffectFree = true;
 
@@ -63,7 +54,7 @@ Context.prototype.addVar = function(varName, type, assignedName) {
         throw new Error('Cannot redeclare symbol in context: ' + varName);
     }
 
-    var assignedName = this.nameMap[varName] = assignedName || this.env.namer();
+    assignedName = this.nameMap[varName] = assignedName || this.env.namer();
     this.typeMap[assignedName] = type;
     return assignedName;
 };
@@ -106,6 +97,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
         }
     }
     var contexts = [rootContext];
+    var newContext;
 
     // This is used to keep track of nested functions so that they can be
     // processed after each context has been completely defined. This allows
@@ -140,7 +132,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
 
                 node.__firstClass = false;
 
-                var newContext = new Context(env, node, contexts[0]);
+                newContext = new Context(env, node, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
                 node.params.forEach(function(param) {
                     param.__assignedName = newContext.addVar(param.name, param.getType(newContext));
@@ -162,7 +154,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 node.__assignedName = assignedName;
                 node.__firstClass = false;
 
-                var newContext = new Context(env, node, contexts[0]);
+                newContext = new Context(env, node, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
                 node.left.__assignedName = newContext.addVar(node.left.name, node.left.getType(newContext));
                 node.right.__assignedName = newContext.addVar(node.right.name, node.right.getType(newContext));

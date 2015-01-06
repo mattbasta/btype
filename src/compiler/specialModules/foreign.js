@@ -26,7 +26,7 @@ function StdlibType(env, name, raw) {
     this._type = '_stdlib';
     this.name = name;
 
-    var raw = context(env, parser(lexer(raw)));
+    raw = context(env, parser(lexer(raw)));
 
     this.equals = function(x) {
         return false;

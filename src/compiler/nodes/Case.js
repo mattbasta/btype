@@ -27,5 +27,5 @@ exports.validateTypes = function validateTypes(ctx) {
 
 exports.toString = function toString() {
     return 'Case(' + this.value.toString() + '):\n' +
-           indentEach(this.body.map(function(stmt) {return stmt.toString()}).join('\n'));
+           indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'));
 };

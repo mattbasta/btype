@@ -2128,7 +2128,10 @@ describe('Parser', function() {
                                         {
                                             returnType: _type('int'),
                                             name: 'foo',
-                                            params: [_typed('bar', _type('float'))],
+                                            params: [
+                                                _typed('self', _type('foo')),
+                                                _typed('bar', _type('float')),
+                                            ],
                                             body: [node(
                                                 'Return',
                                                 33,
@@ -2172,7 +2175,10 @@ describe('Parser', function() {
                                         {
                                             returnType: _type('int'),
                                             name: 'foo',
-                                            params: [_typed('bar', _type('float'))],
+                                            params: [
+                                                _typed('self', _type('foo')),
+                                                _typed('bar', _type('float')),
+                                            ],
                                             body: [node(
                                                 'Return',
                                                 33,

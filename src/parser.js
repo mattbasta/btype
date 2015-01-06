@@ -53,7 +53,7 @@ module.exports = function(tokenizer) {
 
         // If no return type is specified, swap the return type and name
         if (accept(':')) {
-            var identifier = assert('identifier').text;
+            identifier = assert('identifier').text;
         } else {
             identifier = returnType.name;
             returnType = null;
@@ -804,6 +804,24 @@ module.exports = function(tokenizer) {
 
                 assert('(');
                 methodSignature = parseSignature(true, ')');
+                methodSignature.unshift(node(
+                    'TypedIdentifier',
+                    0,
+                    0,
+                    {
+                        idType: node(
+                            'Type',
+                            0,
+                            0,
+                            {
+                                name: name,
+                                traits: [],
+                            }
+                        ),
+                        name: 'self',
+                    }
+                ));
+
                 assert(')');
                 assert('{');
                 methodBody = parseStatements('}');
@@ -851,7 +869,26 @@ module.exports = function(tokenizer) {
                 continue;
             } else if (accept('(')) {
                 methodSignature = parseSignature(true, ')');
-                assert(')');
+
+                endBrace = assert(')');
+                methodSignature.unshift(node(
+                    'TypedIdentifier',
+                    0,
+                    0,
+                    {
+                        idType: node(
+                            'Type',
+                            0,
+                            0,
+                            {
+                                name: name,
+                                traits: [],
+                            }
+                        ),
+                        name: 'self',
+                    }
+                ));
+
                 assert('{');
                 methodBody = parseStatements('}');
                 methodEndBrace = assert('}');
