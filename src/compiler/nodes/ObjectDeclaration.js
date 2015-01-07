@@ -24,11 +24,21 @@ exports.substitute = function substitute(cb) {
 };
 
 exports.getType = function getType(ctx) {
+    if (this.__type) return this.__type;
     var mapping = {};
     this.members.forEach(function(member) {
         mapping[member.name] = member.getType(ctx);
     });
-    return new types.Struct(this.name, mapping);
+    var output = new types.Struct(this.name, mapping);
+    if (this.objConstructor) {
+        // if (!this.objConstructor.base.__assignedName) {
+        //     // If a name hasn't been assigned yet, give it one now.
+        //     // The context module will (should) simply re-use the name.
+        //     this.objConstructor.base.__assignedName = ctx.env.namer();
+        // }
+        output.objConstructor = this.objConstructor.base.__assignedName;
+    }
+    return this.__type = output;
 };
 
 exports.validateTypes = function validateTypes(ctx) {
@@ -45,7 +55,7 @@ exports.toString = function toString() {
         '    Members:\n' +
         indentEach(this.members.map(function(member) {return member.toString();}).join('\n'), 2) + '\n' +
         '    Constructor:\n' +
-        (this.objConstructor ? indentEach(this.objConstructor.toString, 2) : '        void') + '\n' +
+        (this.objConstructor ? indentEach(this.objConstructor.toString(), 2) : '        void') + '\n' +
         '    Methods:\n' +
         indentEach(this.methods.map(function(method) {
             return method.name + ': ' + method.toString();

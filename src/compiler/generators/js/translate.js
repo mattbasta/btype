@@ -185,6 +185,13 @@ var NODES = {
         return NODES.Declaration.apply(this, arguments);
     },
     Return: function(env, ctx, prec) {
+        if (!this.value) {
+            if (ctx.scope.__objectSpecial === 'constructor') {
+                return 'return ' + ctx.scope.params[0].__assignedName + ';';
+            }
+            console.log(ctx.scope.toString())
+            return 'return;';
+        }
         return 'return ' + _node(this.value, env, ctx, 1) + ';';
     },
     Export: function() {return '';},
@@ -249,13 +256,21 @@ var NODES = {
             }).join('\n') + '}' : '');
     },
     Function: function(env, ctx, prec) {
-        return 'function ' + this.__assignedName + '(' +
+        var context = this.__context;
+        var output = 'function ' + this.__assignedName + '(' +
             this.params.map(function(param) {
-                return _node(param, env, ctx, 1);
+                return _node(param, env, context, 1);
             }).join(',') + ') {\n' +
             this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') + '\n}';
+                return _node(stmt, env, context, 0);
+            }).join('\n');
+
+        if (this.__objectSpecial === 'constructor') {
+            output += 'return ' + this.params[0].__assignedName + ';';
+        }
+
+        output += '\n}';
+        return output;
     },
     OperatorStatement: function(env, ctx, prec) {
         return 'function ' + this.__assignedName + '(' +
@@ -279,24 +294,46 @@ var NODES = {
         return this.__refName;
     },
     New: function(env, ctx) {
-        return 'new ' + this.getType(ctx).typeName + '()';
+        var type = this.getType(ctx);
+        var output = 'new ' + type.typeName + '()';
+
+        if (type instanceof types.Struct && type.objConstructor) {
+            output = type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
+                return _node(param, env, ctx, 1);
+            }).join(', ') : '') + ')';
+        }
+
+        return output;
     },
 
     Break: function() {
-        return 'break';
+        return 'break;';
     },
     Continue: function() {
-        return 'continue';
+        return 'continue;';
     },
 
-    ObjectDeclaration: function() {
-        return '';
+    ObjectDeclaration: function(env, ctx) {
+        var output = '';
+
+        if (this.objConstructor) {
+            output = _node(this.objConstructor, env, ctx, 0) + '\n';
+        }
+
+        output += this.methods.map(function(method) {
+            return _node(method, env, ctx, 0);
+        }).join('\n');
+
+        return output;
     },
     ObjectMember: function() {
         return '';
     },
-    ObjectMethod: function() {
-        return '';
+    ObjectMethod: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, prec);
+    },
+    ObjectConstructor: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, prec);
     },
 };
 

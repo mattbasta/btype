@@ -1,0 +1,18 @@
+object Point {
+    float:x;
+    float:y;
+    float:z;
+
+    new(float:x, float:y, float:z) {
+        self.x = x;
+        self.y = y;
+        return;
+        self.z = z;
+    }
+}
+
+func float:main() {
+    var foo = new Point(1.0, 2.0, 3.0);
+    return foo.y;
+}
+export main;

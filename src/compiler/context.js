@@ -125,7 +125,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 }
 
                 // Mark the function as a variable containing a function type.
-                assignedName = contexts[0].addVar(node.name, node.getType(contexts[0]));
+                assignedName = contexts[0].addVar(node.name, node.getType(contexts[0]), node.__assignedName);
                 contexts[0].functionDeclarations[assignedName] = node;
                 contexts[0].isFuncMap[assignedName] = true;
                 node.__assignedName = assignedName;
@@ -141,6 +141,26 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 innerFunctions[0].push(node);
 
                 return false; // `false` to block the traverser from going deeper.
+
+            case 'ObjectConstructor':
+                contexts[0].functions.push(node.base);
+                assignedName = node.__assignedName || node.base.__assignedName || env.namer();
+                contexts[0].functionDeclarations[assignedName] = node.base;
+                contexts[0].isFuncMap[assignedName] = true;
+                node.__assignedName = node.base.__assignedName = assignedName;
+                node.base.__firstClass = false;
+
+                newContext = new Context(env, node.base, contexts[0]);
+                // Add all the parameters of the nested function to the new scope.
+                node.base.params.forEach(function(param) {
+                    debugger;
+
+                    param.__assignedName = newContext.addVar(param.name, param.getType(newContext));
+                });
+
+                innerFunctions[0].push(node.base);
+
+                return false;
 
 
             case 'OperatorStatement':
@@ -265,8 +285,9 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
             case 'ObjectDeclaration':
                 var objType = node.getType(contexts[0]);
                 if (node.objConstructor) {
-                    objType.objConstructor = node.objConstructor.__assignedName;
+                    objType.objConstructor = node.objConstructor.base.__assignedName;
                 }
+                doTraverse(node);
                 return;
         }
     }

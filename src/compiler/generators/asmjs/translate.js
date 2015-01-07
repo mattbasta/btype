@@ -229,6 +229,7 @@ var NODES = {
     },
     Member: function(env, ctx, prec, parent) {
         var baseType = this.base.getType(ctx);
+        if (!baseType) debugger;
         if (baseType._type === 'module') {
             return baseType.memberMapping[this.child];
         }
@@ -284,7 +285,7 @@ var NODES = {
         var output = 'var ' + this.__assignedName + ' = ';
 
         if (this.value.type === 'Literal') {
-            output += (this.value.value || 'null').toString() + ';';
+            output += (this.value.value || '0').toString() + ';';
             return output;
         }
 
@@ -298,6 +299,12 @@ var NODES = {
     },
     Return: function(env, ctx, prec) {
         var output = getFunctionDerefs(ctx, this.value);
+        if (!this.value) {
+            if (ctx.scope.__objectSpecial === 'constructor') {
+                return output + 'return ' + ctx.scope.params[0].__assignedName + ';';
+            }
+            return output + 'return;';
+        }
         return output + 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
     },
     Export: function() {return '';},
@@ -399,6 +406,11 @@ var NODES = {
                 output += '.0';
             }
             output += ';';
+        } else if (!returnType && this.__objectSpecial === 'constructor') {
+            output += getFunctionDerefs(ctx);
+            // Constructors always are "void", but the implementation always
+            // returns the pointer to the initialized object.
+            output += '\n     return ' + this.params[0].__assignedName + ' | 0;';
         } else if (!hasReturnStatement) {
             output += getFunctionDerefs(ctx);
         }
@@ -453,24 +465,45 @@ var NODES = {
         return this.__refName;
     },
     New: function(env, ctx) {
-        return '(gcref(malloc(' + (this.getType(ctx).getSize() + 8) + '))|0)';
+        var type = this.getType(ctx);
+        var output = '(gcref(malloc(' + (type.getSize() + 8) + '))|0)';
+        if (type instanceof types.Struct && type.objConstructor) {
+            output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
+                return _node(param, env, ctx, 1);
+            }).join(', ') : '') + ')|0)';
+        }
+
+        return output;
     },
 
     Break: function() {
-        return 'break';
+        return 'break;';
     },
     Continue: function() {
-        return 'continue';
+        return 'continue;';
     },
 
-    ObjectDeclaration: function() {
-        return '';
+    ObjectDeclaration: function(env, ctx) {
+        var output = '';
+
+        if (this.objConstructor) {
+            output = _node(this.objConstructor, env, ctx, 0) + '\n';
+        }
+
+        output += this.methods.map(function(method) {
+            return _node(method, env, ctx, 0);
+        }).join('\n');
+
+        return output;
     },
     ObjectMember: function() {
         return '';
     },
-    ObjectMethod: function() {
-        return '';
+    ObjectMethod: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, prec);
+    },
+    ObjectConstructor: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, prec);
     },
 };
 

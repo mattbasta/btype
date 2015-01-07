@@ -2140,6 +2140,7 @@ describe('Parser', function() {
                                                     value: _int(123),
                                                 }
                                             )],
+                                            __objectSpecial: 'method',
                                         }
                                     ),
                                 }
@@ -2187,6 +2188,7 @@ describe('Parser', function() {
                                                     value: _int(123),
                                                 }
                                             )],
+                                            __objectSpecial: 'method',
                                         }
                                     ),
                                 }

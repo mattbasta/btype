@@ -814,7 +814,7 @@ module.exports = function(tokenizer) {
                             0,
                             0,
                             {
-                                name: name,
+                                name: name.text,
                                 traits: [],
                             }
                         ),
@@ -837,10 +837,11 @@ module.exports = function(tokenizer) {
                             constructorBase.start,
                             endBrace.end,
                             {
-                                name: null,
+                                name: 'new',
                                 returnType: null,
                                 params: methodSignature,
                                 body: methodBody,
+                                __objectSpecial: 'constructor',
                             }
                         ),
                     }
@@ -881,7 +882,7 @@ module.exports = function(tokenizer) {
                             0,
                             0,
                             {
-                                name: name,
+                                name: name.text,
                                 traits: [],
                             }
                         ),
@@ -908,6 +909,7 @@ module.exports = function(tokenizer) {
                                 name: memberType.name,
                                 params: methodSignature,
                                 body: methodBody,
+                                __objectSpecial: 'method',
                             }
                         ),
                     }
