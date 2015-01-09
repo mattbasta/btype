@@ -250,6 +250,28 @@ function orderCode(body) {
     });
 }
 
+function cleanUpTypecasting(body) {
+    function iterator(node) {
+        if (node.type === 'UnaryExpression') {
+            if (node.operator !== '+') return;
+            if (node.argument.type !== 'UnaryExpression') return;
+            if (node.argument.operator !== '+') return;
+            node.argument = node.argument.argument;
+            return iterator(node);
+        }
+        if (node.type === 'BinaryExpression') {
+            if (node.operator !== '|') return;
+            if (node.right.type !== 'Literal' || node.right.value !== 0) return;
+            if (node.left.type !== 'BinaryExpression') return;
+            if (node.left.operator !== '|') return;
+            if (node.left.right.type !== 'Literal' || node.left.right.value !== 0) return;
+            node.left = node.left.left;
+            return iterator(node);
+        }
+    }
+    traverse(body, iterator);
+}
+
 exports.optimize = function(body) {
     var parsed;
     try {
@@ -263,6 +285,7 @@ exports.optimize = function(body) {
     upliftDeclarations(parsedBody);
     trimBody(parsedBody);
     orderCode(parsedBody);
+    cleanUpTypecasting(parsedBody);
 
     parsedBody.type = 'Program';
 
