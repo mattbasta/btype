@@ -36,6 +36,7 @@ function makeModule(env, ENV_VARS, body) {
 }
 
 function typeTranslate(type) {
+    var output = '';
     switch (type._type) {
         case 'primitive':
             return '/* primitive: ' + type.toString() + ' */';
@@ -43,14 +44,40 @@ function typeTranslate(type) {
             return '/* array type: ' + type.toString() + ' */';
         case 'slice':
             return '/* slice type: ' + type.toString() + ' */';
+
         case 'struct':
-            return [
-                'function ' + type.flatTypeName() + '() { /* struct */',
-                Object.keys(type.contentsTypeMap).map(function(contentsTypeName) {
-                    return 'this.' + contentsTypeName + ' = 0';
-                }).join('\n'),
-                '}',
-            ].join('\n');
+            var constructorFunc;
+            var selfName;
+
+            // Create the constructor
+            if (type.objConstructor) {
+                constructorFunc = this.findFunctionByAssignedName(type.objConstructor);
+                selfName = constructorFunc.params[0].__assignedName;
+
+                output = 'function ' + type.flatTypeName() + '(' + constructorFunc.params.slice(1).map(function(param) {
+                    return param.__assignedName;
+                }).join(',') + ') { /* struct */';
+
+            } else {
+                output = 'function ' + type.flatTypeName() + '() { /* struct */';
+            }
+
+            // Add all of the zeroed members
+            output += Object.keys(type.contentsTypeMap).map(function(contentsTypeName) {
+                return 'this.' + contentsTypeName + ' = 0;';
+            }).join('\n');
+
+            // Add the constructor if there is one
+            if (type.objConstructor) {
+                output += 'var ' + selfName + ' = this;\n';
+                constructorFunc.body.forEach(function(bodyItem) {
+                    output += jsTranslate({scope: bodyItem, env: this});
+                }, this);
+            }
+            output += '}';
+
+            return output;
+
         case 'tuple':
             return [
                 'function ' + type.flatTypeName() + '() { /* tuple */',
@@ -68,7 +95,7 @@ function typeTranslate(type) {
 
 module.exports = function generate(env, ENV_VARS) {
 
-    var body = env.types.map(typeTranslate).join('\n\n') + '\n';
+    var body = env.types.map(typeTranslate, env).join('\n\n') + '\n';
     body += env.included.map(jsTranslate).join('\n\n');
 
     if (env.inits.length) {

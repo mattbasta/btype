@@ -198,7 +198,6 @@ var NODES = {
             if (ctx.scope.__objectSpecial === 'constructor') {
                 return 'return ' + ctx.scope.params[0].__assignedName + ';';
             }
-            console.log(ctx.scope.toString())
             return 'return;';
         }
         return 'return ' + _node(this.value, env, ctx, 1) + ';';
@@ -304,12 +303,14 @@ var NODES = {
     },
     New: function(env, ctx) {
         var type = this.getType(ctx);
-        var output = 'new ' + type.typeName + '()';
+        var output = 'new ' + type.typeName;
 
         if (type instanceof types.Struct && type.objConstructor) {
-            output = type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
+            output += '(' + this.params.map(function(param) {
                 return _node(param, env, ctx, 1);
-            }).join(', ') : '') + ')';
+            }).join(', ') + ')';
+        } else {
+            output += '()';
         }
 
         return output;
@@ -342,7 +343,9 @@ var NODES = {
         return _node(this.base, env, ctx, prec);
     },
     ObjectConstructor: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, prec);
+        // Constructors are merged with the JS constructor in `typeTranslate`
+        // in the JS generate module.
+        return '';
     },
 };
 

@@ -179,4 +179,14 @@ Environment.prototype.make = function(outputLanguage) {
     return generator(this, ENV_VARS);
 };
 
+Environment.prototype.findFunctionByAssignedName = function(assignedName) {
+    var temp;
+    for (var i = 0; i < this.included.length; i++) {
+        if (temp = this.included[i].lookupFunctionByName(assignedName)) {
+            return temp;
+        }
+    }
+    return null;
+};
+
 module.exports.Environment = Environment;
