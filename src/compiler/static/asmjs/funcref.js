@@ -13,3 +13,19 @@ function getfuncref(funcID, ctx) {
     ptrheap[(x + 4) >> 2] = ctx;
     return x | 0;
 }
+
+
+/**
+ * @param uint funcID The ID of the function to point to
+ * @param uint ctx Pointer to the object to bind the method to
+ * @returns uint Pointer to the new bound method
+ */
+function getboundmethod(funcID, self) {
+    funcID = funcID | 0;
+    self = self | 0;
+    var x = 0;
+    x = malloc(8) | 0; // 4b pointer to function, 4b pointer to self
+    ptrheap[x >> 2] = funcID;
+    ptrheap[(x + 4) >> 2] = self;
+    return x | 0;
+}

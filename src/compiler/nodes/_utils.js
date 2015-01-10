@@ -1,4 +1,3 @@
-
 exports.ident = function ident(x) {return x;};
 
 exports.indentEach = function indentEach(input, level) {
@@ -11,8 +10,4 @@ exports.indentEach = function indentEach(input, level) {
     return input.split('\n').map(function(line) {
         return indentation + line;
     }).join('\n');
-};
-
-exports.oneArg = function oneArg(func) {
-    return function(arg) {func.call(this, arg);};
 };

@@ -1,0 +1,27 @@
+object Point {
+    float:x;
+    float:y;
+    float:z;
+
+    new(float:x, float:y, float:z) {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+    }
+
+    Point:add(Point:other) {
+        return new Point(
+            self.x + other.x,
+            self.y + other.y,
+            self.z + other.z
+        );
+    }
+}
+
+func float:main() {
+    var foo = new Point(1.0, 2.0, 3.0);
+    var bar = new Point(1.0, 2.0, 3.0);
+    var newpoint = foo.add(bar);
+    return newpoint.x;
+}
+export main;

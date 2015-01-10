@@ -280,8 +280,8 @@ describe('transformer', function() {
             assert.equal(ctx.functions[0].body[1].base.base.type, 'Symbol');
             assert.equal(ctx.functions[0].body[2].type, 'CallStatement', 'The third should be the call to inner');
             assert.equal(ctx.functions[0].body[2].base.params.length, 2);
-            assert.equal(ctx.functions[0].body[2].base.params[1].type, 'Symbol', 'Passed param should be a reference to the context');
-            assert.equal(ctx.functions[0].body[2].base.params[1].name, ctx.functions[0].body[0].identifier, 'Passed param should point at the context');
+            assert.equal(ctx.functions[0].body[2].base.params[0].type, 'Symbol', 'Passed param should be a reference to the context');
+            assert.equal(ctx.functions[0].body[2].base.params[0].name, ctx.functions[0].body[0].identifier, 'Passed param should point at the context');
             assert.equal(ctx.functions[0].body[3].type, 'Return', 'The fourth should be the return');
 
             assert.equal(Object.keys(ctx.functions[0].__context.nameMap).length, 1, 'There should only be one declared variable');
@@ -294,9 +294,9 @@ describe('transformer', function() {
             var symname = ctx.functions[1].body[0].base.base.name;
 
             assert.equal(ctx.functions[1].params.length, 2, 'A new parameter should have been added');
-            assert.equal(ctx.functions[1].params[0].idType.name, 'int', 'The first param should have remained an int');
-            assert.equal(ctx.functions[1].params[1].idType.name, 'outer$fctx', 'The second param should now be the same funcctx');
-            assert.equal(ctx.functions[1].params[1].name, symname, 'The second param should be what is referenced in the body');
+            assert.equal(ctx.functions[1].params[0].idType.name, 'outer$fctx', 'The second param should now be the same funcctx');
+            assert.equal(ctx.functions[1].params[0].name, symname, 'The second param should be what is referenced in the body');
+            assert.equal(ctx.functions[1].params[1].idType.name, 'int', 'The first param should have remained an int');
 
         });
 

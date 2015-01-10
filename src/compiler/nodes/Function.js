@@ -27,8 +27,9 @@ exports.getType = function getType(ctx) {
     if (this.__originalType) {
         return this.__originalType;
     }
+    if (this.__type) return this.__type;
     var returnType = this.returnType ? this.returnType.getType(ctx) : null;
-    return new types.Func(
+    return this.__type = new types.Func(
         returnType,
         this.params.map(function(p) {
             return p.getType(ctx);

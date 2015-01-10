@@ -3,7 +3,9 @@ var indentEach = require('./_utils').indentEach;
 
 exports.traverse = function traverse(cb) {
     cb(this.condition, 'condition');
-    this.cases.forEach(oneArg(cb));
+    this.cases.forEach(function(case_) {
+        cb(case_, 'cases');
+    });
 };
 
 exports.substitute = function substitute(cb) {

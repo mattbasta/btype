@@ -1,10 +1,12 @@
+var ident = require('./_utils').ident;
 var indentEach = require('./_utils').indentEach;
-var oneArg = require('./_utils').oneArg;
 
 
 exports.traverse = function traverse(cb) {
     cb(this.callee, 'callee');
-    this.params.forEach(oneArg(cb));
+    this.params.forEach(function(param) {
+        cb(param, 'params');
+    });
 };
 
 exports.substitute = function substitute(cb) {
@@ -34,13 +36,21 @@ exports.validateTypes = function validateTypes(ctx) {
     }
 
     var paramTypes = base.getArgs();
-    if (this.params.length < paramTypes.length) {
-        throw new TypeError('Too few arguments passed to function call');
-    } else if (this.params.length < paramTypes.length) {
-        throw new TypeError('Too many arguments passed to function call');
+    var signatureLength = paramTypes.length;
+    // Ignore the `self` parameter on object methods
+    if (base.__isObjectMethod) {
+        signatureLength--;
     }
+
+    if (this.params.length < signatureLength) {
+        throw new TypeError('Too few arguments passed to function call: ' + this.params.length + ' != ' + signatureLength);
+    } else if (this.params.length < signatureLength) {
+        throw new TypeError('Too many arguments passed to function call: ' + this.params.length + ' != ' + signatureLength);
+    }
+
+    var signatureOffset = base.__isObjectMethod ? 1 : 0;
     for (var i = 0; i < this.params.length; i++) {
-        if (!this.params[i].getType(ctx).equals(paramTypes[i])) {
+        if (!this.params[i].getType(ctx).equals(paramTypes[i + signatureOffset])) {
             throw new TypeError('Wrong type passed as parameter to function call');
         }
     }

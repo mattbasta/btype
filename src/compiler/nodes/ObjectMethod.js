@@ -1,4 +1,4 @@
-exports.traverse = function traverse() {
+exports.traverse = function traverse(cb) {
     cb(this.base, 'base');
 };
 

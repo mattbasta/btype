@@ -161,6 +161,10 @@ var NODES = {
             return base;
         }
 
+        if (baseType.hasMethod && baseType.hasMethod(this.child)) {
+            return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, 1) + ')';
+        }
+
         return base + '.' + this.child;
     },
     Assignment: function(env, ctx, prec) {
@@ -175,7 +179,12 @@ var NODES = {
             return output;
         }
 
-        var def = type && type.typeName === 'float' ? '0.0' : '0';
+        var def;
+        if (type && type._type === 'primitive') {
+            def = type && type.typeName === 'float' ? '0.0' : '0';
+        } else if (type) {
+            def = 'null';
+        }
         output += def + ';\n';
 
         output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';

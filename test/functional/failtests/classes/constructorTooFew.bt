@@ -1,0 +1,12 @@
+object Point {
+    float:x;
+    float:y;
+    float:z;
+
+    new(float:x, float:y) {} # two args
+}
+
+func main() {
+    var foo = new Point(1.0); # one arg
+}
+export main;

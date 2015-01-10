@@ -38,6 +38,11 @@ exports.getType = function getType(ctx) {
         // }
         output.objConstructor = this.objConstructor.base.__assignedName;
     }
+    if (this.methods.length) {
+        this.methods.forEach(function(method) {
+            output.methods[method.name] = method.base.__assignedName;
+        });
+    }
     return this.__type = output;
 };
 

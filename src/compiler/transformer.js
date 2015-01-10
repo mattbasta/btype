@@ -288,7 +288,7 @@ function processFunc(rootContext, node, context) {
                 delete ctx.lexicalLookups[mem];
             }
 
-            node.params.push(new nodes.TypedIdentifier({
+            node.params.unshift(new nodes.TypedIdentifier({
                 idType: funcctx.__ctxTypeNode,
                 name: ctxName,
                 __assignedName: ctxName,
@@ -316,7 +316,7 @@ function processFunc(rootContext, node, context) {
             // Ignore calls to non-functions
             if (!node.callee.__isFunc) return false;
 
-            node.params.push(getContextReference());
+            node.params.unshift(getContextReference());
         });
 
     }

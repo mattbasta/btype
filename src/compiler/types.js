@@ -86,6 +86,7 @@ function Struct(name, contentsTypeMap) {
     this.contentsTypeMap = contentsTypeMap;
 
     this.objConstructor = null;
+    this.methods = {} // Mapping of given names to assigned names
 
     function getLayout() {
         var keys = Object.keys(contentsTypeMap);
@@ -128,6 +129,20 @@ function Struct(name, contentsTypeMap) {
 
     this.toString = this.flatTypeName = function() {
         return this.typeName;
+    };
+
+    this.hasMethod = function(name) {
+        return name in this.methods;
+    };
+
+    this.getMethod = function(name) {
+        return this.methods[name];
+    };
+
+    this.getMethodType = function(name, ctx) {
+        var temp = ctx.lookupFunctionByName(this.getMethod(name)).getType(ctx);
+        temp.__isMethod = true;
+        return temp;
     };
 
     this.hasMember = function(name) {

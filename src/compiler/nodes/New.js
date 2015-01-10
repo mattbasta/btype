@@ -22,11 +22,36 @@ exports.getType = function getType(ctx) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
+
+    if (this.params.length) {
+        this.params.forEach(function(param) {
+            param.validateTypes(ctx);
+        });
+    }
+
     var type = this.getType(ctx);
     if (type._type === 'primitive') {
         throw new Error('Cannot create instance of primitive: ' + type.toString());
+    } else if (type._type === 'struct') {
+        if (this.params.length && !type.objConstructor) {
+            throw new Error('Parameters passed to object without constructor');
+        }
+
+        if (!type.objConstructor) return;
+
+        var constructorFunc = ctx.lookupFunctionByName(type.objConstructor);
+        if (this.params.length !== constructorFunc.params.length - 1) {
+            throw new Error('Number of parameters passed to constructor does not match object constructor signature');
+        }
+
+        this.params.forEach(function(param, i) {
+            var paramType = param.getType(ctx);
+            var argType = constructorFunc.params[i + 1].getType(constructorFunc.__context);
+            if (!paramType.equals(argType)) {
+                throw new TypeError('Constructor parameter (' + i + ') type mismatch: ' + paramType.toString() + ' != ' + argType.toString());
+            }
+        });
     }
-    // TODO: Check that the params match the params of the constructor
 };
 
 exports.toString = function toString() {

@@ -43,22 +43,34 @@ var NODES = {
     While: require('./nodes/While'),
 };
 
-function buildNode(proto, name) {
-    function node(start, end, base) {
-        // Allow non-positional shorthand
-        if (start && typeof start !== 'number') {
-            base = start;
-            start = 0;
-            end = 0;
-        }
-
-        this.start = start;
-        this.end = end;
-        this.__base = base;
-        for (var prop in base) {
-            this[prop] = base[prop];
-        }
+function nodeBase(start, end, base) {
+    // Allow non-positional shorthand
+    if (start && typeof start !== 'number') {
+        base = start;
+        start = 0;
+        end = 0;
     }
+
+    this.start = start;
+    this.end = end;
+    this.__base = base;
+    for (var prop in base) {
+        this[prop] = base[prop];
+    }
+}
+
+function buildNode(proto, name) {
+    name = name || 'node';
+
+    // We do this so that in stack traces, the method names look like:
+    //   FunctionReference.getType()
+    // instead of:
+    //   node.getType()
+    var node = eval(
+        '(function ' + name + '(start, end, base){(' +
+        nodeBase.toString() + '.apply(this, arguments))})'
+    );
+
     for(var protoMem in proto) {
         node.prototype[protoMem] = proto[protoMem];
     }

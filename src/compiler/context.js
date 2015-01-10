@@ -69,6 +69,15 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
+Context.prototype.lookupFunctionByName = function(assignedName) {
+    if (assignedName in this.functionDeclarations) {
+        return this.functionDeclarations[assignedName];
+    } else if (this.parent) {
+        return this.parent.lookupFunctionByName(assignedName);
+    }
+    return null;
+};
+
 Context.prototype.registerType = function(givenTypeName, type, assignedName) {
     assignedName = assignedName || this.env.namer();
     type.__assignedName = assignedName;
@@ -143,6 +152,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 return false; // `false` to block the traverser from going deeper.
 
             case 'ObjectConstructor':
+            case 'ObjectMethod':
                 contexts[0].functions.push(node.base);
                 assignedName = node.__assignedName || node.base.__assignedName || env.namer();
                 contexts[0].functionDeclarations[assignedName] = node.base;
@@ -153,12 +163,13 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 newContext = new Context(env, node.base, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
                 node.base.params.forEach(function(param) {
-                    debugger;
-
                     param.__assignedName = newContext.addVar(param.name, param.getType(newContext));
                 });
 
                 innerFunctions[0].push(node.base);
+
+                // Mark the types as being methods
+                node.getType(contexts[0]).__isObjectMethod = true;
 
                 return false;
 
@@ -228,6 +239,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 contexts[0].registerType(node.name, objType);
                 node.__assignedName = objType.__assignedName;
                 return;
+
         }
     }
 
@@ -286,6 +298,11 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 var objType = node.getType(contexts[0]);
                 if (node.objConstructor) {
                     objType.objConstructor = node.objConstructor.base.__assignedName;
+                }
+                if (node.methods.length) {
+                    node.methods.forEach(function(method) {
+                        objType.methods[method.name] = method.base.__assignedName;
+                    });
                 }
                 doTraverse(node);
                 return;

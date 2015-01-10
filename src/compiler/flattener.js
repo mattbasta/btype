@@ -70,6 +70,7 @@ function upliftExpressionsFromBody(ctx, body) {
             stack.unshift(node);
 
             var i;
+            var temp;
             if (node.type === 'LogicalBinop') {
 
                 if (stack.length === 1 &&
@@ -95,11 +96,18 @@ function upliftExpressionsFromBody(ctx, body) {
                         stack[i + 1].__shouldFlattenChildren = true;
                     }
                 }
+
             } else if (stack[1] && stack[1].type === 'Return' &&
                 !(node.type === 'Literal' && node.litType in safeLiteralTypes) &&
-                node.type !== 'Symbol') {
+                node.type !== 'Symbol' &&
+                node.type !== 'New') {
                 node.__shouldFlatten = true;
+
+            } else if (stack[1] && stack[1].type === 'Member' &&
+                stack[1].getType(ctx).__isMethod) {
+                stack[1].__shouldFlatten = true;
             }
+
         }, function(node) {
             stack.shift();
         });

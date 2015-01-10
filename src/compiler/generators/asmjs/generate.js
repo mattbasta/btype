@@ -88,9 +88,10 @@ module.exports = function generate(env, ENV_VARS) {
             }).join('\n') + '\n' +
             '    return ' + jsTranslate.typeAnnotation(
                     flist + '[ptrheap[$$ctx >> 2]&' + (funcList.length - 1) + '](' +
-                        paramList.join(',') +
+                        'ptrheap[$$ctx + 4 >> 2]|0' +
                         (paramList.length ? ',' : '') +
-                        'ptrheap[$$ctx + 4 >> 2]|0)',
+                        paramList.join(',') +
+                        ')',
                     funcType.returnType
                 ) +
                 ';\n' +
