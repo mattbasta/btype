@@ -27,7 +27,7 @@ function makeModule(env, ENV_VARS, body) {
             }
             return base;
         }).join(',') + '});',
-        'if (ret.$init) ret.$init();',
+        'if (ret.$init) {ret.$init();delete ret.$init;}',
         'return ret;',
         '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign) {',
         body,

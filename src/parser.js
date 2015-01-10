@@ -794,7 +794,9 @@ module.exports = function(tokenizer) {
         var methodBody;
         var methodEndBrace;
         var endBrace;
+        var methodSelfParam;
         while (!(endBrace = accept('}'))) {
+            methodSelfParam = null;
 
             if (constructorBase = accept('new')) {
 
@@ -803,8 +805,17 @@ module.exports = function(tokenizer) {
                 }
 
                 assert('(');
-                methodSignature = parseSignature(true, ')');
-                methodSignature.unshift(node(
+
+                if (accept('[')) {
+                    methodSelfParam = parseTypedIdentifier();
+                    assert(']');
+                }
+
+                methodSignature = [];
+                if (methodSelfParam && accept(',') || !methodSelfParam) {
+                    methodSignature = parseSignature(true, ')');
+                }
+                methodSignature.unshift(methodSelfParam || node(
                     'TypedIdentifier',
                     0,
                     0,
@@ -869,10 +880,16 @@ module.exports = function(tokenizer) {
                 ));
                 continue;
             } else if (accept('(')) {
-                methodSignature = parseSignature(true, ')');
+                if (accept('[')) {
+                    methodSelfParam = parseTypedIdentifier();
+                    assert(']');
+                }
 
-                endBrace = assert(')');
-                methodSignature.unshift(node(
+                methodSignature = [];
+                if (methodSelfParam && accept(',') || !methodSelfParam) {
+                    methodSignature = parseSignature(true, ')');
+                }
+                methodSignature.unshift(methodSelfParam || node(
                     'TypedIdentifier',
                     0,
                     0,
@@ -890,6 +907,7 @@ module.exports = function(tokenizer) {
                     }
                 ));
 
+                endBrace = assert(')');
                 assert('{');
                 methodBody = parseStatements('}');
                 methodEndBrace = assert('}');
