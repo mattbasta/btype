@@ -197,7 +197,7 @@ var NODES = {
             return '(' +
                 typeAnnotation(
                     env.funcList[listName][0] + '(/* CallRef;Compacted */' +
-                    (isMethodCall ? 'ptrheap[(' + _node(this.callee, env, ctx, 1) + ' + 4) >> 2]' : '') +
+                    (isMethodCall ? 'ptrheap[(' + _node(this.callee, env, ctx, 1) + ' + 4) >> 2]|0' : '') +
                     (isMethodCall && this.params.length ? ',' : '') +
                     this.params.map(function(param) {
                         return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
@@ -298,7 +298,7 @@ var NODES = {
             return output;
         }
 
-        var def = type && type.typeName === 'float' ? '0.0' : '0';
+        var def = (type && type.typeName === 'float') ? '0.0' : '0';
         output += def + ';\n';
         output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
         return output;
@@ -475,7 +475,7 @@ var NODES = {
     },
     New: function(env, ctx) {
         var type = this.getType(ctx);
-        var output = '(gcref(malloc(' + (type.getSize() + 8) + '))|0)';
+        var output = '(gcref(malloc(' + (type.getSize() + 8) + ')|0)|0)';
         if (type instanceof types.Struct && type.objConstructor) {
             output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
                 return _node(param, env, ctx, 1);

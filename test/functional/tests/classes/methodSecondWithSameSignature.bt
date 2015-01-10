@@ -31,8 +31,8 @@ object Point {
 func float:main() {
     var foo = new Point(1.0, 2.0, 3.0);
     var bar = new Point(1.0, 2.0, 3.0);
-    var newpoint = foo.add(bar);
     var anotherNewPoint = foo.sub(bar);
+    var newpoint = foo.add(bar);
     return newpoint.x;
 }
 export main;
