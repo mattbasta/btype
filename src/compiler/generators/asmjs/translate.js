@@ -191,7 +191,25 @@ var NODES = {
         var funcType = this.callee.getType(ctx);
         var listName = env.getFuncListName(funcType);
 
+        var paramList = this.params.map(function(param) {
+            return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
+        }).join(',');
+
         var isMethodCall = funcType.__isMethod;
+
+        var temp;
+        if (this.callee.type === 'Member' &&
+            (temp = this.callee.base.getType(ctx)).hasMethod &&
+            temp.hasMethod(this.callee.child)) {
+
+            return typeAnnotation(
+                temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
+                _node(this.callee.base, env, ctx, 18) + '|0, ' +
+                paramList +
+                ')',
+                funcType.getReturnType()
+            );
+        }
 
         if (env.funcList[listName].length === 1) {
             return '(' +
@@ -199,9 +217,7 @@ var NODES = {
                     env.funcList[listName][0] + '(/* CallRef;Compacted */' +
                     (isMethodCall ? 'ptrheap[(' + _node(this.callee, env, ctx, 1) + ' + 4) >> 2]|0' : '') +
                     (isMethodCall && this.params.length ? ',' : '') +
-                    this.params.map(function(param) {
-                        return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
-                    }).join(',') +
+                    paramList +
                     ')',
                     funcType.getReturnType()
                 ) +
@@ -213,9 +229,7 @@ var NODES = {
                 listName + '$$call(/* CallRef */' +
                     _node(this.callee, env, ctx, 1) +
                     (this.params.length ? ',' : '') +
-                    this.params.map(function(param) {
-                        return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
-                    }).join(',') + ')',
+                    paramList + ')',
                 funcType.getReturnType()
             ) +
             ')' +

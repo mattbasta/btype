@@ -104,7 +104,8 @@ function upliftExpressionsFromBody(ctx, body) {
                 node.__shouldFlatten = true;
 
             } else if (stack[1] && stack[1].type === 'Member' &&
-                stack[1].getType(ctx).__isMethod) {
+                stack[1].getType(ctx).__isMethod &&
+                (!stack[2] || stack[2].type !== 'CallRef')) {
                 stack[1].__shouldFlatten = true;
             }
 

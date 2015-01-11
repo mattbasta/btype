@@ -32,14 +32,8 @@ func float:main() {
     var foo = new Point(1.0, 2.0, 3.0);
     var bar = new Point(1.0, 2.0, 3.0);
 
-    # Store a reference to each method because the compiler will optimize the
-    # calls not to use function tables (since the target function is known at
-    # compile time). This forces a lookup.
-    var fooSub = foo.sub;
-    var fooAdd = foo.add;
-
-    var anotherNewPoint = fooSub(bar);
-    var newpoint = fooAdd(bar);
+    var anotherNewPoint = foo.sub(bar);
+    var newpoint = foo.add(bar);
     return newpoint.x;
 }
 export main;

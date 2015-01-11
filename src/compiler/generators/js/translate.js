@@ -125,12 +125,23 @@ var NODES = {
             (!prec ? ';' : '');
     },
     CallRef: function(env, ctx, prec) {
+        var funcType = this.callee.getType(ctx);
+
+        var paramList = this.params.map(function(param) {
+            return _node(param, env, ctx, 18);
+        }).join(',');
+
+        var temp;
+        if (this.callee.type === 'Member' &&
+            (temp = this.callee.base.getType(ctx)).hasMethod &&
+            temp.hasMethod(this.callee.child)) {
+
+            return temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
+                _node(this.callee.base, env, ctx, 18) + ', ' + paramList + ')';
+        }
+
         return _node(this.callee, env, ctx, 1) +
-            '(/* CallRef */' +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
-            }).join(',') +
-            ')' +
+            '(/* CallRef */' + paramList + ')' +
             (!prec ? ';' : '');
     },
     FunctionReference: function(env, ctx, prec) {
