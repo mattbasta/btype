@@ -25,6 +25,7 @@ function getInstance() {
         '_malloc_lookup: _malloc_lookup',
         '_malloc_search: _malloc_search',
         '_malloc_toggle: _malloc_toggle',
+        'calloc: calloc',
         'free: free',
         'view: memheap',
     ].join(',');
@@ -234,6 +235,37 @@ describe('Memory special module', function() {
             assert.notEqual(x = mod.malloc(size), 0);
             assert.equal(mod.malloc(size), 0);
             assert.equal(freeable, x);
+
+        });
+
+    });
+
+    describe('calloc', function() {
+        it('should set all requested memory to zero', function() {
+            var pointers = [];
+            var i;
+            var x;
+            var size = 1024 * 16;
+            var max_ptr = HEAP_SIZE + BUDDY_SPACE;
+            while (1) {
+                x = mod.malloc(size);
+                if (x === 0) break;
+                pointers.push(x | 0);
+
+                for (i = x; i < size + x; i++) {
+                    mod.view[i] = 1;
+                }
+            }
+
+            pointers.forEach(function(ptr) {
+                // Free the memory that was allocated.
+                mod.free(ptr);
+            });
+
+            var calloced = mod.calloc(size);
+            for (i = calloced; i < calloced + size; i++) {
+                assert.equal(mod.view[i], 0);
+            }
 
         });
 

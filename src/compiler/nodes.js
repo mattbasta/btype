@@ -38,6 +38,7 @@ var NODES = {
     Switch: require('./nodes/Switch'),
     Symbol: require('./nodes/Symbol'),
     Type: require('./nodes/Type'),
+    TypeCast: require('./nodes/TypeCast'),
     TypedIdentifier: require('./nodes/TypedIdentifier'),
     Unary: require('./nodes/Unary'),
     While: require('./nodes/While'),

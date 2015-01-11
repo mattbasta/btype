@@ -221,10 +221,31 @@ module.exports = function(tokenizer) {
             {value: value}
         );
     }
+
     function parseImport() {
         var head = accept('import');
         if (!head) return;
-        var value = parseExpression();
+
+        var value = parseSymbol();
+        function parseImportBase(base) {
+            var child;
+            if (accept('.')) {
+                child = assert('identifier');
+                base = node(
+                    'Member',
+                    base.start,
+                    child.end,
+                    {
+                        base: base,
+                        child: child.text,
+                    }
+                );
+                return parseImportBase(base);
+            } else {
+                return base;
+            }
+        }
+        value = parseImportBase(value);
         if (value.type !== 'Symbol' && value.type !== 'Member') {
             throw new SyntaxError('Unexpected import expression');
         } else if (value.type === 'Member' && value.base.type !== 'Symbol') {
@@ -402,6 +423,21 @@ module.exports = function(tokenizer) {
             {base: base, value: expression}
         );
     }
+
+    function parseTypeCast(base) {
+        assert('as');
+        var type = parseType();
+        return node(
+            'TypeCast',
+            base.start,
+            type.end,
+            {
+                left: base,
+                rightType: type,
+            }
+        );
+    }
+
     function parseSignature(typed, endToken) {
         var params = [];
         if (peek().type === endToken) return params;
@@ -511,9 +547,12 @@ module.exports = function(tokenizer) {
     function parseExpressionModifier(base, precedence) {
         var part;
         var peeked = peek();
+
         switch (peeked.type) {
             case '=':
                 return parseAssignment(true, base);
+            case 'as':
+                return parseTypeCast(base);
             case '(':
                 part = parseCall(base);
                 break;
@@ -635,7 +674,7 @@ module.exports = function(tokenizer) {
                     return parseFunctionExpression(base);
                 default:
                     if (base.isToken) {
-                        throw new Error('Invalid token found while parsing expression: ' + base.text);
+                        throw new SyntaxError('Invalid token found while parsing expression: ' + base.text);
                     }
 
                     // This catches complex expressions.

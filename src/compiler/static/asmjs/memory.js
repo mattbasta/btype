@@ -194,9 +194,16 @@ function calloc(bytes) {
     var destination = 0;
 
     ptr = malloc(bytes) | 0;
+
+    // If there was an error, bail.
+    if ((ptr | 0) == 0) {
+        return 0;
+    }
+
     iter = ptr | 0;
     destination = ptr + bytes | 0;
 
+    // Set all requested bytes to zero
     for (; (iter | 0) < (destination | 0); iter = iter + 1 | 0) {
         memheap[iter] = 0;
     }
