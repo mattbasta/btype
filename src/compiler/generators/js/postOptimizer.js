@@ -42,8 +42,14 @@ function upliftDeclarations(body) {
         if (parent === stack[0]) {
             return;
         }
+
         stack[0].body.body.splice(0, 0, node);
-        parent[member].splice(parent.body.indexOf(node), 1);
+        if (parent[member] === node) {
+            parent[member] = null;
+        } else {
+            parent[member].splice(parent[member].indexOf(node), 1);
+        }
+
 
     }, function(node) {
         if (node.type === 'FunctionDeclaration') {

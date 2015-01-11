@@ -183,6 +183,28 @@ function malloc(bytes) {
 }
 
 /**
+ * @param uint bytes Number of bytes to allocate
+ * @returns uint Pointer to location of allocated and cleared memory
+ */
+function calloc(bytes) {
+    bytes = bytes | 0;
+
+    var ptr = 0;
+    var iter = 0;
+    var destination = 0;
+
+    ptr = malloc(bytes) | 0;
+    iter = ptr | 0;
+    destination = ptr + bytes | 0;
+
+    for (; (iter | 0) < (destination | 0); iter = iter + 1 | 0) {
+        memheap[iter] = 0;
+    }
+    return ptr | 0;
+}
+
+
+/**
  * @param uint pointer A pointer to the memory location to be freed.
  * @returns void
  */

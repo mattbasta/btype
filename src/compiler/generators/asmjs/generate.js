@@ -49,6 +49,14 @@ function makeModule(env, ENV_VARS, body) {
 }
 
 function registerAllUsedMethods(env) {
+
+    // We need to ensure that all methods that are accessed (called, stored,
+    // etc.) are registered. If not, the first method with a unique signature
+    // will be optimized with the "only method in the function table"
+    // optimziation, causing it to be called directly. This is invalid, though,
+    // because the order in which the methods are accessed does not guarantee
+    // the order in which they will be used.
+
     var knownMethods = {};
     env.types.forEach(function(type) {
         if (!type.methods) return;
