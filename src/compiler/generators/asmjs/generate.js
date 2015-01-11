@@ -4,6 +4,7 @@ var path = require('path');
 var externalFuncs = require('../js/externalFuncs');
 var jsTranslate = require('./translate');
 var postOptimizer = require('../js/postOptimizer');
+var traverser = require('../../traverser');
 
 
 function getHeapSize(n) {
@@ -47,8 +48,36 @@ function makeModule(env, ENV_VARS, body) {
     ].join('\n');
 }
 
+function registerAllUsedMethods(env) {
+    var knownMethods = {};
+    env.types.forEach(function(type) {
+        if (!type.methods) return;
+
+        for (var i in type.methods) {
+            knownMethods[type.methods[i]] = true;
+        }
+    });
+
+    env.included.forEach(function(ctx) {
+        traverser.traverse(ctx.scope, function(node) {
+            if (node.type !== 'Member') return;
+
+            var baseType = node.base.getType(ctx);
+            if (!baseType.hasMethod(node.child)) return;
+
+            var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
+
+            if (!(funcNode.__assignedName in knownMethods)) return;
+
+            env.registerFunc(funcNode);
+        });
+    });
+}
+
 
 module.exports = function generate(env, ENV_VARS) {
+
+    registerAllUsedMethods(env);
 
     var body = '';
 

@@ -229,7 +229,7 @@ var NODES = {
         // TODO: Optimize this for the case that there is only one function in
         // the table.
 
-        return '(gcref(getfuncref(' + this.base.__refIndex + ', ' + _node(this.ctx, env, ctx) + ')|0) | 0)';
+        return '((getfuncref(' + this.base.__refIndex + ', ' + _node(this.ctx, env, ctx) + ')|0) | 0)';
     },
     Member: function(env, ctx, prec, parent) {
         var baseType = this.base.getType(ctx);
@@ -268,7 +268,7 @@ var NODES = {
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
             var objectMethodFunc = ctx.lookupFunctionByName(baseType.getMethod(this.child));
             var objectMethodFuncIndex = env.registerFunc(objectMethodFunc);
-            return '(gcref(getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, 1) + ')|0) | 0)';
+            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, 1) + ')|0) | 0)';
         }
 
         var layout = baseType.getLayout();
@@ -286,8 +286,13 @@ var NODES = {
         return lookup;
     },
     Assignment: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' +
-            typeAnnotation(_node(this.value, env, ctx, 1), this.value.getType(ctx)) + ';';
+        var baseContent = typeAnnotation(_node(this.value, env, ctx, 1), this.value.getType(ctx));
+
+        var valueType = this.value.getType(ctx);
+        if (valueType._type !== 'primitive') {
+            baseContent = 'gcref((' + baseContent + ')|0)';
+        }
+        return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' + baseContent + ';';
     },
     Declaration: function(env, ctx, prec) {
         var type = this.value.getType(ctx);

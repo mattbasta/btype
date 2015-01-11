@@ -5,7 +5,7 @@
 ## A fast language for the web
 
 BType is a compiled, statically typed language for the web that doesn't get in
-the way of day-to-day development.
+the way of day-to-day development. It's unusual for a language to be considered "fast"; rather, it is usually the case that the language *runtime* is considered fast. BType achieves these performance results by using "native" compile targets like asm.js and LLVM IR instead of running in an interpreter. This enables complex optimizations that perform much closer to native than other means.
 
 At the time of writing, BType is still in an extremely early phase of development and should NOT be used for any production needs.
 
