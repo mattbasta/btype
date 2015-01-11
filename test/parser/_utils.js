@@ -103,3 +103,7 @@ exports._typed = function _typed(ident, type) {
 exports._int = function _int(val) {
     return node('Literal', {value: val.toString(), litType: 'int'});
 };
+
+exports._float = function _float(val) {
+    return node('Literal', {value: val.toString(), litType: 'float'});
+};

@@ -3,6 +3,13 @@ var nodes = require('./nodes');
 var traverser = require('./traverser');
 
 
+/*
+This file is responsible for taking all global-scoped non-declaration
+statements and moving them into a function that gets executed at module
+initialization.
+*/
+
+
 module.exports = function(ctx, env) {
     var body = ctx.scope.body;
 

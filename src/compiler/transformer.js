@@ -1,4 +1,4 @@
-var function_contexts = require('./function_contexts');
+var functionContexts = require('./functionContexts');
 var nodes = require('./nodes');
 var traverser = require('./traverser');
 var types = require('./types');
@@ -122,7 +122,7 @@ function getFunctionContext(ctx, name) {
 
 
     var funcctxTypeName = (ctx.scope.name || 'anon') + '$fctx';
-    var funcctxType = function_contexts.newFuncCtx(funcctxTypeName, mapping, ctx);
+    var funcctxType = functionContexts.newFuncCtx(funcctxTypeName, mapping, ctx);
 
     var wrappedType = new nodes.Type({
         traits: [],

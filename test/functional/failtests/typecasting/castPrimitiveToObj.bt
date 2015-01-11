@@ -1,0 +1,6 @@
+object foo {}
+
+func main() {
+    var barInst = 3 as foo;
+}
+export main;

@@ -358,6 +358,38 @@ var NODES = {
         // in the JS generate module.
         return '';
     },
+
+    TypeCast: function(env, ctx, prec) {
+        var baseType = this.left.getType(ctx);
+        var targetType = this.rightType.getType(ctx);
+
+        var base = _node(this.left, env, ctx, 1);
+        if (baseType.equals(targetType)) return base;
+
+        switch (baseType.typeName) {
+            case 'int':
+                switch (targetType.typeName) {
+                    case 'float': return '(+(' + base + '))';
+                    case 'byte': return base;
+                    case 'bool': return '(!!' + base + ')';
+                }
+            case 'float':
+                switch (targetType.typeName) {
+                    case 'int': return '(' + base + '|0)';
+                    case 'byte': return '(' + base + '|0)';
+                    case 'bool': return '(!!' + base + ')';
+                }
+            case 'byte':
+                switch (targetType.typeName) {
+                    case 'int': return base;
+                    case 'float': return '(+(' + base + '))';
+                    case 'bool': return '(!!' + base + ')';
+                }
+            case 'bool':
+                return '(' + base + '?1:0)';
+        }
+
+    },
 };
 
 module.exports = function translate(ctx) {

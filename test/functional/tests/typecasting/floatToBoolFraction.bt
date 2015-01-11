@@ -1,0 +1,4 @@
+func bool:main() {
+    return 0.4 as bool;
+}
+export main;

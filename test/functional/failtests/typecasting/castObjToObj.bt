@@ -1,0 +1,8 @@
+object foo {}
+object bar {}
+
+func main() {
+    var inst = new foo();
+    var barInst = inst as bar;
+}
+export main;

@@ -1,0 +1,7 @@
+object foo {}
+
+func int:main() {
+    var inst = new foo();
+    return inst as int;
+}
+export main;

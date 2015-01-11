@@ -1,0 +1,4 @@
+func int:main() {
+    return (3.5 as int) + 2;
+}
+export main;

@@ -533,6 +533,44 @@ var NODES = {
     ObjectConstructor: function(env, ctx, prec) {
         return _node(this.base, env, ctx, prec);
     },
+
+    TypeCast: function(env, ctx, prec) {
+        var baseType = this.left.getType(ctx);
+        var targetType = this.rightType.getType(ctx);
+
+        var base = _node(this.left, env, ctx, 1);
+        if (baseType.equals(targetType)) return base;
+
+        base = typeAnnotation(base, baseType);
+
+        switch (baseType.typeName) {
+            case 'int':
+                switch (targetType.typeName) {
+                    case 'float': return typeAnnotation(base, types.publicTypes.int);
+                    case 'byte': return base;
+                    case 'bool': return '(' + base + ' != 0)';
+                }
+            case 'float':
+                switch (targetType.typeName) {
+                    case 'int': return typeAnnotation(base, types.publicTypes.float);
+                    case 'byte': return typeAnnotation(base, types.publicTypes.byte);
+                    case 'bool': return '(' + base + ' != 0.0)';
+                }
+            case 'byte':
+                switch (targetType.typeName) {
+                    case 'int': return base;
+                    case 'float': return typeAnnotation(base, types.publicTypes.float);
+                    case 'bool': return '(' + base + ' != 0)';
+                }
+            case 'bool':
+                switch (targetType.typeName) {
+                    case 'int': return typeAnnotation(base, types.publicTypes.int);
+                    case 'float': return typeAnnotation(base, types.publicTypes.float);
+                    case 'byte': return typeAnnotation(base, types.publicTypes.byte);
+                }
+        }
+
+    },
 };
 
 module.exports = function translate(ctx) {
