@@ -12,6 +12,8 @@ exports.validateTypes = function validateTypes(ctx) {
     if (!this.left.getType(ctx).equals(this.right.getType(ctx))) {
         throw new TypeError('Comparison operations may only be performed against same types');
     }
+
+    binop.checkBinopOperation.call(this, ctx, this.left.getType(ctx), this.right.getType(ctx));
 };
 
 exports.toString = function toString() {
@@ -21,3 +23,5 @@ exports.toString = function toString() {
            '    Right:\n' +
            indentEach(this.right.toString(), 2) + '\n';
 };
+
+exports.isOverloaded = binop.isOverloaded;

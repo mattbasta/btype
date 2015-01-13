@@ -25,8 +25,10 @@ exports.validateTypes = function validateTypes(ctx) {
     var left = this.left.getType(ctx);
     var right = this.right.getType(ctx);
     if (!left.equals(right)) {
-        throw new TypeError('Mismatched types in binop (' + this.operator + '): ' + left.toString() + ' != ' + right.toString());
+        throw new TypeError('Mismatched types in binop (' + this.operator + '): ' + (left || 'null').toString() + ' != ' + (right || 'null').toString());
     }
+
+    binop.checkBinopOperation.call(this, ctx, left, right);
 };
 
 exports.toString = function toString() {
@@ -36,3 +38,5 @@ exports.toString = function toString() {
            '    Right:\n' +
            indentEach(this.right.toString(), 2) + '\n';
 };
+
+exports.isOverloaded = binop.isOverloaded;

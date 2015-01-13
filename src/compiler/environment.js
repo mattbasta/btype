@@ -3,6 +3,7 @@ var path = require('path');
 
 var argv = require('minimist')(process.argv.slice(2));
 
+var constantFold = require('./optimizer/constantFold');
 var context = require('./context');
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
@@ -55,7 +56,7 @@ function Environment(name) {
 
 }
 
-Environment.prototype.loadFile = function(filename, tree) {
+Environment.prototype.loadFile = function(filename, tree, privileged) {
     if (filename in this.moduleCache) return this.moduleCache[filename];
 
     if (!tree) {
@@ -65,6 +66,9 @@ Environment.prototype.loadFile = function(filename, tree) {
     }
 
     var ctx = context(this, tree, filename);
+    if (privileged) {
+        ctx.privileged = true;
+    }
 
     // Perform simple inline type checking.
     tree.validateTypes(ctx);
@@ -74,8 +78,11 @@ Environment.prototype.loadFile = function(filename, tree) {
     // Flatten complex expressions
     flattener(ctx);
 
-    // Move global statements to init functions
+    // Move global statements to init functions.
     globalInit(ctx, this);
+
+    // Perform constant folding.
+    constantFold(ctx);
 
     this.addContext(ctx);
     this.moduleCache[filename] = ctx;
@@ -94,6 +101,8 @@ Environment.prototype.import = function(importNode, requestingContext) {
     }
     target += '.bt';
 
+    var isStdlib = false;
+
     // Test to see whether the file exists in the project
     if (!fs.existsSync(target)) {
         // If not, try for the stdlib.
@@ -102,6 +111,8 @@ Environment.prototype.import = function(importNode, requestingContext) {
             target = path.resolve(target, importNode.member);
         }
         target += '.bt';
+
+        isStdlib = true;
     }
 
     // Test to see whether the file exists in the stdlib
@@ -118,7 +129,7 @@ Environment.prototype.import = function(importNode, requestingContext) {
         return this.moduleTypeMap[target];
     }
 
-    var importedContext = this.loadFile(target);
+    var importedContext = this.loadFile(target, null, isStdlib);
     return this.moduleTypeMap[target] = new types.Module(importedContext);
 };
 

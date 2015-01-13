@@ -6,6 +6,9 @@ function Context(env, scope, parent) {
     // Null by default, since most contexts don't represent a file.
     this.filename = null;
 
+    // Notes whether the context has access to private types
+    this.privileged = false;
+
     // A reference to the containing environment.
     this.env = env;
     // a reference to an AST node that this context corresponds to.
@@ -94,7 +97,7 @@ Context.prototype.resolveType = function(typeName) {
     if (this.parent) {
         return this.parent.resolveType(typeName);
     } else {
-        return types.resolve(typeName);
+        return types.resolve(typeName, this.privileged);
     }
 };
 

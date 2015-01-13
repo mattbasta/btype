@@ -38,9 +38,10 @@ module.exports.iterateBodies = function iterateBodies(tree, cb, filter) {
     });
 };
 
-var findAndReplace = module.exports.findAndReplace = function findAndReplace(tree, filter) {
+var findAndReplace = module.exports.findAndReplace = function findAndReplace(tree, filter, preTraverse) {
     tree.traverse.call(tree, function(node, member) {
         if (!node) return;
+        if (preTraverse) findAndReplace(node, filter);
         var replacer;
         if (filter && (replacer = filter(node, member))) {
             tree.substitute.call(tree, function findAndReplaceFilter(sNode, member) {
@@ -48,6 +49,6 @@ var findAndReplace = module.exports.findAndReplace = function findAndReplace(tre
                 return replacer(sNode, member);
             });
         }
-        findAndReplace(node, filter);
+        if (!preTraverse) findAndReplace(node, filter);
     });
 };

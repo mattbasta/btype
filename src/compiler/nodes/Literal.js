@@ -6,7 +6,7 @@ exports.traverse = function traverse() {};
 exports.substitute = function substitute() {};
 
 exports.getType = function getType() {
-    return types.resolve(this.litType);
+    return types.resolve(this.litType, true);
 };
 
 exports.validateTypes = function validateTypes() {};

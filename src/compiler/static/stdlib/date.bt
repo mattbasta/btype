@@ -10,3 +10,107 @@ func float:unixfloat() {
     return foreign.external.Datenowunix.float();
 }
 export unixfloat;
+
+
+object DateTime {
+    uint:timestamp;
+}
+export DateTime;
+
+operator (DateTime:left - DateTime:right) TimeDelta {
+    # TODO: Make sure that this is safe, handles negatives properly
+    return new TimeDelta((left.timestamp as int) - (right.timestamp as int));
+}
+
+operator (DateTime:left + TimeDelta:right) TimeDelta {
+    var temp = new DateTime();
+    temp.timestamp = ((left.timestamp as int) + right.milliseconds) as uint;
+    return temp;
+}
+
+operator (TimeDelta:left + DateTime:right) TimeDelta {
+    var temp = new DateTime();
+    temp.timestamp = ((right.timestamp as int) + left.milliseconds) as uint;
+    return temp;
+}
+
+operator (DateTime:left - TimeDelta:right) TimeDelta {
+    var temp = new DateTime();
+    # TODO: Make sure that this works alright with uint
+    temp.timestamp = ((left.timestamp as int) - right.milliseconds) as uint;
+    return temp;
+}
+
+operator (TimeDelta:left - DateTime:right) TimeDelta {
+    var temp = new DateTime();
+    # TODO: Make sure that this works alright with uint
+    temp.timestamp = ((right.timestamp as int) - left.milliseconds) as uint;
+    return temp;
+}
+
+
+object TimeDelta {
+    int:milliseconds;
+
+    new(int:milliseconds) {
+        self.milliseconds = milliseconds;
+    }
+
+    addMilliseconds(int:milliseconds) {
+        self.milliseconds = self.milliseconds + milliseconds;
+    }
+
+    addSeconds(int:seconds) {
+        self.milliseconds = self.milliseconds + seconds * 1000;
+    }
+
+    addMinutes(int:minutes) {
+        self.milliseconds = self.milliseconds + minutes * 1000 * 60;
+    }
+
+    addHours(int:hours) {
+        self.milliseconds = self.milliseconds + hours * 1000 * 60 * 60;
+    }
+
+    addDays(int:days) {
+        self.milliseconds = self.milliseconds + days * 1000 * 60 * 60 * 24;
+    }
+
+    addWeeks(int:weeks) {
+        self.milliseconds = self.milliseconds + weeks * 1000 * 60 * 60 * 24 * 7;
+    }
+
+}
+export TimeDelta;
+
+operator (TimeDelta:left + TimeDelta:right) TimeDelta {
+    return new TimeDelta(left.milliseconds + right.milliseconds);
+}
+
+operator (TimeDelta:left - TimeDelta:right) TimeDelta {
+    return new TimeDelta(left.milliseconds - right.milliseconds);
+}
+
+operator (TimeDelta:left < TimeDelta:right) TimeDelta {
+    return left.milliseconds < right.milliseconds;
+}
+
+operator (TimeDelta:left == TimeDelta:right) TimeDelta {
+    return left.milliseconds == right.milliseconds;
+}
+
+operator (TimeDelta:left != TimeDelta:right) TimeDelta {
+    return left.milliseconds != right.milliseconds;
+}
+
+operator (TimeDelta:left > TimeDelta:right) TimeDelta {
+    return left.milliseconds > right.milliseconds;
+}
+
+operator (TimeDelta:left >= TimeDelta:right) TimeDelta {
+    return left.milliseconds >= right.milliseconds;
+}
+
+operator (TimeDelta:left <= TimeDelta:right) TimeDelta {
+    return left.milliseconds <= right.milliseconds;
+}

@@ -827,6 +827,7 @@ module.exports = function(tokenizer) {
         var members = [];
         var methods = [];
 
+        var peekedType;
         var constructorBase;
         var memberType;
         var methodSignature;
@@ -900,13 +901,17 @@ module.exports = function(tokenizer) {
                 continue;
             }
 
-            memberType = parseTypedIdentifier();
+            peekedType = peek();
+            memberType = parseSymbol();
+            if (peek().text === ':') {
+                memberType = parseTypedIdentifier(peekedType);
+            }
             if (members.some(function(member) {return member.name === memberType.name;}) ||
                 methods.some(function(method) {return method.name === memberType.name;})) {
                 throw new SyntaxError('Class "' + name + '" cannot declare "' + memberType.name + '" more than once.');
             }
 
-            if (accept(';')) {
+            if (memberType.type === 'TypedIdentifier' && accept(';')) {
                 members.push(node(
                     'ObjectMember',
                     memberType.start,
@@ -962,7 +967,7 @@ module.exports = function(tokenizer) {
                             memberType.start,
                             methodEndBrace.end,
                             {
-                                returnType: memberType.idType,
+                                returnType: memberType.type === 'TypedIdentifier' ? memberType.idType : null,
                                 name: memberType.name,
                                 params: methodSignature,
                                 body: methodBody,
