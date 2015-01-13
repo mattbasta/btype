@@ -279,6 +279,8 @@ function Module(mod) {
         return mod.typeMap[this.memberMapping[name]];
     };
 
+    this.hasMethod = function() {return false;};
+
 }
 
 exports.Module = Module;

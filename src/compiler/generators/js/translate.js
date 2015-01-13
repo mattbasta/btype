@@ -369,18 +369,28 @@ var NODES = {
         switch (baseType.typeName) {
             case 'int':
                 switch (targetType.typeName) {
+                    case 'uint': return 'int2uint(' + base + ')';
                     case 'float': return '(+(' + base + '))';
                     case 'byte': return base;
                     case 'bool': return '(!!' + base + ')';
                 }
+            case 'uint':
+                switch (targetType.typeName) {
+                    case 'int': return 'uint2int(' + base + ')';
+                    case 'float': return '(+(' + base + '))';
+                    case 'byte': return base;
+                    case 'bool': return '(' + base + ' != 0)';
+                }
             case 'float':
                 switch (targetType.typeName) {
+                    case 'uint': return 'float2uint(' + base + ')';
                     case 'int': return '(' + base + '|0)';
                     case 'byte': return '(' + base + '|0)';
                     case 'bool': return '(!!' + base + ')';
                 }
             case 'byte':
                 switch (targetType.typeName) {
+                    case 'uint': return base;
                     case 'int': return base;
                     case 'float': return '(+(' + base + '))';
                     case 'bool': return '(!!' + base + ')';

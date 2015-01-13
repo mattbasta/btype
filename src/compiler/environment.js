@@ -65,10 +65,7 @@ Environment.prototype.loadFile = function(filename, tree, privileged) {
         tree = parser(lexer(fs.readFileSync(filename).toString()));
     }
 
-    var ctx = context(this, tree, filename);
-    if (privileged) {
-        ctx.privileged = true;
-    }
+    var ctx = context(this, tree, filename, null, privileged);
 
     // Perform simple inline type checking.
     tree.validateTypes(ctx);

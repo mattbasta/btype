@@ -1,4 +1,5 @@
 var fs = require('fs');
+var path = require('path');
 
 var externalFuncs = require('./externalFuncs');
 var jsTranslate = require('./translate');
@@ -95,7 +96,11 @@ function typeTranslate(type) {
 
 module.exports = function generate(env, ENV_VARS) {
 
-    var body = env.types.map(typeTranslate, env).join('\n\n') + '\n';
+    var body = '';
+
+    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/casting.js')).toString();
+
+    body += env.types.map(typeTranslate, env).join('\n\n') + '\n';
     body += env.included.map(jsTranslate).join('\n\n');
 
     if (env.inits.length) {

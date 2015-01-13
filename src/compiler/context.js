@@ -2,12 +2,12 @@ var traverser = require('./traverser');
 var types = require('./types');
 
 
-function Context(env, scope, parent) {
+function Context(env, scope, parent, privileged) {
     // Null by default, since most contexts don't represent a file.
     this.filename = null;
 
     // Notes whether the context has access to private types
-    this.privileged = false;
+    this.privileged = privileged || false;
 
     // A reference to the containing environment.
     this.env = env;
@@ -101,9 +101,9 @@ Context.prototype.resolveType = function(typeName) {
     }
 };
 
-module.exports = function generateContext(env, tree, filename, rootContext) {
+module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
     if (!rootContext) {
-        rootContext = new Context(env, tree);
+        rootContext = new Context(env, tree, null, privileged);
         if (filename) {
             rootContext.filename = filename;
         }
@@ -116,6 +116,8 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
     // nested functions to access variables and functions declared lexically
     // after themselves in the current scope.
     var innerFunctions = [];
+
+    var operatorOverloads = [];
 
     function preTraverseContext(node) {
         if (!node) return false;
@@ -194,19 +196,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 node.right.__assignedName = newContext.addVar(node.right.name, node.right.getType(newContext));
 
                 innerFunctions[0].push(node);
-
-                var leftType = node.left.getType(node.__context).toString();
-                if (!(leftType in env.registeredOperators)) env.registeredOperators[leftType] = {};
-                var rightType = node.right.getType(node.__context).toString();
-                if (!(rightType in env.registeredOperators[leftType])) env.registeredOperators[leftType][rightType] = {};
-
-                if (env.registeredOperators[leftType][rightType][node.operator]) {
-                    throw new Error('Cannot redeclare operator overload for ' +
-                        '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
-                }
-
-                env.registeredOperators[leftType][rightType][node.operator] = node.__assignedName;
-                env.registeredOperatorReturns[node.__assignedName] = node.returnType.getType(contexts[0]);
+                operatorOverloads.push(node);
 
                 return false; // `false` to block the traverser from going deeper.
 
@@ -294,7 +284,20 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
                 return;
 
             case 'Export':
-                node.__assignedName = rootContext.exports[node.value.name] = node.value.__refName;
+                var ctx;
+                var refName;
+
+                try {
+                    ctx = contexts[0].lookupVar(node.value);
+                    refName = ctx.nameMap[node.value];
+                } catch(e) {
+                    refName = contexts[0].typeNameMap[node.value];
+                    if (!refName) {
+                        throw new ReferenceError('Undefined function or type "' + refName + '" being exported');
+                    }
+                }
+
+                node.__assignedName = rootContext.exports[node.value] = refName;
                 return;
 
             case 'ObjectDeclaration':
@@ -315,6 +318,7 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
     function doTraverse(tree) {
         innerFunctions.unshift([]);
         traverser.traverse(tree, preTraverseContext, postTraverseContext);
+        traverseOperatorOverloads();
         innerFunctions.shift().forEach(function contextInnerFunctionIterator(node) {
             contexts.unshift(node.__context);
             doTraverse(node);
@@ -322,6 +326,25 @@ module.exports = function generateContext(env, tree, filename, rootContext) {
         });
     }
     doTraverse(tree);
+
+    function traverseOperatorOverloads() {
+        if (!operatorOverloads.length) return;
+        operatorOverloads.forEach(function(node) {
+            var leftType = node.left.getType(node.__context).toString();
+            if (!(leftType in env.registeredOperators)) env.registeredOperators[leftType] = {};
+            var rightType = node.right.getType(node.__context).toString();
+            if (!(rightType in env.registeredOperators[leftType])) env.registeredOperators[leftType][rightType] = {};
+
+            if (env.registeredOperators[leftType][rightType][node.operator]) {
+                throw new Error('Cannot redeclare operator overload for ' +
+                    '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
+            }
+
+            env.registeredOperators[leftType][rightType][node.operator] = node.__assignedName;
+            env.registeredOperatorReturns[node.__assignedName] = node.returnType.getType(contexts[0]);
+        });
+        operatorOverloads = [];
+    }
 
     return rootContext;
 };

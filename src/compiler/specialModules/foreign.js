@@ -43,6 +43,8 @@ function StdlibType(env, name, raw) {
     this.getMemberType = function(name) {
         return raw.typeMap[raw.nameMap[name]];
     };
+
+    this.hasMethod = function() {return false;}
 }
 
 function ForeignType(env) {
@@ -63,6 +65,8 @@ function ForeignType(env) {
     this.getMemberType = function(name) {
         return new CurriedForeignType(env, name, []);
     };
+
+    this.hasMethod = function() {return false;}
 
 }
 
@@ -104,6 +108,8 @@ function CurriedForeignType(env, funcName, typeChain) {
     this.getArgs = function() {
         return typeChain.slice(1).map(types.resolve);
     };
+
+    this.hasMethod = function() {return false;}
 
 }
 

@@ -212,13 +212,13 @@ module.exports = function(tokenizer) {
     function parseExport() {
         var head = accept('export');
         if (!head) return;
-        var value = parseSymbol();
+        var value = accept('identifier');
         var end = assert(';');
         return node(
             'Export',
             head.start,
             end.end,
-            {value: value}
+            {value: value.text}
         );
     }
 

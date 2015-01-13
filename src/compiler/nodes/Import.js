@@ -2,7 +2,6 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse(cb) {
-    cb(this.base, 'base');
     if (this.member) cb(this.member, 'member');
     if (this.alias) cb(this.alias, 'alias');
 };

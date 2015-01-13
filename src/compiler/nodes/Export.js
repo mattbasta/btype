@@ -1,17 +1,22 @@
 var indentEach = require('./_utils').indentEach;
 
 
-exports.traverse = function traverse(cb) {
-    cb(this.value);
-};
+exports.traverse = function traverse() {};
 
 exports.substitute = function substitute() {};
 
 exports.validateTypes = function validateTypes(ctx) {
-    this.value.validateTypes(ctx);
-    var valueType = this.value.getType(ctx);
-    if (valueType._type !== 'func') {
-        throw new TypeError('Cannot export non-executable objects');
+    try {
+        var elemName = this.__assignedName;
+        var elemType = ctx.typeMap[elemName];
+
+        if (elemType._type !== 'func') {
+            throw new TypeError('Cannot export non-executable objects');
+        }
+    } catch(e) {
+        if (!ctx.typeNameMap[this.value]) {
+            throw new TypeError('Cannot export undefined variable or type: ' + this.value);
+        }
     }
 };
 

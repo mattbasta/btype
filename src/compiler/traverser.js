@@ -39,7 +39,7 @@ module.exports.iterateBodies = function iterateBodies(tree, cb, filter) {
 };
 
 var findAndReplace = module.exports.findAndReplace = function findAndReplace(tree, filter, preTraverse) {
-    tree.traverse.call(tree, function(node, member) {
+    tree.traverse.call(tree, function findAndReplaceIterator(node, member) {
         if (!node) return;
         if (preTraverse) findAndReplace(node, filter);
         var replacer;

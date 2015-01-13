@@ -546,25 +546,36 @@ var NODES = {
         switch (baseType.typeName) {
             case 'int':
                 switch (targetType.typeName) {
+                    case 'uint': return '(+int2uint(' + base + '))';
                     case 'float': return typeAnnotation(base, types.publicTypes.int);
+                    case 'byte': return base;
+                    case 'bool': return '(' + base + ' != 0)';
+                }
+            case 'uint':
+                switch (targetType.typeName) {
+                    case 'int': return '(uint2int(' + base + ')|0)';
+                    case 'float': return typeAnnotation(base, types.publicTypes.float);
                     case 'byte': return base;
                     case 'bool': return '(' + base + ' != 0)';
                 }
             case 'float':
                 switch (targetType.typeName) {
                     case 'int': return typeAnnotation(base, types.publicTypes.float);
+                    case 'uint': return '(+float2uint(' + base + '))';
                     case 'byte': return typeAnnotation(base, types.publicTypes.byte);
                     case 'bool': return '(' + base + ' != 0.0)';
                 }
             case 'byte':
                 switch (targetType.typeName) {
                     case 'int': return base;
+                    case 'uint': return typeAnnotation(base, types.publicTypes.uint);
                     case 'float': return typeAnnotation(base, types.publicTypes.float);
                     case 'bool': return '(' + base + ' != 0)';
                 }
             case 'bool':
                 switch (targetType.typeName) {
                     case 'int': return typeAnnotation(base, types.publicTypes.int);
+                    case 'uint': return typeAnnotation(base, types.publicTypes.uint);
                     case 'float': return typeAnnotation(base, types.publicTypes.float);
                     case 'byte': return typeAnnotation(base, types.publicTypes.byte);
                 }

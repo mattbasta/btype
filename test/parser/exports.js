@@ -14,7 +14,7 @@ describe('Export parser', function() {
                     'Export',
                     0,
                     11,
-                    {value: _i('foo')}
+                    {value: 'foo'}
                 )
             ])
         );

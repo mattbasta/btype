@@ -2,7 +2,7 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse(cb) {
-    this.body.forEach(function(stmt) {
+    this.body.forEach(function traverseBody(stmt) {
         cb(stmt, 'body');
     });
 };
@@ -24,7 +24,7 @@ exports.validateTypes = function validateTypes(ctx) {
 };
 
 exports.toString = function toString() {
-    return 'Root:\n' + indentEach(this.body.map(function(stmt) {
+    return 'Root:\n' + indentEach(this.body.map(function toStringBody(stmt) {
         return stmt.toString();
     }).join('\n')) + '\n';
 };

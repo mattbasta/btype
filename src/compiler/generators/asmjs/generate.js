@@ -90,6 +90,7 @@ module.exports = function generate(env, ENV_VARS) {
     var body = '';
 
     // Include static modules
+    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/casting.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/funcref.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/gc.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory.js')).toString();

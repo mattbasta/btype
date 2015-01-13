@@ -17,37 +17,6 @@ object DateTime {
 }
 export DateTime;
 
-operator (DateTime:left - DateTime:right) TimeDelta {
-    # TODO: Make sure that this is safe, handles negatives properly
-    return new TimeDelta((left.timestamp as int) - (right.timestamp as int));
-}
-
-operator (DateTime:left + TimeDelta:right) TimeDelta {
-    var temp = new DateTime();
-    temp.timestamp = ((left.timestamp as int) + right.milliseconds) as uint;
-    return temp;
-}
-
-operator (TimeDelta:left + DateTime:right) TimeDelta {
-    var temp = new DateTime();
-    temp.timestamp = ((right.timestamp as int) + left.milliseconds) as uint;
-    return temp;
-}
-
-operator (DateTime:left - TimeDelta:right) TimeDelta {
-    var temp = new DateTime();
-    # TODO: Make sure that this works alright with uint
-    temp.timestamp = ((left.timestamp as int) - right.milliseconds) as uint;
-    return temp;
-}
-
-operator (TimeDelta:left - DateTime:right) TimeDelta {
-    var temp = new DateTime();
-    # TODO: Make sure that this works alright with uint
-    temp.timestamp = ((right.timestamp as int) - left.milliseconds) as uint;
-    return temp;
-}
-
 
 object TimeDelta {
     int:milliseconds;
@@ -83,6 +52,32 @@ object TimeDelta {
 }
 export TimeDelta;
 
+
+
+operator (DateTime:left - DateTime:right) TimeDelta {
+    # TODO: Make sure that this is safe, handles negatives properly
+    return new TimeDelta((left.timestamp as int) - (right.timestamp as int));
+}
+
+operator (DateTime:left + TimeDelta:right) DateTime {
+    var temp = new DateTime();
+    temp.timestamp = ((left.timestamp as int) + right.milliseconds) as uint;
+    return temp;
+}
+
+operator (TimeDelta:left + DateTime:right) DateTime {
+    var temp = new DateTime();
+    temp.timestamp = ((right.timestamp as int) + left.milliseconds) as uint;
+    return temp;
+}
+
+operator (DateTime:left - TimeDelta:right) DateTime {
+    var temp = new DateTime();
+    # TODO: Make sure that this works alright with uint
+    temp.timestamp = ((left.timestamp as int) - right.milliseconds) as uint;
+    return temp;
+}
+
 operator (TimeDelta:left + TimeDelta:right) TimeDelta {
     return new TimeDelta(left.milliseconds + right.milliseconds);
 }
@@ -91,26 +86,26 @@ operator (TimeDelta:left - TimeDelta:right) TimeDelta {
     return new TimeDelta(left.milliseconds - right.milliseconds);
 }
 
-operator (TimeDelta:left < TimeDelta:right) TimeDelta {
+operator (TimeDelta:left < TimeDelta:right) bool {
     return left.milliseconds < right.milliseconds;
 }
 
-operator (TimeDelta:left == TimeDelta:right) TimeDelta {
+operator (TimeDelta:left == TimeDelta:right) bool {
     return left.milliseconds == right.milliseconds;
 }
 
-operator (TimeDelta:left != TimeDelta:right) TimeDelta {
+operator (TimeDelta:left != TimeDelta:right) bool {
     return left.milliseconds != right.milliseconds;
 }
 
-operator (TimeDelta:left > TimeDelta:right) TimeDelta {
+operator (TimeDelta:left > TimeDelta:right) bool {
     return left.milliseconds > right.milliseconds;
 }
 
-operator (TimeDelta:left >= TimeDelta:right) TimeDelta {
+operator (TimeDelta:left >= TimeDelta:right) bool {
     return left.milliseconds >= right.milliseconds;
 }
 
-operator (TimeDelta:left <= TimeDelta:right) TimeDelta {
+operator (TimeDelta:left <= TimeDelta:right) bool {
     return left.milliseconds <= right.milliseconds;
 }

@@ -25,24 +25,24 @@ exports.substitute = function substitute(cb) {
 
 exports.getType = function getType(ctx) {
     if (this.__type) return this.__type;
+
     var mapping = {};
     this.members.forEach(function(member) {
         mapping[member.name] = member.getType(ctx);
     });
+
     var output = new types.Struct(this.name, mapping);
+
     if (this.objConstructor) {
-        // if (!this.objConstructor.base.__assignedName) {
-        //     // If a name hasn't been assigned yet, give it one now.
-        //     // The context module will (should) simply re-use the name.
-        //     this.objConstructor.base.__assignedName = ctx.env.namer();
-        // }
         output.objConstructor = this.objConstructor.base.__assignedName;
     }
+
     if (this.methods.length) {
         this.methods.forEach(function(method) {
             output.methods[method.name] = method.base.__assignedName;
         });
     }
+
     return this.__type = output;
 };
 
