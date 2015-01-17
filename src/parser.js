@@ -656,6 +656,9 @@ module.exports = function(tokenizer) {
                     );
                 case 'new':
                     parsed = parseType();
+                    while (peek().text === '.') {
+                        parsed = parseMember(parsed);
+                    }
                     assert('(');
                     var params = parseSignature(false, ')');
                     var closingParen = assert(')');

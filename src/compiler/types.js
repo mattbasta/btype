@@ -281,6 +281,10 @@ function Module(mod) {
 
     this.hasMethod = function() {return false;};
 
+    this.hasType = function(name) {
+        return name in this.mod.exportTypes;
+    };
+
 }
 
 exports.Module = Module;

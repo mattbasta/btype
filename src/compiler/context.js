@@ -47,6 +47,8 @@ function Context(env, scope, parent, privileged) {
     this.lexicalModifications = {};
     // A mapping of user provided names of exported members to their assigned names.
     this.exports = {};
+    // A mapping of user provided names of exported types to their assigned names.
+    this.exportTypes = {};
     // `null` or a reference to a Function node that is necessary to be run on
     // initialization.
     this.initializer = null;
@@ -290,14 +292,15 @@ module.exports = function generateContext(env, tree, filename, rootContext, priv
                 try {
                     ctx = contexts[0].lookupVar(node.value);
                     refName = ctx.nameMap[node.value];
+                    node.__assignedName = rootContext.exports[node.value] = refName;
                 } catch(e) {
                     refName = contexts[0].typeNameMap[node.value];
                     if (!refName) {
                         throw new ReferenceError('Undefined function or type "' + refName + '" being exported');
                     }
+                    node.__assignedName = rootContext.exportTypes[node.value] = refName;
                 }
 
-                node.__assignedName = rootContext.exports[node.value] = refName;
                 return;
 
             case 'ObjectDeclaration':
