@@ -39,6 +39,7 @@ var NODES = {
     Symbol: require('./nodes/Symbol'),
     Type: require('./nodes/Type'),
     TypeCast: require('./nodes/TypeCast'),
+    TypeMember: require('./nodes/TypeMember'),
     TypedIdentifier: require('./nodes/TypedIdentifier'),
     Unary: require('./nodes/Unary'),
     While: require('./nodes/While'),

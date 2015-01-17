@@ -33,7 +33,7 @@ fs.readFile(argv._[0], function(err, data) {
 
     var parsed = parser(lexer(data + ''));
     var compiled = compiler(
-        path.basename(argv._[0], '.bt'),
+        argv._[0],
         parsed,
         argv.target
     );

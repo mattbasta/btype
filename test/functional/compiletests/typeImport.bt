@@ -1,0 +1,6 @@
+import date;
+
+var foo = new date.DateTime();
+
+func main() {}
+export main;

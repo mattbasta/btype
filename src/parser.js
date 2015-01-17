@@ -656,9 +656,6 @@ module.exports = function(tokenizer) {
                     );
                 case 'new':
                     parsed = parseType();
-                    while (peek().text === '.') {
-                        parsed = parseMember(parsed);
-                    }
                     assert('(');
                     var params = parseSignature(false, ')');
                     var closingParen = assert(')');
@@ -708,15 +705,43 @@ module.exports = function(tokenizer) {
             } while (accept(','));
             typeEnd = assert('>');
         }
-        return node(
-            'Type',
-            type.start,
-            typeEnd.end,
-            {
-                name: type.text,
-                traits: traits
+
+        var output;
+
+        if (peek().type === '.') {
+            output = node(
+                'Symbol',
+                type.start,
+                typeEnd.end,
+                {name: type.text}
+            );
+
+            var member;
+            while (accept('.')) {
+                member = assert('identifier');
+                output = node(
+                    'TypeMember',
+                    output.start,
+                    member.end,
+                    {
+                        base: output,
+                        child: member.text,
+                    }
+                );
             }
-        );
+        } else {
+            output = node(
+                'Type',
+                type.start,
+                typeEnd.end,
+                {
+                    name: type.text,
+                    traits: traits
+                }
+            );
+        }
+
+        return output;
     }
 
     function parseTypedIdentifier(base) {

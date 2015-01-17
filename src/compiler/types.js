@@ -285,6 +285,10 @@ function Module(mod) {
         return name in this.mod.exportTypes;
     };
 
+    this.getTypeOf = function(name) {
+        return this.mod.env.typeMap[this.mod.exportTypes[name]];
+    };
+
 }
 
 exports.Module = Module;

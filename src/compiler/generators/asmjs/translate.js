@@ -494,6 +494,8 @@ var NODES = {
     },
     New: function(env, ctx) {
         var type = this.getType(ctx);
+        if (typeof type === 'string') debugger;
+        type = this.getType(ctx);
         var output = '(gcref(calloc(' + (type.getSize() + 8) + ')|0)|0)';
         if (type instanceof types.Struct && type.objConstructor) {
             output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {

@@ -98,9 +98,9 @@ Context.prototype.resolveType = function(typeName) {
     }
     if (this.parent) {
         return this.parent.resolveType(typeName);
-    } else {
-        return types.resolve(typeName, this.privileged);
     }
+
+    return types.resolve(typeName, this.privileged);
 };
 
 module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
