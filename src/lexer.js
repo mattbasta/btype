@@ -73,11 +73,12 @@ var tokens = [
     [/^[a-zA-Z_][\w\-_]*/, 'identifier'],
 ];
 
-function Token(text, type, start, end) {
+function Token(text, type, start, end, line) {
     this.text = text;
     this.type = type;
     this.start = start;
     this.end = end;
+    this.line = line;
 }
 Token.prototype.isToken = true;
 Token.prototype.toString = function() {
@@ -103,7 +104,7 @@ module.exports = function(data) {
                 i = -1;
                 continue;
             }
-            return new Token(match[0], tokens[i][1], startPointer, pointer);
+            return new Token(match[0], tokens[i][1], startPointer, pointer, currentLine);
         }
         return null;
     }

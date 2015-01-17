@@ -35,7 +35,7 @@ module.exports = function(tokenizer) {
     function assert(type) {
         var temp = lastSeen = pop();
         if (!temp || temp.type !== type) {
-            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen.type + '" at ' + temp.start);
+            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen.type + '" on line ' + temp.line);
         }
         return temp;
     }
