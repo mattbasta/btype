@@ -4,7 +4,7 @@ var types = require('../types');
 exports.traverse = function traverse(cb) {
     if (this.traits) {
         this.traits.forEach(function(trait) {
-            cb(trait, 'traits');
+            if (trait) cb(trait, 'traits');
         });
     }
 };

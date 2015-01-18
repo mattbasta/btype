@@ -1,5 +1,8 @@
 var types = require('../../types');
 
+var getLLVMType = require('./util').getLLVMType;
+var makeName = require('./util').makeName;
+
 
 var OP_PREC = {
     '*': 5,
@@ -33,50 +36,115 @@ function _binop(env, ctx, prec) {
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
-    var leftType = this.left.getType(ctx).toString();
-    var rightType = this.right.getType(ctx).toString();
-    if (ctx.env.registeredOperators[leftType] &&
-        ctx.env.registeredOperators[leftType][rightType] &&
-        ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+    var outType = this.getType(ctx);
 
-        var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
+    var leftType = this.left.getType(ctx);
+    var rightType = this.right.getType(ctx);
+    var leftTypeString = leftType.toString();
+    var rightTypeString = rightType.toString();
+
+    if (ctx.env.registeredOperators[leftTypeString] &&
+        ctx.env.registeredOperators[leftTypeString][rightTypeString] &&
+        ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator]) {
+
+        var operatorStmtFunc = ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator];
         return operatorStmtFunc + '(' + left + ',' + right + ')';
     }
 
-    var oPrec = OP_PREC[this.operator] || 13;
-
     switch (this.operator) {
         case 'and':
-            out = left + ' && ' + right;
+            out = 'and';
             break;
         case 'or':
-            out = left + ' || ' + right;
+            out = 'or';
             break;
+        case '+':
+            if (outType.typeName === 'float') {
+                out = 'fadd';
+                break;
+            }
+
+            out = 'add ';
+            if (outType.typeName === 'uint') out += 'nuw';
+            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'int') out += 'nsw';
+            break;
+
+        case '-':
+            if (outType.typeName === 'float') {
+                out = 'fsub';
+                break;
+            }
+
+            out = 'sub ';
+            if (outType.typeName === 'uint') out += 'nuw';
+            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'int') out += 'nsw';
+            break;
+
         case '*':
-            if (this.left.getType(ctx) === types.publicTypes.int &&
-                this.right.getType(ctx) === types.publicTypes.int) {
-
-                if (!env.__hasImul) {
-                    env.__hasImul = true;
-                    env.__globalPrefix += 'var imul = stdlib.Math.imul;\n';
-                }
-                out = 'imul(' + left + ', ' + right + ')';
-                oPrec = 18;
+            if (outType.typeName === 'float') {
+                out = 'fmul';
                 break;
             }
+
+            out = 'mul ';
+            if (outType.typeName === 'uint') out += 'nuw';
+            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'int') out += 'nsw';
+            break;
+
         case '/':
-            if (this.operator === '/' &&
-                this.left.getType(ctx) === types.publicTypes.int &&
-                this.right.getType(ctx) === types.publicTypes.int) {
-
-                out = '(' + left + ' / ' + right + ' | 0)';
-                oPrec = 18;
+            if (outType.typeName === 'float') {
+                out = 'fdiv';
+                break;
+            } else if (outType.typeName === 'uint') {
+                out = 'udiv';
                 break;
             }
+
+            out = 'sdiv ';
+            break;
+
+        case '%':
+            if (outType.typeName === 'float') {
+                out = 'frem';
+                break;
+            } else if (outType.typeName === 'uint') {
+                out = 'urem';
+                break;
+            }
+
+            out = 'srem ';
+            break;
+
+        case '<<':
+            out = 'shl ';
+            if (outType.typeName === 'uint') out += 'nuw';
+            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'int') out += 'nsw';
+            break;
+
+        case '>>':
+            if (outType.typeName === 'uint') out = 'lshr';
+            else if (outType.typeName === 'int') out = 'ashr';
+            break;
+
+        case '&':
+            out = 'and';
+            break;
+        case '|':
+            out = 'or';
+            break;
+        case '^':
+            out = 'xor';
+            break;
+
         default:
-            out = left + ' ' + this.operator + ' ' + right;
+            throw new Error('Unknown binary operator: ' + this.operator);
     }
 
+    out += getLLVMType(outType) + ' ' + left + ', ' + right;
     return '(' + out + ')';
 }
 
@@ -98,109 +166,120 @@ var NODES = {
     Unary: function(env, ctx, prec) {
         // Precedence here will always be 4.
         var out = _node(this.base, env, ctx, 4);
-        out = this.operator + '(' + out + ')';
-        return out;
+        var outType = this.getType(ctx);
+
+        switch (this.operator) {
+            case '~':
+                return 'xor ' + getLLVMType(outType) + ' ' + out + ', 1';
+            case '!':
+                return 'xor i1 ' + out + ', 1';
+        }
+
+        throw new Error('Undefined unary operator: ' + this.operator);
     },
     LogicalBinop: _binop,
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
     CallStatement: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 0);
+        return _node(this.base, env, ctx, 0, 'stmt');
     },
-    CallRaw: function(env, ctx, prec) {
-        return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
-            }).join(',') +
-            ')' +
-            (!prec ? ';' : '');
+    CallRaw: function(env, ctx, prec, extra) {
+
+        var output = 'call ';
+
+        // `fastcc` is a calling convention that attempts to make the call as
+        // fast as possible.
+        output += 'fastcc ';
+
+        // Add the expected return type
+        if (extra === 'stmt') {
+            // Tell LLVM that we don't care about the return type because this
+            // is a call statement.
+            output += 'void ';
+        } else {
+            output += getLLVMType(this.getType(ctx)) + ' ';
+        }
+
+        output += _node(this.callee, env, ctx, 1);
+
+        output += '(';
+
+        output += this.params.map(function(param) {
+            var paramType = param.getType(ctx);
+            return getLLVMType(paramType) + ' ' + _node(param, env, ctx, 18);
+        }).join(', ');
+
+        output += ')';
+
+        return output;
+
     },
     CallDecl: function(env, ctx, prec) {
-        return _node(this.callee, env, ctx, 1) +
-            '(/* CallDecl */' +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
-            }).join(',') +
-            ')' +
-            (!prec ? ';' : '');
+        return NODES.CallRaw.apply(this, arguments);
     },
     CallRef: function(env, ctx, prec) {
-        var funcType = this.callee.getType(ctx);
-
-        var paramList = this.params.map(function(param) {
-            return _node(param, env, ctx, 18);
-        }).join(',');
-
-        var temp;
-        if (this.callee.type === 'Member' &&
-            (temp = this.callee.base.getType(ctx)).hasMethod &&
-            temp.hasMethod(this.callee.child)) {
-
-            return temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, 18) + ', ' + paramList + ')';
-        }
-
-        return _node(this.callee, env, ctx, 1) +
-            '(/* CallRef */' + paramList + ')' +
-            (!prec ? ';' : '');
+        throw new Error('Not Implemented');
     },
     FunctionReference: function(env, ctx, prec) {
-        var ctx = _node(this.ctx, env, ctx);
-        if (ctx === '0') {
-            return _node(this.base, env, ctx, 1);
-        }
-        // TODO: optimize this by adding the function prototype directly
-        return '(function($$ctx) {return ' + _node(this.base, env, ctx, 1) + '.apply(null, Array.prototype.slice.call(arguments, 1).concat([$$ctx]))}.bind(null, ' + _node(this.ctx, env, ctx) + '))';
+        throw new Error('Not Implemented');
     },
-    Member: function(env, ctx, prec) {
+    Member: function(env, ctx, prec, parent) {
         var baseType = this.base.getType(ctx);
         if (baseType._type === 'module') {
             return baseType.memberMapping[this.child];
         }
 
-        var base;
         if (baseType._type === '_stdlib') {
-            base = 'stdlib.' + baseType.name;
-        } else if (baseType._type === '_foreign') {
+            throw new Error('Not Implemented');
+            var stdlibName = baseType.name + '.' + this.child;
+            if (stdlibName in env.__stdlibRequested) {
+                return env.__stdlibRequested[stdlibName];
+            }
+            var stdlibAssignedName = env.namer();
+            env.__globalPrefix += 'var ' + stdlibAssignedName + ' = stdlib.' + stdlibName + ';\n';
+            env.__stdlibRequested[stdlibName] = stdlibAssignedName;
+            return stdlibAssignedName;
+        }
+
+        if (baseType._type === '_foreign') {
+            throw new Error('Not Implemented');
             env.foreigns.push(this.child);
-            return 'foreign.' + this.child;
-        } else {
-            base = _node(this.base, env, ctx, 1);
+            var foreignName = 'foreign.' + this.child;
+            if (this.child in env.__foreignRequested) {
+                return env.__foreignRequested[this.child];
+            }
+
+            var foreignAssignedName = env.namer();
+            env.__globalPrefix += 'var ' + foreignAssignedName + ' = foreign.' + this.child + ';\n';
+            env.__foreignRequested[stdlibName] = foreignAssignedName;
+            return foreignAssignedName;
         }
 
         if (baseType._type === '_foreign_curry') {
-            return base;
+            return _node(this.base, env, ctx, 1);
         }
 
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
-            return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, 1) + ')';
+            throw new Error('Not Implemented');
+            var objectMethodFunc = ctx.lookupFunctionByName(baseType.getMethod(this.child));
+            var objectMethodFuncIndex = env.registerFunc(objectMethodFunc);
+            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, 1) + ')|0) | 0)';
         }
 
-        return base + '.' + this.child;
+        var layoutIndex = baseType.getLayoutIndex(this.child);
+
+        return 'extractvalue ' +
+            getLLVMType(this.getType(ctx)) + ' ' +
+            _node(this.base, env, ctx, 1),
+            ', ' +
+            layoutIndex;
     },
     Assignment: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1) + ';';
+        return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1);
     },
     Declaration: function(env, ctx, prec) {
-        var type = this.value.getType(ctx);
-        var output = 'var ' + this.__assignedName + ' = ';
-
-        if (this.value.type === 'Literal') {
-            output += (this.value.value || 'null').toString() + ';';
-            return output;
-        }
-
-        var def;
-        if (type && type._type === 'primitive') {
-            def = type && type.typeName === 'float' ? '0.0' : '0';
-        } else if (type) {
-            def = 'null';
-        }
-        output += def + ';\n';
-
-        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
-        return output;
+        return makeName(this.__assignedName) + ' = ' + _node(this.value, env, ctx, 17);
     },
     ConstDeclaration: function() {
         return NODES.Declaration.apply(this, arguments);
@@ -277,41 +356,44 @@ var NODES = {
     },
     Function: function(env, ctx, prec) {
         var context = this.__context;
-        var output = 'function ' + this.__assignedName + '(' +
+        var funcType = this.getType(ctx);
+        var returnType = funcType.getReturnType();
+
+        var output = 'define @' + makeName(this.__assignedName) + ' ' +
+            (returnType ? getLLVMType(returnType) : 'void') +
+            ' (' +
             this.params.map(function(param) {
-                return _node(param, env, context, 1);
-            }).join(',') + ') {\n' +
+                return getLLVMType(param.getType(ctx)) + ' ' + _node(param, env, context, 1);
+            }).join(', ') + ') nounwind {\n' +
             this.body.map(function(stmt) {
                 return _node(stmt, env, context, 0);
             }).join('\n');
-
-        if (this.__objectSpecial === 'constructor') {
-            output += 'return ' + this.params[0].__assignedName + ';';
-        }
 
         output += '\n}';
         return output;
     },
     OperatorStatement: function(env, ctx, prec) {
-        return 'function ' + this.__assignedName + '(' +
-            _node(this.left, env, ctx, 1) + ', ' +
-            _node(this.right, env, ctx, 1) + ') {\n' +
+        return 'define @' + makeName(this.__assignedName) +
+            getLLVMType(this.returnType.getType(ctx)) +
+            ' (' +
+            getLLVMType(this.left.getType(ctx)) + ' ' +  _node(this.left, env, ctx, 1) + ', ' +
+            getLLVMType(this.right.getType(ctx)) + ' ' +  _node(this.right, env, ctx, 1) +
+            ') nounwind {\n    ' +
             this.body.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
-            }).join('\n') + '\n}';
+            }).join('\n    ') + '\n}';
     },
-    Type: function() {return '';},
     TypedIdentifier: function(env, ctx, prec) {
-        return this.__assignedName;
+        return makeName(this.__assignedName);
     },
-    Literal: function() {
-        if (this.value === true) return '1';
-        if (this.value === false) return '0';
-        if (this.value === null) return '0';
-        return this.value.toString();
+    Literal: function(env, ctx) {
+        if (this.value === true) return 'true';
+        if (this.value === false) return 'false';
+        if (this.value === null) return 'null';
+        return getLLVMType(this.getType(ctx)) + ' ' + this.value.toString();
     },
     Symbol: function() {
-        return this.__refName;
+        return makeName(this.__refName);
     },
     New: function(env, ctx) {
         var type = this.getType(ctx);

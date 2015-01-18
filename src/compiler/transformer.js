@@ -357,6 +357,8 @@ function processFunc(rootContext, node, context) {
 
     var stack = [];
     traverser.traverse(node, function(node) {
+        if (!node) return;
+
         function replacer(x) {
             if (x !== node) return x;
             context.env.registerFunc(node);
@@ -366,7 +368,7 @@ function processFunc(rootContext, node, context) {
             });
         }
 
-        if (node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
+        if (stack[0] && node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
             stack[0].substitute(replacer);
             return;
         }

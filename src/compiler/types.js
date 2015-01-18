@@ -96,8 +96,9 @@ function Struct(name, contentsTypeMap) {
         return keys;
     }
 
+    var cachedLayout;
     this.getLayout = function() {
-        // TODO: Add caching to this function
+        if (cachedLayout) return cachedLayout;
         var layout = getLayout();
         var offsets = {};
         var i = 0;
@@ -106,7 +107,27 @@ function Struct(name, contentsTypeMap) {
             offsets[key] = i;
             i += size;
         });
-        return offsets;
+        return cachedLayout = offsets;
+    };
+
+    var cachedOrderedLayout;
+    this.getOrderedLayout = function() {
+        if (cachedOrderedLayout) return cachedOrderedLayout;
+        var order = getLayout().map(function(member) {
+            return contentsTypeMap[member];
+        });
+        return cachedOrderedLayout = order;
+    };
+
+    var cachedLayoutIndices;
+    this.getLayoutIndex = function(name) {
+        if (cachedLayoutIndices) return cachedLayoutIndices[name];
+        var layout = getLayout();
+        var indices = {};
+        layout.forEach(function(key, i) {
+            indices[key] = i;
+        });
+        return (cachedLayoutIndices = indices)[name];
     };
 
     this.getSize = function() {
@@ -306,9 +327,9 @@ var private_ = exports.privateTypes = {
     'uint': new Primitive('uint', 'uint32')
 };
 
-public_.str = new Struct('str', {
-    _data: new Slice(private_.byte),
-});
+// public_.str = new Struct('str', {
+//     _data: new Slice(private_.byte),
+// });
 
 exports.resolve = function(typeName, privileged) {
     if (typeName in public_) return public_[typeName];

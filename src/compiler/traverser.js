@@ -31,10 +31,9 @@ module.exports.iterateBodies = function iterateBodies(tree, cb, filter) {
         tree.traverseStatements(cb);
     }
     traverse(tree, function iterateBodyFilter(x) {
-        if (x.traverseStatements) {
-            if (filter && filter(x) === false) return false;
-            x.traverseStatements(cb);
-        }
+        if (!x || !x.traverseStatements) return;
+        if (filter && filter(x) === false) return false;
+        x.traverseStatements(cb);
     });
 };
 
