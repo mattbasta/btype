@@ -269,7 +269,7 @@ var NODES = {
             output += getLLVMType(this.getType(ctx)) + ' ';
         }
 
-        output += _node(this.callee, env, ctx, tctx);
+        output += _node(this.callee, env, ctx, tctx, 'callee');
 
         output += '(';
 

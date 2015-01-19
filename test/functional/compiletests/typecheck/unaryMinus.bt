@@ -1,5 +1,0 @@
-func main() {
-    var x = 1;
-    x = -x;
-}
-export main;

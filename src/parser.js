@@ -642,7 +642,6 @@ module.exports = function(tokenizer) {
                         }
                     );
                 // Unary operators
-                case '-':
                 case '!':
                     parsed = parseExpression();
                     return node(

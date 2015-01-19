@@ -70,6 +70,30 @@ describe('Parser', function() {
                 ])
             );
         });
+        it('should parse negative numbers properly', function() {
+            compareTree(
+                'x = -1.23456;',
+                _root([
+                    node(
+                        'Assignment',
+                        0,
+                        13,
+                        {
+                            base: _i('x'),
+                            value: node(
+                                'Literal',
+                                5,
+                                11,
+                                {
+                                    litType: 'float',
+                                    value: -1.23456
+                                }
+                            )
+                        }
+                    )
+                ])
+            );
+        });
     });
 
     describe('null', function() {
@@ -506,91 +530,6 @@ describe('Parser', function() {
                                         }
                                     ),
                                     operator: '!'
-                                }
-                            )
-                        }
-                    )
-                ])
-            );
-        });
-        it('should parse minus', function() {
-            compareTree(
-                'x = -y;',
-                _root([
-                    node(
-                        'Assignment',
-                        0,
-                        7,
-                        {
-                            base: _i('x'),
-                            value: node(
-                                'Unary',
-                                3,
-                                6,
-                                {
-                                    base: _i('y'),
-                                    operator: '-'
-                                }
-                            )
-                        }
-                    )
-                ])
-            );
-            compareTree(
-                'x = --y;',
-                _root([
-                    node(
-                        'Assignment',
-                        0,
-                        8,
-                        {
-                            base: _i('x'),
-                            value: node(
-                                'Unary',
-                                3,
-                                7,
-                                {
-                                    base: node(
-                                        'Unary',
-                                        5,
-                                        7,
-                                        {
-                                            base: _i('y'),
-                                            operator: '-'
-                                        }
-                                    ),
-                                    operator: '-'
-                                }
-                            )
-                        }
-                    )
-                ])
-            );
-            compareTree(
-                'x = 4 - -4;',
-                _root([
-                    node(
-                        'Assignment',
-                        0,
-                        11,
-                        {
-                            base: _i('x'),
-                            value: node(
-                                'Binop',
-                                3,
-                                10,
-                                {
-                                    left: _int(4),
-                                    right: node(
-                                        'Unary',
-                                        7,
-                                        10,
-                                        {
-                                            base: _int(4),
-                                            operator: '-'
-                                        }
-                                    ),
-                                    operator: '-'
                                 }
                             )
                         }
