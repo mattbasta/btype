@@ -33,8 +33,8 @@ function _binop(env, ctx, prec) {
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
-    var leftType = this.left.getType(ctx).toString();
-    var rightType = this.right.getType(ctx).toString();
+    var leftType = this.left.getType(ctx).flatTypeName();
+    var rightType = this.right.getType(ctx).flatTypeName();
     if (ctx.env.registeredOperators[leftType] &&
         ctx.env.registeredOperators[leftType][rightType] &&
         ctx.env.registeredOperators[leftType][rightType][this.operator]) {

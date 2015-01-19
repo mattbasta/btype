@@ -151,8 +151,8 @@ var NODES = {
         if (4 < prec) {
             out = '(' + out + ')';
         }
-        if (this.operator === '-') {
-            out = '(-1 * ' + out + ')';
+        if (this.operator === '~') {
+            out = '(~' + out + ')';
         } else if (this.operator === '!') {
             out = '!(' + typeAnnotation(out, types.publicTypes.int) + ')';
         }

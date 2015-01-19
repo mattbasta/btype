@@ -643,7 +643,8 @@ module.exports = function(tokenizer) {
                     );
                 // Unary operators
                 case '!':
-                    parsed = parseExpression();
+                case '~':
+                    parsed = parseNext(pop(), 4);
                     return node(
                         'Unary',
                         base.start,

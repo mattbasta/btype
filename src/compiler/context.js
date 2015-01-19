@@ -333,9 +333,9 @@ module.exports = function generateContext(env, tree, filename, rootContext, priv
     function traverseOperatorOverloads() {
         if (!operatorOverloads.length) return;
         operatorOverloads.forEach(function(node) {
-            var leftType = node.left.getType(node.__context).toString();
+            var leftType = node.left.getType(node.__context).flatTypeName();
             if (!(leftType in env.registeredOperators)) env.registeredOperators[leftType] = {};
-            var rightType = node.right.getType(node.__context).toString();
+            var rightType = node.right.getType(node.__context).flatTypeName();
             if (!(rightType in env.registeredOperators[leftType])) env.registeredOperators[leftType][rightType] = {};
 
             if (env.registeredOperators[leftType][rightType][node.operator]) {
