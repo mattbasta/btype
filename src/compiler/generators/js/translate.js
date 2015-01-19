@@ -315,7 +315,7 @@ var NODES = {
     },
     New: function(env, ctx) {
         var type = this.getType(ctx);
-        var output = 'new ' + type.typeName;
+        var output = 'new ' + type.flatTypeName();
 
         if (type instanceof types.Struct && type.objConstructor) {
             output += '(' + this.params.map(function(param) {

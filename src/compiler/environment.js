@@ -139,6 +139,7 @@ Environment.prototype.addContext = function(context) {
 };
 
 Environment.prototype.registerType = function(assignedName, type) {
+    type.__assignedName = assignedName;
     this.typeMap[assignedName] = type;
     this.types.push(type);
 };

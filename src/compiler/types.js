@@ -148,8 +148,12 @@ function Struct(name, contentsTypeMap) {
         return true;
     };
 
-    this.toString = this.flatTypeName = function() {
+    this.toString = function() {
         return this.typeName;
+    };
+
+    this.flatTypeName = function() {
+        return 'struct$' + (this.__assignedName || this.typeName);
     };
 
     this.hasMethod = function(name) {
