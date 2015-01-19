@@ -72,7 +72,7 @@ function typeTranslate(type) {
                 }
                 out += '  ; ' + member;
                 return out;
-            })).join('\n    ');
+            }).join('\n    ');
 
             output += '\n}';
             return output;

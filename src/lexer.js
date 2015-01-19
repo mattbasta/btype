@@ -99,6 +99,7 @@ module.exports = function(data) {
             }
             remainingData = remainingData.substr(match[0].length);
             currentLine += match[0].split(/(?:\r\n|\r|\n)/).length - 1;
+            outbound.currentLine = currentLine;
             pointer += match[0].length;
             if (!tokens[i][1] || tokens[i][1] === 'comment') {
                 i = -1;
@@ -108,7 +109,7 @@ module.exports = function(data) {
         }
         return null;
     }
-    return function() {
+    var outbound = function lexerIterator() {
         if (!remainingData.trim()) return 'EOF';
         var token = readToken();
         if (!token) {
@@ -117,6 +118,8 @@ module.exports = function(data) {
         }
         return token;
     };
+    outbound.currentLine = currentLine;
+    return outbound;
 };
 
 module.exports.token = Token;

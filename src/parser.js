@@ -674,7 +674,7 @@ module.exports = function(tokenizer) {
                     return parseFunctionExpression(base);
                 default:
                     if (base.isToken) {
-                        throw new SyntaxError('Invalid token found while parsing expression: ' + base.text);
+                        throw new SyntaxError('Invalid token found while parsing expression: "' + base.text + '"\nNear line ' + tokenizer.currentLine);
                     }
 
                     // This catches complex expressions.

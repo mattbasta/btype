@@ -1,6 +1,6 @@
 var makeName = exports.makeName = function makeName(assignedName) {
-    assignedName = assignedName.replace(/_/g, '__');
-    return assignedName.replace(/$/g, '$d');
+    assignedName = assignedName.replace(/_/g, '.');
+    return assignedName.replace(/\$/g, '_');
 };
 
 exports.getLLVMType = function getLLVMType(type) {

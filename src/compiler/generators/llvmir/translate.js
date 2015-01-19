@@ -4,37 +4,53 @@ var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
 
 
-var OP_PREC = {
-    '*': 5,
-    '/': 5,
-    '%': 5,
+function TranslationContext(env, ctx) {
+    this.env = env;
+    this.ctx = ctx;
 
-    '+': 6,
-    '-': 6,
+    this.outputStack = [''];
+    this.countStack = [0];
+    this.indentation = '';
 
-    '<<': 7,
-    '>>': 7,
+    this.push = function() {
+        this.outputStack.unshift('');
+        this.countStack.unshift(this.countStack[0]);
+        this.indentation += '    ';
+    };
 
-    '<': 8,
-    '<=': 8,
-    '>': 8,
-    '>=': 8,
+    this.pop = function() {
+        var popped = this.outputStack.shift();
+        this.outputStack[0] += popped;
+        this.countStack.shift();
+        this.indentation = this.indentation.substr(4);
+    };
 
-    '==': 9,
-    '!=': 9,
+    this.write = function(data) {
+        this.outputStack[0] += this.indentation + data + '\n';
+    };
 
-    '&': 10,
-    '^': 11,
-    '|': 12,
+    this.prepend = function(data) {
+        this.outputStack[0] = this.indentation + data + '\n' + this.outputStack[0];
+    };
 
-    'and': 13,
-    'or': 14,
-};
+    this.toString = function() {
+        if (this.outputStack.length > 1) {
+            throw new Error('Leaking output in LLVM IR generator');
+        }
+        return this.outputStack[0];
+    };
 
-function _binop(env, ctx, prec) {
+    this.getRegister = function() {
+        return '%' + this.countStack[0]++;
+    };
+}
+
+
+function _binop(env, ctx, tctx) {
     var out;
-    var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
-    var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
+    var left = _node(this.left, env, ctx, tctx);
+    var right = _node(this.right, env, ctx, tctx);
+    var outReg = tctx.getRegister();
 
     var outType = this.getType(ctx);
 
@@ -48,7 +64,12 @@ function _binop(env, ctx, prec) {
         ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator]) {
 
         var operatorStmtFunc = ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator];
-        return operatorStmtFunc + '(' + left + ',' + right + ')';
+
+        tctx.write(outReg + ' = call fastcc ' + getLLVMType(outType) + ' @' + makeName(operatorStmtFunc) + '(' +
+            getLLVMType(leftType) + ' ' + left + ', ' +
+            getLLVMType(rightType) + ' ' + right +
+            ')');
+        return outReg;
     }
 
     switch (this.operator) {
@@ -66,7 +87,7 @@ function _binop(env, ctx, prec) {
 
             out = 'add ';
             if (outType.typeName === 'uint') out += 'nuw';
-            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'byte') out += 'nuw';
             else if (outType.typeName === 'int') out += 'nsw';
             break;
 
@@ -78,7 +99,7 @@ function _binop(env, ctx, prec) {
 
             out = 'sub ';
             if (outType.typeName === 'uint') out += 'nuw';
-            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'byte') out += 'nuw';
             else if (outType.typeName === 'int') out += 'nsw';
             break;
 
@@ -90,7 +111,7 @@ function _binop(env, ctx, prec) {
 
             out = 'mul ';
             if (outType.typeName === 'uint') out += 'nuw';
-            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'byte') out += 'nuw';
             else if (outType.typeName === 'int') out += 'nsw';
             break;
 
@@ -121,7 +142,7 @@ function _binop(env, ctx, prec) {
         case '<<':
             out = 'shl ';
             if (outType.typeName === 'uint') out += 'nuw';
-            if (outType.typeName === 'byte') out += 'nuw';
+            else if (outType.typeName === 'byte') out += 'nuw';
             else if (outType.typeName === 'int') out += 'nsw';
             break;
 
@@ -144,49 +165,50 @@ function _binop(env, ctx, prec) {
             throw new Error('Unknown binary operator: ' + this.operator);
     }
 
-    out += getLLVMType(outType) + ' ' + left + ', ' + right;
-    return '(' + out + ')';
+    tctx.write(outReg + ' = ' + out + ' ' + getLLVMType(outType) + ' ' + left + ', ' + right);
+    return outReg;
 }
 
-function _node(node, env, ctx, prec) {
-    return NODES[node.type].call(node, env, ctx, prec);
+function _node(node, env, ctx, tctx, extra) {
+    return NODES[node.type].call(node, env, ctx, tctx, extra);
 }
 
 var NODES = {
-    Root: function(env, ctx) {
+    Root: function(env, ctx, tctx) {
         env.__globalPrefix = '';
-        var output = this.body.map(function(stmt) {
-            return _node(stmt, env, ctx, 0);
-        }).join('\n');
-        output = env.__globalPrefix + output;
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.prepend(env.__globalPrefix);
         delete env.__globalPrefix;
-        delete env.__hasImul;
-        return output;
     },
-    Unary: function(env, ctx, prec) {
-        // Precedence here will always be 4.
-        var out = _node(this.base, env, ctx, 4);
+    Unary: function(env, ctx, tctx) {
+        var out = _node(this.base, env, ctx, tctx);
         var outType = this.getType(ctx);
 
+        var reg = tctx.getRegister();
         switch (this.operator) {
             case '~':
-                return 'xor ' + getLLVMType(outType) + ' ' + out + ', 1';
+                tctx.write(reg + ' = xor ' + getLLVMType(outType) + ' ' + out + ', 1');
             case '!':
-                return 'xor i1 ' + out + ', 1';
+                tctx.write(reg + ' = xor i1 ' + out + ', 1');
+            default:
+                throw new Error('Undefined unary operator: ' + this.operator);
         }
 
-        throw new Error('Undefined unary operator: ' + this.operator);
+        return reg;
     },
     LogicalBinop: _binop,
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
-    CallStatement: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 0, 'stmt');
+    CallStatement: function(env, ctx, tctx) {
+        // TODO: Is there a GC issue here?
+        _node(this.base, env, ctx, tctx, 'stmt');
     },
-    CallRaw: function(env, ctx, prec, extra) {
-
-        var output = 'call ';
+    CallRaw: function(env, ctx, tctx, extra) {
+        var outReg = tctx.getRegister();
+        var output = outReg + ' = call ';
 
         // `fastcc` is a calling convention that attempts to make the call as
         // fast as possible.
@@ -196,35 +218,37 @@ var NODES = {
         if (extra === 'stmt') {
             // Tell LLVM that we don't care about the return type because this
             // is a call statement.
+            // TODO: Is this correct?
             output += 'void ';
         } else {
             output += getLLVMType(this.getType(ctx)) + ' ';
         }
 
-        output += _node(this.callee, env, ctx, 1);
+        output += _node(this.callee, env, ctx, tctx);
 
         output += '(';
 
         output += this.params.map(function(param) {
             var paramType = param.getType(ctx);
-            return getLLVMType(paramType) + ' ' + _node(param, env, ctx, 18);
+            return getLLVMType(paramType) + ' ' + _node(param, env, ctx, tctx);
         }).join(', ');
 
         output += ')';
 
-        return output;
+        tctx.write(output);
+        return outReg;
 
     },
-    CallDecl: function(env, ctx, prec) {
+    CallDecl: function(env, ctx, tctx, extra) {
         return NODES.CallRaw.apply(this, arguments);
     },
-    CallRef: function(env, ctx, prec) {
+    CallRef: function(env, ctx, tctx, extra) {
         throw new Error('Not Implemented');
     },
-    FunctionReference: function(env, ctx, prec) {
+    FunctionReference: function(env, ctx, tctx) {
         throw new Error('Not Implemented');
     },
-    Member: function(env, ctx, prec, parent) {
+    Member: function(env, ctx, tctx, parent) {
         var baseType = this.base.getType(ctx);
         if (baseType._type === 'module') {
             return baseType.memberMapping[this.child];
@@ -257,234 +281,150 @@ var NODES = {
         }
 
         if (baseType._type === '_foreign_curry') {
-            return _node(this.base, env, ctx, 1);
+            return _node(this.base, env, ctx, tctx);
         }
 
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
             throw new Error('Not Implemented');
             var objectMethodFunc = ctx.lookupFunctionByName(baseType.getMethod(this.child));
             var objectMethodFuncIndex = env.registerFunc(objectMethodFunc);
-            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, 1) + ')|0) | 0)';
+            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, tctx) + ')|0) | 0)';
         }
 
         var layoutIndex = baseType.getLayoutIndex(this.child);
+        var outReg = tctx.getRegister();
 
-        return 'extractvalue ' +
+        tctx.write(outReg + ' = extractvalue ' +
             getLLVMType(this.getType(ctx)) + ' ' +
-            _node(this.base, env, ctx, 1),
+            _node(this.base, env, ctx, tctx),
             ', ' +
-            layoutIndex;
+            layoutIndex);
+        return outReg;
     },
-    Assignment: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1);
+    Assignment: function(env, ctx, tctx) {
+        tctx.write(_node(this.base, env, ctx, tctx) + ' = ' + _node(this.value, env, ctx, tctx));
     },
-    Declaration: function(env, ctx, prec) {
-        return makeName(this.__assignedName) + ' = ' + _node(this.value, env, ctx, 17);
+    Declaration: function(env, ctx, tctx) {
+        tctx.write('%' + makeName(this.__assignedName) + ' = ' + _node(this.value, env, ctx, tctx));
     },
     ConstDeclaration: function() {
-        return NODES.Declaration.apply(this, arguments);
+        NODES.Declaration.apply(this, arguments);
     },
-    Return: function(env, ctx, prec) {
+    Return: function(env, ctx, tctx) {
         if (!this.value) {
-            if (ctx.scope.__objectSpecial === 'constructor') {
-                return 'return ' + ctx.scope.params[0].__assignedName + ';';
-            }
-            return 'return;';
+            tctx.write('ret void');
+            return;
         }
-        return 'return ' + _node(this.value, env, ctx, 1) + ';';
+        tctx.write('ret ' + getLLVMType(this.value.getType(ctx)) + ' ' + _node(this.value, env, ctx, tctx));
     },
-    Export: function() {return '';},
-    Import: function() {return '';},
-    For: function(env, ctx, prec) {
-        return 'for (' +
-            _node(this.assignment, env, ctx, 0) +
-            _node(this.condition, env, ctx, 0) + ';' +
-            (this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
-            ') {' +
-            this.loop.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    Export: function() {},
+    Import: function() {},
+    For: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
-    DoWhile: function(env, ctx, prec) {
-        return 'do {' +
-            this.loop.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '} while (' +
-            _node(this.condition, env, ctx, 0) +
-            ');';
+    DoWhile: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
-    While: function(env, ctx, prec) {
-        return 'while (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.loop.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    While: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
-    Switch: function(env, ctx, prec) {
-        return 'switch (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.cases.map(function(_case) {
-                return _node(_case, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    Switch: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
-    Case: function(env, ctx, prec) {
-        return 'case ' +
-            _node(this.value, env, ctx, 0) +
-            ';\n' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n');
-            // TODO: force a break until break is supported?
+    Case: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
-    If: function(env, ctx, prec) {
-        return 'if (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.consequent.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}' +
-            (this.alternate ? ' else {' + this.alternate.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') + '}' : '');
+    If: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
-    Function: function(env, ctx, prec) {
+    Function: function(env, ctx, tctx) {
         var context = this.__context;
         var funcType = this.getType(ctx);
         var returnType = funcType.getReturnType();
 
-        var output = 'define @' + makeName(this.__assignedName) + ' ' +
+        tctx.write('define @' + makeName(this.__assignedName) + ' ' +
             (returnType ? getLLVMType(returnType) : 'void') +
             ' (' +
             this.params.map(function(param) {
-                return getLLVMType(param.getType(ctx)) + ' ' + _node(param, env, context, 1);
-            }).join(', ') + ') nounwind {\n' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, context, 0);
-            }).join('\n');
+                return getLLVMType(param.getType(ctx)) + ' ' + _node(param, env, context);
+            }).join(', ') + ') nounwind {');
 
-        output += '\n}';
-        return output;
+        tctx.push();
+
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, context, tctx);
+        });
+
+        tctx.pop();
+
+        tctx.write('}');
     },
-    OperatorStatement: function(env, ctx, prec) {
-        return 'define @' + makeName(this.__assignedName) +
+    OperatorStatement: function(env, ctx, tctx) {
+        tctx.write('define @' + makeName(this.__assignedName) +
             getLLVMType(this.returnType.getType(ctx)) +
             ' (' +
-            getLLVMType(this.left.getType(ctx)) + ' ' +  _node(this.left, env, ctx, 1) + ', ' +
-            getLLVMType(this.right.getType(ctx)) + ' ' +  _node(this.right, env, ctx, 1) +
-            ') nounwind {\n    ' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n    ') + '\n}';
+            getLLVMType(this.left.getType(ctx)) + ' ' +  _node(this.left, env, ctx, tctx) + ', ' +
+            getLLVMType(this.right.getType(ctx)) + ' ' +  _node(this.right, env, ctx, tctx) +
+            ') nounwind {');
+
+        tctx.push();
+
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+
+        tctx.pop();
+
+        tctx.write('}');
     },
-    TypedIdentifier: function(env, ctx, prec) {
+    TypedIdentifier: function(env, ctx, tctx) {
         return makeName(this.__assignedName);
     },
-    Literal: function(env, ctx) {
+    Literal: function(env, ctx, tctx) {
         if (this.value === true) return 'true';
         if (this.value === false) return 'false';
         if (this.value === null) return 'null';
         return getLLVMType(this.getType(ctx)) + ' ' + this.value.toString();
     },
     Symbol: function() {
-        return makeName(this.__refName);
+        return '%' + makeName(this.__refName);
     },
-    New: function(env, ctx) {
-        var type = this.getType(ctx);
-        var output = 'new ' + type.typeName;
-
-        if (type instanceof types.Struct && type.objConstructor) {
-            output += '(' + this.params.map(function(param) {
-                return _node(param, env, ctx, 1);
-            }).join(', ') + ')';
-        } else {
-            output += '()';
-        }
-
-        return output;
+    New: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
 
     Break: function() {
-        return 'break;';
+        throw new Error('Not Implemented');
     },
     Continue: function() {
-        return 'continue;';
+        throw new Error('Not Implemented');
     },
 
-    ObjectDeclaration: function(env, ctx) {
-        var output = '';
-
+    ObjectDeclaration: function(env, ctx, tctx) {
         if (this.objConstructor) {
-            output = _node(this.objConstructor, env, ctx, 0) + '\n';
+            _node(this.objConstructor, env, ctx, tctx) + '\n';
         }
 
-        output += this.methods.map(function(method) {
-            return _node(method, env, ctx, 0);
-        }).join('\n');
-
-        return output;
+        this.methods.forEach(function(method) {
+            _node(method, env, ctx, tctx);
+        });
     },
-    ObjectMember: function() {
-        return '';
+    ObjectMember: function() {},
+    ObjectMethod: function(env, ctx, tctx) {
+        _node(this.base, env, ctx, tctx);
     },
-    ObjectMethod: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, prec);
-    },
-    ObjectConstructor: function(env, ctx, prec) {
+    ObjectConstructor: function(env, ctx, tctx) {
         // Constructors are merged with the JS constructor in `typeTranslate`
         // in the JS generate module.
-        return '';
     },
 
-    TypeCast: function(env, ctx, prec) {
-        var baseType = this.left.getType(ctx);
-        var targetType = this.rightType.getType(ctx);
-
-        var base = _node(this.left, env, ctx, 1);
-        if (baseType.equals(targetType)) return base;
-
-        switch (baseType.typeName) {
-            case 'int':
-                switch (targetType.typeName) {
-                    case 'uint': return 'int2uint(' + base + ')';
-                    case 'float': return '(+(' + base + '))';
-                    case 'byte': return base;
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'uint':
-                switch (targetType.typeName) {
-                    case 'int': return 'uint2int(' + base + ')';
-                    case 'float': return '(+(' + base + '))';
-                    case 'byte': return base;
-                    case 'bool': return '(' + base + ' != 0)';
-                }
-            case 'float':
-                switch (targetType.typeName) {
-                    case 'uint': return 'float2uint(' + base + ')';
-                    case 'int': return '(' + base + '|0)';
-                    case 'byte': return '(' + base + '|0)';
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'byte':
-                switch (targetType.typeName) {
-                    case 'uint': return base;
-                    case 'int': return base;
-                    case 'float': return '(+(' + base + '))';
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'bool':
-                return '(' + base + '?1:0)';
-        }
-
+    TypeCast: function(env, ctx, tctx) {
+        throw new Error('Not Implemented');
     },
 };
 
 module.exports = function translate(ctx) {
-    return _node(ctx.scope, ctx.env, ctx, 0);
+    var tctx = new TranslationContext(ctx.env, ctx);
+    _node(ctx.scope, ctx.env, ctx, tctx);
+    return tctx.toString();
 };
