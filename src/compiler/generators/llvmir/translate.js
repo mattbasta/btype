@@ -368,10 +368,37 @@ var NODES = {
         throw new Error('Not Implemented');
     },
     DoWhile: function(env, ctx, tctx) {
-        throw new Error('Not Implemented');
+        var loopLbl = tctx.getUniqueLabel('loop');
+        var afterLbl = tctx.getUniqueLabel('after');
+
+        tctx.write(loopLbl + ':', true);
+
+        this.loop.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+
+        var condition = _node(this.condition, env, ctx, tctx);
+        tctx.write('br i1 ' + condition + ', label %' + loopLbl + ', label %' + afterLbl);
+        tctx.write(afterLbl + ':', true);
     },
     While: function(env, ctx, tctx) {
-        throw new Error('Not Implemented');
+        var beforeLbl = tctx.getUniqueLabel('before');
+        tctx.write(beforeLbl + ':', true);
+
+        var condition = _node(this.condition, env, ctx, tctx);
+
+        var loopLbl = tctx.getUniqueLabel('loop');
+        var afterLbl = tctx.getUniqueLabel('after');
+
+        tctx.write('br i1 ' + condition + ', label %' + loopLbl + ', label %' + afterLbl);
+        tctx.write(loopLbl + ':', true);
+
+        this.loop.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+
+        tctx.write('br label %' + afterLbl);
+        tctx.write(afterLbl + ':', true);
     },
     Switch: function(env, ctx, tctx) {
         throw new Error('Not Implemented');
@@ -380,7 +407,6 @@ var NODES = {
         throw new Error('Not Implemented');
     },
     If: function(env, ctx, tctx) {
-
         var condition = _node(this.condition, env, ctx, tctx);
 
         var consequentLbl = tctx.getUniqueLabel('conseq');
