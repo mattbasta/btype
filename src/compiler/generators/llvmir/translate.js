@@ -365,7 +365,24 @@ var NODES = {
     Export: function() {},
     Import: function() {},
     For: function(env, ctx, tctx) {
-        throw new Error('Not Implemented');
+        var innerLbl = tctx.getUniqueLabel('inner');
+        var afterLbl = tctx.getUniqueLabel('after');
+
+        _node(this.assignment, env, ctx, tctx);
+
+        var loopLbl = tctx.getUniqueLabel('loop');
+        tctx.write(loopLbl + ':', true);
+
+        var condResult = _node(this.condition, env, ctx, tctx);
+        tctx.write('br i1 ' + condResult + ', label %' + innerLbl + ', label %' + afterLbl);
+        tctx.write(innerLbl + ':', true);
+
+        this.loop.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+
+        tctx.write('br label %' + loopLbl);
+        tctx.write(afterLbl + ':', true);
     },
     DoWhile: function(env, ctx, tctx) {
         var loopLbl = tctx.getUniqueLabel('loop');
@@ -403,9 +420,7 @@ var NODES = {
     Switch: function(env, ctx, tctx) {
         throw new Error('Not Implemented');
     },
-    Case: function(env, ctx, tctx) {
-        throw new Error('Not Implemented');
-    },
+    Case: function() {},
     If: function(env, ctx, tctx) {
         var condition = _node(this.condition, env, ctx, tctx);
 
