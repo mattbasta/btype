@@ -12,6 +12,8 @@ function TranslationContext(env, ctx) {
     this.countStack = [0];
     this.indentation = '';
 
+    this.uniqCounter = 0;
+
     this.push = function() {
         this.outputStack.unshift('');
         this.countStack.unshift(this.countStack[0]);
@@ -25,12 +27,12 @@ function TranslationContext(env, ctx) {
         this.indentation = this.indentation.substr(4);
     };
 
-    this.write = function(data) {
-        this.outputStack[0] += this.indentation + data + '\n';
+    this.write = function(data, noIndent) {
+        this.outputStack[0] += (noIndent ? '' : this.indentation) + data + '\n';
     };
 
-    this.prepend = function(data) {
-        this.outputStack[0] = this.indentation + data + '\n' + this.outputStack[0];
+    this.prepend = function(data, noIndent) {
+        this.outputStack[0] = (noIndent ? '' : this.indentation) + data + '\n' + this.outputStack[0];
     };
 
     this.toString = function() {
@@ -42,6 +44,10 @@ function TranslationContext(env, ctx) {
 
     this.getRegister = function() {
         return '%' + this.countStack[0]++;
+    };
+
+    this.getUniqueLabel = function(prefix) {
+        return (prefix || 'lbl') + (this.uniqCounter++);
     };
 }
 
@@ -159,6 +165,45 @@ function _binop(env, ctx, tctx) {
             break;
         case '^':
             out = 'xor';
+            break;
+
+        case '==':
+            if (outType.typeName === 'float') out = 'fcmp oeq';
+            else out = 'icmp eq';
+            break;
+
+        case '!=':
+            if (outType.typeName === 'float') out = 'fcmp one';
+            else out = 'icmp neq';
+            break;
+
+        case '>':
+            if (outType.typeName === 'uint') out = 'icmp ugt';
+            else if (outType.typeName === 'byte') out = 'icmp ugt';
+            else if (outType.typeName === 'int') out = 'icmp sgt';
+            else if (outType.typeName === 'float') out = 'fcmp ogt';
+            break;
+
+
+        case '>=':
+            if (outType.typeName === 'uint') out = 'icmp uge';
+            else if (outType.typeName === 'byte') out = 'icmp uge';
+            else if (outType.typeName === 'int') out = 'icmp sge';
+            else if (outType.typeName === 'float') out = 'fcmp oge';
+            break;
+
+        case '<':
+            if (outType.typeName === 'uint') out = 'icmp ult';
+            else if (outType.typeName === 'byte') out = 'icmp ult';
+            else if (outType.typeName === 'int') out = 'icmp slt';
+            else if (outType.typeName === 'float') out = 'fcmp olt';
+            break;
+
+        case '<=':
+            if (outType.typeName === 'uint') out = 'icmp ule';
+            else if (outType.typeName === 'byte') out = 'icmp ule';
+            else if (outType.typeName === 'int') out = 'icmp sle';
+            else if (outType.typeName === 'float') out = 'fcmp ole';
             break;
 
         default:
@@ -335,7 +380,31 @@ var NODES = {
         throw new Error('Not Implemented');
     },
     If: function(env, ctx, tctx) {
-        throw new Error('Not Implemented');
+
+        var condition = _node(this.condition, env, ctx, tctx);
+
+        var consequentLbl = tctx.getUniqueLabel('conseq');
+        var afterLbl = tctx.getUniqueLabel('after');
+        var alternateLbl = this.alternate ? tctx.getUniqueLabel('alternate') : afterLbl;
+
+        tctx.write('br i1 ' + condition + ', label %' + consequentLbl + ', label %' + alternateLbl);
+        tctx.write(consequentLbl + ':', true);
+
+        this.consequent.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+
+        tctx.write('br label %' + afterLbl);
+
+        if (this.alternate) {
+            tctx.write(alternateLbl + ':', true);
+            this.alternate.forEach(function(stmt) {
+                _node(stmt, env, ctx, tctx);
+            });
+        }
+
+        tctx.write(afterLbl + ':', true);
+
     },
     Function: function(env, ctx, tctx) {
         var context = this.__context;
