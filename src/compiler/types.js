@@ -327,9 +327,9 @@ var private_ = exports.privateTypes = {
     'uint': new Primitive('uint', 'uint32')
 };
 
-// public_.str = new Struct('str', {
-//     _data: new Slice(private_.byte),
-// });
+public_.str = new Struct('str', {
+    _data: new Slice(private_.byte),
+});
 
 exports.resolve = function(typeName, privileged) {
     if (typeName in public_) return public_[typeName];
