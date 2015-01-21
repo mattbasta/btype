@@ -24,7 +24,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     7,
-                                    13,
+                                    12,
                                     {
                                         callee: _i('foo'),
                                         params: []
@@ -56,7 +56,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     5,
-                                    12,
+                                    11,
                                     {
                                         callee: _i('foo'),
                                         params: []
@@ -88,7 +88,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     7,
-                                    13,
+                                    12,
                                     {
                                         callee: _i('foo'),
                                         params: []
@@ -104,7 +104,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     21,
-                                    27,
+                                    26,
                                     {
                                         callee: _i('bar'),
                                         params: []
@@ -135,7 +135,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     5,
-                                    12,
+                                    11,
                                     {
                                         callee: _i('foo'),
                                         params: []
@@ -151,7 +151,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     17,
-                                    24,
+                                    23,
                                     {
                                         callee: _i('bar'),
                                         params: []
@@ -182,7 +182,7 @@ describe('Conditional parser', function() {
                                 base: node(
                                     'CallRaw',
                                     5,
-                                    12,
+                                    11,
                                     {
                                         callee: _i('foo'),
                                         params: []
@@ -204,7 +204,7 @@ describe('Conditional parser', function() {
                                         base: node(
                                             'CallRaw',
                                             24,
-                                            30,
+                                            29,
                                             {
                                                 callee: _i('bar'),
                                                 params: []

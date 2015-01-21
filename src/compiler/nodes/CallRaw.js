@@ -62,7 +62,7 @@ exports.__getName = function __getName() {
 
 exports.toString = function toString() {
     return this.__getName() + ':\n' +
-           '    Base:\n' +
+           '    Callee:\n' +
            indentEach(this.callee.toString(), 2) + '\n' +
            '    Args:\n' +
            indentEach(this.params.map(function(param) {return param.toString();}).join('\n'), 2) + '\n';

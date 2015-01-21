@@ -85,7 +85,7 @@ Token.prototype.toString = function() {
     return '[token ' + this.type + ']';
 };
 
-module.exports = function(data) {
+module.exports = function Lexer(data) {
     var pointer = 0;
     var remainingData = data;
     var currentLine = 1;

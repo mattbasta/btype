@@ -5,7 +5,7 @@ function node(name, start, end, args) {
     return new (nodes[name])(start, end, args);
 }
 
-module.exports = function(tokenizer) {
+module.exports = function Parser(tokenizer) {
     var peeked = null;
     function peek() {
         return peeked || (peeked = tokenizer());
@@ -40,9 +40,8 @@ module.exports = function(tokenizer) {
         return temp;
     }
 
-    function parseFunctionDeclaration() {
-        var func;
-        if (!(func = accept('func'))) return;
+    function parseFunctionDeclaration(func) {
+        if (!func && !(func = accept('func'))) return;
 
         if (peek().type === '<') {
             return parseDeclaration(func);
@@ -364,7 +363,7 @@ module.exports = function(tokenizer) {
     }
     function parseDeclaration(type, start, isConst) {
         var origType = type;
-        if (type && type.type !== 'Type') {
+        if (type && (type.type !== 'Type' && type.type !== 'TypeMember')) {
             type = parseType(type);
             if (origType.type === 'func') {
                 assert(':');
@@ -390,27 +389,10 @@ module.exports = function(tokenizer) {
         if (base && base.type === 'CallRaw') {
             throw new SyntaxError('Assignment to function call output');
         }
+
         if (!isExpression) {
-            var start;
-            var isConst = false;
-            if (start = accept('var')) {
-                return parseDeclaration(null, start.start, false);
-            } else if (start = accept('const')) {
-                return parseDeclaration(null, start.start, true);
-            }
-            base = accept('identifier');
-            if (base && accept(':')) {
-                return parseDeclaration(base);
-            }
             var expr = parseExpression(base);
             expr.end = assert(';').end;
-            if (expr.type === 'CallRaw') {
-                expr = node(
-                    'CallStatement',
-                    expr.start, expr.end,
-                    {base: expr}
-                );
-            }
             return expr;
         }
 
@@ -708,7 +690,7 @@ module.exports = function(tokenizer) {
 
         var output;
 
-        if (peek().type === '.') {
+        if (!traits.length && peek().type === '.') {
             output = node(
                 'Symbol',
                 type.start,
@@ -754,6 +736,152 @@ module.exports = function(tokenizer) {
             ident.end,
             {idType: type, name: ident.text}
         );
+    }
+
+    function parseExpressionBase() {
+        // This function recursively accumulates tokens until the proper node
+        // can be determined.
+
+        var peeked;
+        var temp;
+        var base = accept('func');
+        // If the first token is `func`, we've got two options:
+        // - Variable declaration: func<foo>:bar = ...
+        // - Function declaration: func foo:bar()...
+        // Fortunately, `parseFunctionDeclaration` does both of these for us.
+        if (base) {
+            return parseFunctionDeclaration(base);
+        }
+
+        peeked = peek();
+
+        // Another option is a paren, which allows its contents to be any valid
+        // expression:
+        //   (foo as Bar).member = ...
+        //   (foo as Bar).method();
+        // This is all handled by parseAssignment.
+        if (peeked.type === '(') {
+            return parseAssignment();
+        }
+
+        // `var` and `const` are giveaways for a Declaration node.
+        if (peeked.type === 'var' ||
+            peeked.type === 'const') {
+            temp = pop();
+            return parseDeclaration(null, temp.start, temp.type === 'const');
+        }
+
+        // At this point, the only valid token is an identifier.
+        base = assert('identifier');
+
+        function convertStackToTypeMember(stack) {
+            var bottomToken = stack.shift();
+            var bottom = node(
+                'Symbol',
+                bottomToken.start,
+                bottomToken.end,
+                {name: bottomToken.text}
+            );
+            var token;
+            while (stack.length) {
+                token = stack.shift();
+                bottom = node(
+                    'TypeMember',
+                    bottom.start,
+                    token.end,
+                    {
+                        base: bottom,
+                        child: token.text,
+                    }
+                );
+            }
+
+            return bottom;
+        }
+
+        function convertStackToMember(stack) {
+            var bottomToken = stack.shift();
+            var bottom = node(
+                'Symbol',
+                bottomToken.start,
+                bottomToken.end,
+                {name: bottomToken.text}
+            );
+            var token;
+            while (stack.length) {
+                token = stack.shift();
+                bottom = node(
+                    'Member',
+                    bottom.start,
+                    token.end,
+                    {
+                        base: bottom,
+                        child: token.text,
+                    }
+                );
+            }
+
+            return bottom;
+        }
+
+        function accumulate(base) {
+            if (accept('.')) {
+                // We're still accumulating a chain of identifiers into either
+                // a Member node or a TypeMember node for a TypedIdentifier.
+                base.push(assert('identifier'));
+                return accumulate(base);
+            }
+            var peeked = peek();
+            var temp;
+            var semicolon;
+            if (peeked.type === ':') {
+                // We've parsed the type of a declaration.
+                if (base.length === 1) {
+                    temp = parseType(base[0]);
+                } else {
+                    temp = convertStackToTypeMember(base);
+                }
+                assert(':'); // for sanity and to pop
+                return parseDeclaration(temp);
+            } else if (peeked.type === '<') {
+                // We've encountered the traits chunk of a typed identifier.
+                if (base.length === 1) {
+                    temp = parseType(base[0]);
+                } else {
+                    temp = parseType(convertStackToTypeMember(base));
+                }
+                assert(':'); // for sanity and to pop
+                return parseDeclaration(temp);
+            }
+            if (peeked.type === '(') {
+                // We've hit a call. This means that we can defer to the normal
+                // expression parse flow because it cannot be a declaration:
+                //   foo.bar() ...
+                temp = convertStackToMember(base);
+                temp = parseExpression(temp, 0);
+                semicolon = assert(';');
+                if (temp.type === 'CallRaw') {
+                    temp = node(
+                        'CallStatement',
+                        temp.start, semicolon.end,
+                        {base: temp}
+                    );
+                }
+                temp.end = semicolon.end;
+                return temp;
+            }
+            if (peeked.type === '=') {
+                // We've hit an assignment:
+                //   foo.bar.zap = ...
+                temp = convertStackToMember(base);
+                temp = parseAssignment(true, temp);
+                semicolon = assert(';');
+                temp.end = semicolon.end;
+                return temp;
+            }
+            throw new SyntaxError('Unexpected token "' + peek().text + '" near line ' + tokenizer.currentLine);
+        }
+        return accumulate([base]);
     }
 
     function parseBreak() {
@@ -1038,7 +1166,7 @@ module.exports = function(tokenizer) {
                parseFor() ||
                parseBreak() ||
                parseContinue() ||
-               parseAssignment();
+               parseExpressionBase();
     }
 
     function parseStatements(endTokens, isRoot) {

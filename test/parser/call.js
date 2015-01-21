@@ -18,7 +18,7 @@ describe('Call parser', function() {
                         base: node(
                             'CallRaw',
                             0,
-                            6,
+                            5,
                             {
                                 callee: _i('foo'),
                                 params: []
@@ -65,7 +65,7 @@ describe('Call parser', function() {
                         base: node(
                             'CallRaw',
                             0,
-                            17,
+                            16,
                             {
                                 callee: _i('foo'),
                                 params: [
@@ -100,7 +100,7 @@ describe('Call parser', function() {
                         base: node(
                             'CallRaw',
                             0,
-                            8,
+                            7,
                             {
                                 callee: node(
                                     'CallRaw',
