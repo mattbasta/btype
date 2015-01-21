@@ -26,7 +26,7 @@ var OP_PREC = {
 };
 
 var HEAP_MODIFIERS = {
-    memheap: '>>1',
+    memheap: '>>0',
     intheap: '>>2',
     floatheap: '>>3',
     ptrheap: '>>2',
@@ -301,7 +301,7 @@ var NODES = {
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
-        var lookup = typedArr + '[' + _node(this.base, env, ctx, 1) + ' + ' + (layout[this.child] + 8) + HEAP_MODIFIERS[typedArr] + ']';
+        var lookup = typedArr + '[((' + _node(this.base, env, ctx, 1) + ') + (' + (layout[this.child] + 8) + '))' + HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
         }
@@ -312,7 +312,7 @@ var NODES = {
 
         var valueType = this.value.getType(ctx);
         if (valueType._type !== 'primitive') {
-            baseContent = 'gcref((' + baseContent + ')|0)';
+            baseContent = '(gcref((' + baseContent + ')|0)|0)';
         }
         return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' + baseContent + ';';
     },
@@ -507,7 +507,7 @@ var NODES = {
         var output = '(gcref(calloc(' + (type.getSize() + 8) + ')|0)|0)';
         if (type instanceof types.Struct && type.objConstructor) {
             output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
-                return _node(param, env, ctx, 1);
+                return typeAnnotation(_node(param, env, ctx, 1), param.getType(ctx));
             }).join(', ') : '') + ')|0)';
         }
 
@@ -606,9 +606,9 @@ var NODES = {
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
-        var lookup = typedArr + '[(' +
+        var lookup = typedArr + '[((' +
             // +8 for memory overhead, +4 for the array length
-            _node(this.base, env, ctx, 1) + ') + (' + _node(this.subscript, env, ctx, 1) + ') + 12' +
+            _node(this.base, env, ctx, 1) + ') + (' + _node(this.subscript, env, ctx, 1) + ') + 12)' +
             HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
