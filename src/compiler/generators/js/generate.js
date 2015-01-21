@@ -36,7 +36,18 @@ function makeModule(env, ENV_VARS, body) {
     ].join('\n');
 }
 
-function typeTranslate(type) {
+function extend(base, members) {
+    var obj = {};
+    for (var i in base) {
+        obj[i] = base[i];
+    }
+    for (var i in members) {
+        obj[i] = members[i];
+    }
+    return obj;
+}
+
+function typeTranslate(type, context) {
     var output = '';
     switch (type._type) {
         case 'primitive':
@@ -72,7 +83,7 @@ function typeTranslate(type) {
             if (type.objConstructor) {
                 output += 'var ' + selfName + ' = this;\n';
                 constructorFunc.body.forEach(function(bodyItem) {
-                    output += jsTranslate({scope: bodyItem, env: this});
+                    output += jsTranslate(extend(context, {scope: bodyItem, env: this}));
                 }, this);
             }
             output += '}';
@@ -100,7 +111,13 @@ module.exports = function generate(env, ENV_VARS) {
 
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/casting.js')).toString();
 
-    body += env.types.map(typeTranslate, env).join('\n\n') + '\n';
+    body += env.types.map(function(type) {
+        return typeTranslate.call(
+            env,
+            type,
+            env.typeContextMap[type.__assignedName]
+        );
+    }, env).join('\n\n') + '\n';
     body += env.included.map(jsTranslate).join('\n\n');
 
     if (env.inits.length) {

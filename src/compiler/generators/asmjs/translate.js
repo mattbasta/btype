@@ -32,6 +32,14 @@ var HEAP_MODIFIERS = {
     ptrheap: '>>2',
 };
 
+function trimSemicolon(inp) {
+    inp = inp.trim();
+    if (inp[inp.length - 1] === ';') {
+        inp = inp.substr(0, inp.length - 1);
+    }
+    return inp;
+}
+
 function _binop(env, ctx, prec) {
     var out;
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
@@ -342,8 +350,8 @@ var NODES = {
         return 'for (' +
             _node(this.assignment, env, ctx, 0) +
             _node(this.condition, env, ctx, 0) + ';' +
-            (this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
-            ') {' +
+            trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
+            ') {\n' +
             this.loop.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') +
@@ -584,6 +592,30 @@ var NODES = {
         }
 
     },
+
+    Subscript: function(env, ctx, prec, parent) {
+        var baseType = this.base.getType(ctx);
+        if (baseType._type !== 'array') {
+            throw new Error('Cannot subscript non-arrays in asmjs');
+        }
+
+        var childType = baseType.contentsType;
+        var typedArr = 'ptrheap';
+        if (childType.typeName === 'float') typedArr = 'floatheap';
+        else if (childType.typeName === 'byte') typedArr = 'memheap';
+        else if (childType.typeName === 'bool') typedArr = 'memheap';
+        else if (childType.typeName === 'int') typedArr = 'intheap';
+
+        var lookup = typedArr + '[(' +
+            // +8 for memory overhead, +4 for the array length
+            _node(this.base, env, ctx, 1) + ') + (' + _node(this.subscript, env, ctx, 1) + ') + 12' +
+            HEAP_MODIFIERS[typedArr] + ']';
+        if (parent !== 'Assignment' && parent !== 'Return') {
+            lookup = typeAnnotation(lookup, childType);
+        }
+        return lookup;
+    },
+
 };
 
 module.exports = function translate(ctx) {

@@ -34,6 +34,8 @@ function Environment(name) {
 
     // Mapping of assigned type names to types
     this.typeMap = {};
+    // Mapping of assigned type names to host contexts
+    this.typeContextMap = {};
     // Set of types
     this.types = [];
     // Mapping of stringified constructed types to constructed types
@@ -138,9 +140,10 @@ Environment.prototype.addContext = function(context) {
     this.included.push(context);
 };
 
-Environment.prototype.registerType = function(assignedName, type) {
+Environment.prototype.registerType = function(assignedName, type, context) {
     type.__assignedName = assignedName;
     this.typeMap[assignedName] = type;
+    this.typeContextMap[assignedName] = context;
     this.types.push(type);
 };
 

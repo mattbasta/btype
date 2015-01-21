@@ -27,7 +27,6 @@ exports.getType = function getType(ctx) {
         return this.__type = new types.Array(this.traits[0].getType(ctx));
     }
 
-    if (this.name === 'date') debugger;
     return this.__type = ctx.resolveType(this.name);
 };
 

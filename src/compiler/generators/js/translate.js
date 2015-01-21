@@ -28,6 +28,14 @@ var OP_PREC = {
     'or': 14,
 };
 
+function trimSemicolon(inp) {
+    inp = inp.trim();
+    if (inp[inp.length - 1] === ';') {
+        inp = inp.substr(0, inp.length - 1);
+    }
+    return inp;
+}
+
 function _binop(env, ctx, prec) {
     var out;
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
@@ -51,6 +59,9 @@ function _binop(env, ctx, prec) {
             break;
         case 'or':
             out = left + ' || ' + right;
+            break;
+        case '==':
+            out = left + ' === ' + right;
             break;
         case '*':
             if (this.left.getType(ctx) === types.publicTypes.int &&
@@ -92,7 +103,6 @@ var NODES = {
         }).join('\n');
         output = env.__globalPrefix + output;
         delete env.__globalPrefix;
-        delete env.__hasImul;
         return output;
     },
     Unary: function(env, ctx, prec) {
@@ -220,7 +230,7 @@ var NODES = {
         return 'for (' +
             _node(this.assignment, env, ctx, 0) +
             _node(this.condition, env, ctx, 0) + ';' +
-            (this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
+            trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
             ') {' +
             this.loop.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
@@ -305,9 +315,9 @@ var NODES = {
         return this.__assignedName;
     },
     Literal: function() {
-        if (this.value === true) return '1';
-        if (this.value === false) return '0';
-        if (this.value === null) return '0';
+        if (this.value === true) return 'true';
+        if (this.value === false) return 'false';
+        if (this.value === null) return 'null';
         return this.value.toString();
     },
     Symbol: function() {
@@ -315,6 +325,21 @@ var NODES = {
     },
     New: function(env, ctx) {
         var type = this.getType(ctx);
+
+        // TODO: Consider making this use typed arrays for primitives
+        if (type._type === 'array') {
+            var arrLength = _node(this.params[0], env, ctx, 1);
+            if (type.contentsType._type === 'primitive') {
+                switch (type.contentsType.typeName) {
+                    case 'float': return 'new Float64Array(' + arrLength + ')';
+                    case 'int': return 'new Int32Array(' + arrLength + ')';
+                    case 'uint': return 'new Uint32Array(' + arrLength + ')';
+                    case 'byte': return 'new Uint8Array(' + arrLength + ')';
+                }
+            }
+            return 'new Array(' + arrLength + ')';
+        }
+
         var output = 'new ' + type.flatTypeName();
 
         if (type instanceof types.Struct && type.objConstructor) {
@@ -401,8 +426,14 @@ var NODES = {
         }
 
     },
+
+    Subscript: function(env, ctx, prec) {
+        return _node(this.base, env, ctx, prec) + '[' +
+            _node(this.subscript, env, ctx, 1) + ']';
+    },
+
 };
 
-module.exports = function translate(ctx) {
+module.exports = function translateJS(ctx) {
     return _node(ctx.scope, ctx.env, ctx, 0);
 };

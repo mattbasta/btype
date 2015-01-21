@@ -89,7 +89,7 @@ Context.prototype.registerType = function(givenTypeName, type, assignedName) {
     this.typeNameMap[givenTypeName] = assignedName;
     // this.typeMap[assignedName] = type;
     // this.nameMap[assignedName] = givenTypeName;
-    this.env.registerType(assignedName, type);
+    this.env.registerType(assignedName, type, this);
 };
 
 Context.prototype.resolveType = function(typeName) {
