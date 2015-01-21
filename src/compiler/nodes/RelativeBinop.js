@@ -1,10 +1,14 @@
 var binop = require('./_binop');
 var indentEach = require('./_utils').indentEach;
 
+var types = require('../types');
+
 
 exports.traverse = binop.traverse;
 exports.substitute = binop.substitute;
-exports.getType = binop.getType,
+exports.getType = function(ctx) {
+    return types.publicTypes.bool;
+},
 
 exports.validateTypes = function validateTypes(ctx) {
     this.left.validateTypes(ctx);
