@@ -34,8 +34,9 @@ exports.substitute = function substitute(cb) {
 
 exports.validateTypes = function validateTypes(ctx) {
     this.condition.validateTypes(ctx);
-    if(!this.condition.getType(ctx).equals(types.publicTypes.bool))
-        throw new TypeError('Unexpected type passed as condition');
+    var condType = this.condition.getType(ctx);
+    if(!condType.equals(types.publicTypes.bool))
+        throw new TypeError('Unexpected type passed as condition (' + condType.toString() + ' near char ' + this.start + ')');
     this.consequent.forEach(function(stmt) {
         stmt.validateTypes(ctx);
     });

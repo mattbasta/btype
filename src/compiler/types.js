@@ -28,6 +28,10 @@ function Primitive(typeName, backing) {
             this.typeName === x.typeName;
     };
 
+    this.isSubscriptable = function() {
+        return false;
+    };
+
 }
 function Array_(contentsType, length) {
     this._type = 'array';
@@ -55,6 +59,14 @@ function Array_(contentsType, length) {
             this.length === x.length;
     };
 
+    this.isSubscriptable = function() {
+        return true;
+    };
+
+    this.getSubscriptType = function(index) {
+        return this.contentsType;
+    };
+
 }
 function Slice(contentsType) {
     this._type = 'slice';
@@ -77,6 +89,14 @@ function Slice(contentsType) {
 
     this.equals = function(x) {
         return x instanceof Slice && this.contentsType.equals(x.contentsType);
+    };
+
+    this.isSubscriptable = function() {
+        return true;
+    };
+
+    this.getSubscriptType = function(index) {
+        return this.contentsType;
     };
 
 }
@@ -178,6 +198,10 @@ function Struct(name, contentsTypeMap) {
         return this.contentsTypeMap[name];
     };
 
+    this.isSubscriptable = function() {
+        return false;
+    };
+
 }
 function Tuple(contentsTypeArr) {
     this._type = 'tuple';
@@ -224,6 +248,14 @@ function Tuple(contentsTypeArr) {
         respectively.
 
         */
+    };
+
+    this.isSubscriptable = function() {
+        return true;
+    };
+
+    this.getSubscriptType = function(index) {
+        return this.contentsTypeArr[index];
     };
 
 }
@@ -273,6 +305,10 @@ function Func(returnType, args) {
         return 8; // 4 for functable index, 4 for pointer to context
     };
 
+    this.isSubscriptable = function() {
+        return false;
+    };
+
 }
 
 
@@ -312,6 +348,10 @@ function Module(mod) {
 
     this.getTypeOf = function(name) {
         return this.mod.env.typeMap[this.mod.exportTypes[name]];
+    };
+
+    this.isSubscriptable = function() {
+        return false;
     };
 
 }

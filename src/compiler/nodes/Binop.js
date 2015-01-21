@@ -25,7 +25,7 @@ exports.validateTypes = function validateTypes(ctx) {
     var left = this.left.getType(ctx);
     var right = this.right.getType(ctx);
     if (!left.equals(right)) {
-        throw new TypeError('Mismatched types in binop (' + this.operator + '): ' + (left || 'null').toString() + ' != ' + (right || 'null').toString());
+        throw new TypeError('Mismatched types in binop (' + this.operator + ' near char ' + this.start + '): ' + (left || 'null').toString() + ' != ' + (right || 'null').toString());
     }
 
     binop.checkBinopOperation.call(this, ctx, left, right);

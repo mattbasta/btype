@@ -24,7 +24,13 @@ exports.getType = function getType(ctx) {
 
 exports.validateTypes = function validateTypes(ctx) {
     var baseType = this.base.getType(ctx);
-    if (!baseType.hasMember(this.child) && (!baseType.hasMethod || !baseType.hasMethod(this.child))) {
+
+    if (!baseType.hasMember) {
+        throw new TypeError('Invalid type for member expression: ' + baseType.toString());
+    }
+
+    if (!baseType.hasMember(this.child) &&
+        (!baseType.hasMethod || !baseType.hasMethod(this.child))) {
         throw new TypeError('Requesting incompatible member (' + this.child + ') from type');
     }
     this.base.validateTypes(ctx);

@@ -16,6 +16,17 @@ exports.getType = function getType(ctx) {
 
 exports.validateTypes = function validateTypes(ctx) {
     this.value.validateTypes(ctx);
+
+    if (this.value.type === 'Literal' &&
+        this.value.value === null) {
+
+        if (!this.declType) {
+            throw new TypeError('Cannot create variable containing null without a type');
+        }
+        // TODO: check that declType is not null?
+        return;
+    }
+
     if (!this.declType) return;
     var declType = this.declType.getType(ctx);
     var valueType = this.value.getType(ctx);

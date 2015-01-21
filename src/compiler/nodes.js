@@ -36,6 +36,7 @@ var NODES = {
     OperatorStatement: require('./nodes/OperatorStatement'),
     Return: require('./nodes/Return'),
     Switch: require('./nodes/Switch'),
+    Subscript: require('./nodes/Subscript'),
     Symbol: require('./nodes/Symbol'),
     Type: require('./nodes/Type'),
     TypeCast: require('./nodes/TypeCast'),

@@ -526,6 +526,21 @@ module.exports = function Parser(tokenizer) {
         );
     }
 
+    function parseSubscript(base) {
+        assert('[');
+        var subscript = parseExpression();
+        var end = assert(']');
+        return node(
+            'Subscript',
+            base.start,
+            end.end,
+            {
+                base: base,
+                subscript: subscript,
+            }
+        );
+    }
+
     function parseExpressionModifier(base, precedence) {
         var part;
         var peeked = peek();
@@ -537,6 +552,9 @@ module.exports = function Parser(tokenizer) {
                 return parseTypeCast(base);
             case '(':
                 part = parseCall(base);
+                break;
+            case '[':
+                part = parseSubscript(base);
                 break;
             case '.':
                 part = parseMember(base);
@@ -853,10 +871,13 @@ module.exports = function Parser(tokenizer) {
                 assert(':'); // for sanity and to pop
                 return parseDeclaration(temp);
             }
-            if (peeked.type === '(') {
-                // We've hit a call. This means that we can defer to the normal
-                // expression parse flow because it cannot be a declaration:
+            if (peeked.type === '(' ||
+                peeked.type === '[') {
+                // We've hit a call or subscript. This means that we can defer
+                // to the normal expression parse flow because it cannot be a
+                // declaration:
                 //   foo.bar() ...
+                //   foo[bar] = ...
                 temp = convertStackToMember(base);
                 temp = parseExpression(temp, 0);
                 semicolon = assert(';');

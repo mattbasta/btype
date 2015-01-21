@@ -19,7 +19,7 @@ exports.validateTypes = function validateTypes(ctx) {
     var baseType = this.base.getType(ctx);
     var valueType = this.value.getType(ctx);
     if (!baseType.equals(valueType)) {
-        throw new TypeError('Mismatched types in assignment: ' + baseType.toString() + ' != ' + valueType.toString());
+        throw new TypeError('Mismatched types in assignment: ' + baseType.toString() + ' != ' + valueType.toString() + ' near char ' + this.start);
     }
     this.value.validateTypes(ctx);
 };

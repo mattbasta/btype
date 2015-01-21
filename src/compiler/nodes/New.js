@@ -30,6 +30,11 @@ exports.validateTypes = function validateTypes(ctx) {
     }
 
     var type = this.getType(ctx);
+
+    if (!type) {
+        throw new TypeError('Could not resolve type: ' + this.newType.toString());
+    }
+
     if (type._type === 'primitive') {
         throw new Error('Cannot create instance of primitive: ' + type.toString());
     } else if (type._type === 'struct') {
