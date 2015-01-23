@@ -85,6 +85,7 @@ Context.prototype.lookupFunctionByName = function(assignedName) {
 
 Context.prototype.registerType = function(givenTypeName, type, assignedName) {
     assignedName = assignedName || this.env.namer();
+    if (assignedName.toString()[0] === '[') debugger;
     type.__assignedName = assignedName;
     this.typeNameMap[givenTypeName] = assignedName;
     // this.typeMap[assignedName] = type;

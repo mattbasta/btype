@@ -66,7 +66,7 @@ function _binop(env, ctx, prec) {
             if (this.left.getType(ctx) === types.publicTypes.int &&
                 this.right.getType(ctx) === types.publicTypes.int) {
 
-                out = 'imul(' + left + ', ' + right + ')';
+                out = '(imul(' + left + ', ' + right + ')|0)';
                 oPrec = 18;
                 break;
             }
@@ -76,7 +76,7 @@ function _binop(env, ctx, prec) {
             out = left + ' ' + this.operator + ' ' + right;
     }
 
-    return '(' + out + ')';
+    return typeAnnotation(out, this.getType(ctx));
 }
 
 function _node(node, env, ctx, prec, extra) {
@@ -504,7 +504,13 @@ var NODES = {
         var type = this.getType(ctx);
         if (typeof type === 'string') debugger;
         type = this.getType(ctx);
-        var output = '(gcref(calloc(' + (type.getSize() + 8) + ')|0)|0)';
+        var size;
+        if (type._type === 'array') {
+            size = '(' + typeAnnotation(_node(this.params[0], env, ctx, 1), this.params[0].getType(ctx)) + ' + 8|0)';
+        } else {
+            size = type.getSize() + 8;
+        }
+        var output = '(gcref(calloc(' + size + ')|0)|0)';
         if (type instanceof types.Struct && type.objConstructor) {
             output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
                 return typeAnnotation(_node(param, env, ctx, 1), param.getType(ctx));
@@ -551,13 +557,13 @@ var NODES = {
         var base = _node(this.left, env, ctx, 1);
         if (baseType.equals(targetType)) return base;
 
-        base = typeAnnotation(base, baseType);
+        // base = typeAnnotation(base, baseType);
 
         switch (baseType.typeName) {
             case 'int':
                 switch (targetType.typeName) {
                     case 'uint': return '(+int2uint(' + base + '))';
-                    case 'float': return typeAnnotation(base, types.publicTypes.int);
+                    case 'float': return typeAnnotation(typeAnnotation(base, baseType), types.publicTypes.float);
                     case 'byte': return base;
                     case 'bool': return '(' + base + ' != 0)';
                 }
@@ -570,7 +576,7 @@ var NODES = {
                 }
             case 'float':
                 switch (targetType.typeName) {
-                    case 'int': return typeAnnotation(base, types.publicTypes.float);
+                    case 'int': return typeAnnotation('(~~(' + base + '))', types.publicTypes.int);
                     case 'uint': return '(+float2uint(' + base + '))';
                     case 'byte': return typeAnnotation(base, types.publicTypes.byte);
                     case 'bool': return '(' + base + ' != 0.0)';

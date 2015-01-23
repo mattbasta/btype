@@ -42,7 +42,7 @@ function Array_(contentsType, length) {
         return 4 + index * this.contentType.getSize();
     };
     this.getSize = function() {
-        return this.length * this.contentsType.getSize() + 4;
+        return null; // Must be special-cased.
     };
 
     this.toString = function() {
