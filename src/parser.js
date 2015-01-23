@@ -629,6 +629,16 @@ module.exports = function Parser(tokenizer) {
                             value: null
                         }
                     );
+                case 'sfloat':
+                    return node(
+                        'Literal',
+                        base.start,
+                        base.end,
+                        {
+                            litType: base.type,
+                            value: base.text.substr(0, base.text.length - 1),
+                        }
+                    );
                 case 'float':
                 case 'int':
                 case 'str':

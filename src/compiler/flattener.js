@@ -42,8 +42,8 @@ function upliftExpressionsFromBody(ctx, body) {
             identifier: name,
             __assignedName: name,
             value: new nodes.Literal({
-                litType: (type.typeName === 'float' ? 'float' : 'int'),
-                value: (type.typeName === 'float' ? '0.0' : '0'),
+                litType: (type.typeName === 'float' ? 'float' : (type.typeName === 'sfloat' ? 'sfloat' : 'int')),
+                value: ((type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0'),
             }),
         });
     }

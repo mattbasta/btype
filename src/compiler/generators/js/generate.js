@@ -19,6 +19,7 @@ function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
         'this.Math.imul = this.Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
+        'this.Math.fround = this.Math.fround || function fround(x) {var f32 = new Float32Array(1);return f32[0] = x, f32[0];};',
         'var ret = module(this, {' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';
             if (foreign in externalFuncs) {
@@ -31,6 +32,7 @@ function makeModule(env, ENV_VARS, body) {
         'if (ret.$init) {ret.$init();delete ret.$init;}',
         'return ret;',
         '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign) {',
+        'var fround = stdlib.Math.fround;',
         body,
         '})'
     ].join('\n');

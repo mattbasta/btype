@@ -6,6 +6,9 @@ var tokens = [
     [/^"(?:\\(?:.|\r\n|\r|\n)|[^"\\\n])*"/i, 'str'],
     [/^'(?:\\(?:.|\r\n|\r|\n)|[^'\\\n])*'/i, 'str'],
     [/^#[^\n\r]*/i, 'comment'],
+    // sfloat literals
+    [/^\-?[1-9][0-9]*\.[0-9]+s/, 'sfloat'],
+    [/^\-?0\.[0-9]+s/, 'sfloat'],
     // Floats must be matched before integers
     [/^\-?[1-9][0-9]*\.[0-9]+/, 'float'],
     [/^\-?0\.[0-9]+/, 'float'],

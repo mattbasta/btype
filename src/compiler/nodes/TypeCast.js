@@ -17,11 +17,11 @@ exports.getType = function getType(ctx) {
 
 
 var safeCastMap = {
-    bool: ['byte', 'int', 'float', 'uint'],
-    byte: ['int', 'bool', 'float', 'uint'],
-    float: ['int', 'byte', 'bool'],
-    int: ['float', 'bool', 'byte', 'uint'],
-    uint: ['float', 'int', 'byte'],
+    bool: ['byte', 'int', 'uint'],
+    byte: ['int', 'bool', 'float', 'sfloat', 'uint'],
+    float: ['int', 'byte', 'bool', 'sfloat'],
+    int: ['float', 'sfloat', 'bool', 'byte', 'uint'],
+    uint: ['float', 'sfloat', 'int', 'byte'],
 };
 exports.validateTypes = function validateTypes(ctx) {
     this.left.validateTypes(ctx);

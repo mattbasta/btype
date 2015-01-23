@@ -9,6 +9,7 @@ exports.getLLVMType = function getLLVMType(type) {
             case 'bool': return 'i1';
             case 'int': return 'i32';
             case 'float': return 'double';
+            case 'sfloat': return 'float';
 
             case 'byte': return 'i8';
             case 'uint': return 'i32'; // uint is distinguished by the operators used

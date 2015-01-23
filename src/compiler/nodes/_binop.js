@@ -38,11 +38,11 @@ exports.checkBinopOperation = function checkBinopOperation(ctx, left, right) {
     if (!isOverloaded.call(this, ctx) && left._type === 'primitive') {
         var safeLeftTypes;
         switch (this.operator) {
-            case '+': safeLeftTypes = ['int', 'float', 'byte', 'uint', 'str']; break;
-            case '-': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '*': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '/': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '%': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
+            case '+': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint', 'str']; break;
+            case '-': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '*': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '/': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '%': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
             case '&': safeLeftTypes = ['int', 'byte', 'uint']; break;
             case '|': safeLeftTypes = ['int', 'byte', 'uint']; break;
             case '^': safeLeftTypes = ['int', 'byte', 'uint']; break;
@@ -50,12 +50,12 @@ exports.checkBinopOperation = function checkBinopOperation(ctx, left, right) {
             case '>>': safeLeftTypes = ['int', 'byte', 'uint']; break;
             case 'and': safeLeftTypes = ['bool']; break;
             case 'or': safeLeftTypes = ['bool']; break;
-            case '<': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '<=': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '>': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '>=': safeLeftTypes = ['int', 'float', 'byte', 'uint']; break;
-            case '==': safeLeftTypes = ['int', 'float', 'byte', 'uint', 'bool', 'str']; break;
-            case '!=': safeLeftTypes = ['int', 'float', 'byte', 'uint', 'bool', 'str']; break;
+            case '<': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '<=': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '>': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '>=': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint']; break;
+            case '==': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint', 'bool', 'str']; break;
+            case '!=': safeLeftTypes = ['int', 'sfloat', 'float', 'byte', 'uint', 'bool', 'str']; break;
         }
 
         if (safeLeftTypes.indexOf(left.typeName) === -1) {

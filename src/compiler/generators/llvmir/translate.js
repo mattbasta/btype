@@ -86,7 +86,7 @@ function _binop(env, ctx, tctx) {
             out = 'or';
             break;
         case '+':
-            if (outType.typeName === 'float') {
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') {
                 out = 'fadd';
                 break;
             }
@@ -98,7 +98,7 @@ function _binop(env, ctx, tctx) {
             break;
 
         case '-':
-            if (outType.typeName === 'float') {
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') {
                 out = 'fsub';
                 break;
             }
@@ -110,7 +110,7 @@ function _binop(env, ctx, tctx) {
             break;
 
         case '*':
-            if (outType.typeName === 'float') {
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') {
                 out = 'fmul';
                 break;
             }
@@ -122,7 +122,7 @@ function _binop(env, ctx, tctx) {
             break;
 
         case '/':
-            if (outType.typeName === 'float') {
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') {
                 out = 'fdiv';
                 break;
             } else if (outType.typeName === 'uint') {
@@ -134,7 +134,7 @@ function _binop(env, ctx, tctx) {
             break;
 
         case '%':
-            if (outType.typeName === 'float') {
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') {
                 out = 'frem';
                 break;
             } else if (outType.typeName === 'uint') {
@@ -168,12 +168,12 @@ function _binop(env, ctx, tctx) {
             break;
 
         case '==':
-            if (outType.typeName === 'float') out = 'fcmp oeq';
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') out = 'fcmp oeq';
             else out = 'icmp eq';
             break;
 
         case '!=':
-            if (outType.typeName === 'float') out = 'fcmp one';
+            if (outType.typeName === 'float' || outType.typeName === 'sfloat') out = 'fcmp one';
             else out = 'icmp neq';
             break;
 
@@ -181,7 +181,7 @@ function _binop(env, ctx, tctx) {
             if (outType.typeName === 'uint') out = 'icmp ugt';
             else if (outType.typeName === 'byte') out = 'icmp ugt';
             else if (outType.typeName === 'int') out = 'icmp sgt';
-            else if (outType.typeName === 'float') out = 'fcmp ogt';
+            else if (outType.typeName === 'float' || outType.typeName === 'sfloat') out = 'fcmp ogt';
             break;
 
 
@@ -189,21 +189,21 @@ function _binop(env, ctx, tctx) {
             if (outType.typeName === 'uint') out = 'icmp uge';
             else if (outType.typeName === 'byte') out = 'icmp uge';
             else if (outType.typeName === 'int') out = 'icmp sge';
-            else if (outType.typeName === 'float') out = 'fcmp oge';
+            else if (outType.typeName === 'float' || outType.typeName === 'sfloat') out = 'fcmp oge';
             break;
 
         case '<':
             if (outType.typeName === 'uint') out = 'icmp ult';
             else if (outType.typeName === 'byte') out = 'icmp ult';
             else if (outType.typeName === 'int') out = 'icmp slt';
-            else if (outType.typeName === 'float') out = 'fcmp olt';
+            else if (outType.typeName === 'float' || outType.typeName === 'sfloat') out = 'fcmp olt';
             break;
 
         case '<=':
             if (outType.typeName === 'uint') out = 'icmp ule';
             else if (outType.typeName === 'byte') out = 'icmp ule';
             else if (outType.typeName === 'int') out = 'icmp sle';
-            else if (outType.typeName === 'float') out = 'fcmp ole';
+            else if (outType.typeName === 'float' || outType.typeName === 'sfloat') out = 'fcmp ole';
             break;
 
         default:

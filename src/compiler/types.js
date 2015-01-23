@@ -10,6 +10,7 @@ function Primitive(typeName, backing) {
         switch (this.typeName) {
             case 'int':
             case 'uint':
+            case 'sfloat':
                 return 4;
             case 'byte':
             case 'bool':
@@ -362,6 +363,7 @@ exports.Module = Module;
 var public_ = exports.publicTypes = {
     'int': new Primitive('int', 'int32'),
     'float': new Primitive('float', 'float64'),
+    'sfloat': new Primitive('sfloat', 'float32'),
     'bool': new Primitive('bool', 'uint8'),
 };
 

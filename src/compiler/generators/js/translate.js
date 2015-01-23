@@ -203,7 +203,7 @@ var NODES = {
 
         var def;
         if (type && type._type === 'primitive') {
-            def = type && type.typeName === 'float' ? '0.0' : '0';
+            def = type && (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
         } else if (type) {
             def = 'null';
         }
@@ -332,6 +332,7 @@ var NODES = {
             if (type.contentsType._type === 'primitive') {
                 switch (type.contentsType.typeName) {
                     case 'float': return 'new Float64Array(' + arrLength + ')';
+                    case 'sfloat': return 'new Float32Array(' + arrLength + ')';
                     case 'int': return 'new Int32Array(' + arrLength + ')';
                     case 'uint': return 'new Uint32Array(' + arrLength + ')';
                     case 'byte': return 'new Uint8Array(' + arrLength + ')';
@@ -397,6 +398,7 @@ var NODES = {
                 switch (targetType.typeName) {
                     case 'uint': return 'int2uint(' + base + ')';
                     case 'float': return '(+(' + base + '))';
+                    case 'sfloat': return '(fround(' + base + '))';
                     case 'byte': return base;
                     case 'bool': return '(!!' + base + ')';
                 }
@@ -404,11 +406,21 @@ var NODES = {
                 switch (targetType.typeName) {
                     case 'int': return 'uint2int(' + base + ')';
                     case 'float': return '(+(' + base + '))';
+                    case 'sfloat': return '(fround(' + base + '))';
                     case 'byte': return base;
                     case 'bool': return '(' + base + ' != 0)';
                 }
             case 'float':
                 switch (targetType.typeName) {
+                    case 'sfloat': return '(fround(' + base + '))';
+                    case 'uint': return 'float2uint(' + base + ')';
+                    case 'int': return '(' + base + '|0)';
+                    case 'byte': return '(' + base + '|0)';
+                    case 'bool': return '(!!' + base + ')';
+                }
+            case 'sfloat':
+                switch (targetType.typeName) {
+                    case 'float': return '(+(' + base + '))';
                     case 'uint': return 'float2uint(' + base + ')';
                     case 'int': return '(' + base + '|0)';
                     case 'byte': return '(' + base + '|0)';
@@ -419,6 +431,7 @@ var NODES = {
                     case 'uint': return base;
                     case 'int': return base;
                     case 'float': return '(+(' + base + '))';
+                    case 'sfloat': return '(fround(' + base + '))';
                     case 'bool': return '(!!' + base + ')';
                 }
             case 'bool':

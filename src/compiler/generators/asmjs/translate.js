@@ -28,8 +28,9 @@ var OP_PREC = {
 var HEAP_MODIFIERS = {
     memheap: '>>0',
     intheap: '>>2',
-    floatheap: '>>3',
     ptrheap: '>>2',
+    sfloatheap: '>>2',
+    floatheap: '>>3',
 };
 
 function trimSemicolon(inp) {
@@ -91,6 +92,8 @@ function typeAnnotation(base, type) {
     base = '(' + base + ')';
 
     switch (type.typeName) {
+        case 'sfloat':
+            return 'fround' + base + '';
         case 'float':
             if (origBase[0] === '+') return base;
             return '+' + base;
@@ -297,6 +300,7 @@ var NODES = {
         var childType = this.getType(ctx);
         var typedArr = 'ptrheap';
         if (childType.typeName === 'float') typedArr = 'floatheap';
+        if (childType.typeName === 'sfloat') typedArr = 'sfloatheap';
         else if (childType.typeName === 'byte') typedArr = 'memheap';
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
@@ -438,7 +442,8 @@ var NODES = {
         if (returnType && !hasReturnStatement) {
             output += getFunctionDerefs(ctx);
             output += '\n     return 0';
-            if (returnType.typeName === 'float') {
+            if (returnType.typeName === 'float' ||
+                returnType.typeName === 'sfloat') {
                 output += '.0';
             }
             output += ';';
@@ -472,7 +477,8 @@ var NODES = {
         var returnType = this.getType(ctx).getReturnType();
         if (returnType && this.body[this.body.length - 1].type !== 'Return') {
             output += '\n     return 0';
-            if (returnType.typeName === 'float') {
+            if (returnType.typeName === 'float' ||
+                returnType.typeName === 'sfloat') {
                 output += '.0';
             }
             output += ';';
@@ -492,7 +498,8 @@ var NODES = {
         if (this.value === null) return '0';
 
         var output = this.value.toString();
-        if (this.getType(ctx).typeName === 'float' && output.indexOf('.') === -1) {
+        var type = this.getType(ctx);
+        if ((type.typeName === 'float' || type.typeName === 'sfloat') && output.indexOf('.') === -1) {
             output += '.0';
         }
         return output
@@ -563,6 +570,7 @@ var NODES = {
             case 'int':
                 switch (targetType.typeName) {
                     case 'uint': return '(+int2uint(' + base + '))';
+                    case 'sfloat':
                     case 'float': return typeAnnotation(typeAnnotation(base, baseType), types.publicTypes.float);
                     case 'byte': return base;
                     case 'bool': return '(' + base + ' != 0)';
@@ -574,18 +582,28 @@ var NODES = {
                     case 'byte': return base;
                     case 'bool': return '(' + base + ' != 0)';
                 }
+            case 'sfloat':
+                switch (targetType.typeName) {
+                    case 'int': return typeAnnotation('(~~(' + base + '))', types.publicTypes.int);
+                    case 'float': return typeAnnotation(base, targetType);
+                    case 'byte':
+                    case 'uint': return '(float2uint(+' + base + ')|0)';
+                    case 'bool': return '(' + base + ' != 0.0)';
+                }
             case 'float':
                 switch (targetType.typeName) {
                     case 'int': return typeAnnotation('(~~(' + base + '))', types.publicTypes.int);
                     case 'uint': return '(+float2uint(' + base + '))';
                     case 'byte': return typeAnnotation(base, types.publicTypes.byte);
                     case 'bool': return '(' + base + ' != 0.0)';
+                    case 'sfloat': return typeAnnotation(base, types.publicTypes.sfloat);
                 }
             case 'byte':
                 switch (targetType.typeName) {
                     case 'int': return base;
                     case 'uint': return typeAnnotation(base, types.publicTypes.uint);
                     case 'float': return typeAnnotation(base, types.publicTypes.float);
+                    case 'sfloat': return typeAnnotation(base, types.publicTypes.sfloat);
                     case 'bool': return '(' + base + ' != 0)';
                 }
             case 'bool':
@@ -593,6 +611,7 @@ var NODES = {
                     case 'int': return typeAnnotation(base, types.publicTypes.int);
                     case 'uint': return typeAnnotation(base, types.publicTypes.uint);
                     case 'float': return typeAnnotation(base, types.publicTypes.float);
+                    case 'sfloat': return typeAnnotation(base, types.publicTypes.sfloat);
                     case 'byte': return typeAnnotation(base, types.publicTypes.byte);
                 }
         }
