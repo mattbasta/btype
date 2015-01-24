@@ -35,9 +35,14 @@ function makeModule(env, ENV_VARS, body) {
             return base;
         }).join(',') + '}, heap);',
         // If there's an init method, call it and remove it.
-        'if (ret.$init) {ret.$init(); delete ret.$init;}',
+        'if (ret.$init) {ret.$init();}',
         // Return the processed asm module
-        'return ret;',
+        'return {',
+        '$internal:{heap:heap, malloc: ret.malloc, free: ret.free, calloc: ret.calloc},',
+        Object.keys(env.requested.exports).map(function(e) {
+            return e + ': ret.' + e;
+        }).join(',\n'),
+        '};',
         // Declare the asm module
         '})(function' + (env.name ? ' ' + env.name : ' module_') + '(stdlib, foreign, heap) {',
         // asm.js pragma
@@ -147,7 +152,7 @@ module.exports = function generate(env, ENV_VARS) {
 
     // Compile exports for the code.
     body += '\n    return {\n        ' +
-        // 'malloc: malloc,\n        free: free,\n        ' +
+        'malloc: malloc,\n        free: free,\n        calloc: calloc,\n        ' +
         Object.keys(env.requested.exports).map(function(e) {
         return e + ': ' + env.requested.exports[e];
     }).join(',\n        ') + '\n    };';
