@@ -26,13 +26,13 @@ function malloc(bytes) {
     }
 
     // The requested number of bytes should always be a multiple of 8.
-    if ((bytes % 8 | 0) != 0) {
-        bytes = bytes + 8 - (bytes % 8 | 0) | 0
+    if (((bytes | 0) % 8 | 0) != 0) {
+        bytes = bytes + 8 - ((bytes | 0) % 8 | 0) | 0
     }
 
     // If the heap hasn't been initialized, do that now.
     // TODO: Move this to the global scope? Is that allowed in asm.js?
-    if (ptrheap[4 >> 2] == 0) {
+    if ((ptrheap[4 >> 2] | 0) == 0) {
         ptrheap[0 >> 2] = 8;
         ptrheap[4 >> 2] = 1;
         // 16 = 4b (init space) + 4b (global free ptr) + overhead of first free
@@ -46,7 +46,7 @@ function malloc(bytes) {
 
     // If there is no free memory remaining in the heap, return the null
     // pointer.
-    if (ptrheap[0 >> 2] == 0) {
+    if ((ptrheap[0 >> 2] | 0) == 0) {
         return 0;
     }
 
@@ -61,7 +61,7 @@ function malloc(bytes) {
 
         // If the requested block won't fit in the current free block, go to
         // the next free block.
-        if (currentSize < bytes) {
+        if ((currentSize | 0) < (bytes | 0)) {
             // Set the previous pointer to the memory location of the free
             // pointer of the currently iterated block.
             prevPtr = currentPtr + 4 | 0;
@@ -69,7 +69,7 @@ function malloc(bytes) {
             // If the pointer on the current free block is 0, that means we've
             // exhausted all of the free blocks in the heap. We're forced at
             // this point to return a null pointer.
-            if (ptrheap[currentPtr + 4 >> 2] == 0) {
+            if ((ptrheap[currentPtr + 4 >> 2] | 0) == 0) {
                 return 0;
             }
             break;
@@ -77,7 +77,7 @@ function malloc(bytes) {
             continue;
         }
 
-        if (currentSize == bytes) {
+        if ((currentSize | 0) == (bytes | 0)) {
             // If the free block fits the requested size exactly, update
             // everything and return.
 
@@ -92,7 +92,7 @@ function malloc(bytes) {
 
         // 16b = 8b for a second block to fit in the current one + 8b
         // of assumed memory overhead for garbage collection and the like
-        if ((currentSize - 16 | 0) > bytes) {
+        if ((currentSize - 16 | 0) > (bytes | 0)) {
             // The requested size is larger than what waas requested. In this
             // case, we'll split the free block into two.
 
@@ -184,11 +184,11 @@ function free(pointer) {
     var temp = 0;
 
     nextPtr = ptrheap[0] | 0;
-    while (nextPtr != 0) {
+    while ((nextPtr | 0) != 0) {
 
         // If the current free list pointer is before the freeing pointer,
         // continue traversing the free list.
-        if (nextPtr <= pointer) {
+        if ((nextPtr | 0) <= (pointer | 0)) {
             // Update the pointers to continue iterating the free list.
             // temp = nextPtr | 0;
             prevPtr = nextPtr + 4 | 0;
@@ -206,14 +206,14 @@ function free(pointer) {
         ptrheap[pointer + 4 >> 2] = nextPtr | 0;
 
         // If this isn't the first item in the free list...
-        if (prevPtr != 0) {
+        if ((prevPtr | 0) != 0) {
             // and the current block is immediately adjacent to the
             // previous free block...
-            if (prevPtr + ptrheap[prevPtr - 4 >> 2] + 4 == pointer) {
+            if (((prevPtr | 0) + (ptrheap[prevPtr - 4 >> 2] | 0) + 4 | 0) == (pointer | 0)) {
                 // Combine the two blocks together.
 
                 // First, update the size of the previous block
-                ptrheap[prevPtr - 4 >> 2] = ptrheap[prevPtr - 4 >> 2] + ptrheap[pointer >> 2] + 8;
+                ptrheap[prevPtr - 4 >> 2] = (ptrheap[prevPtr - 4 >> 2] | 0) + (ptrheap[pointer >> 2] | 0) + 8 | 0;
                 // Next, update the pointer to look like the next pointer
                 // so we can compact in the other direction as well.
                 pointer = prevPtr - 4 | 0;
@@ -221,7 +221,7 @@ function free(pointer) {
         }
 
         // If this block is adjacent to the next block, combine the two.
-        if (nextPtr == (pointer + ptrheap[pointer >> 2] + 8 | 0)) {
+        if ((nextPtr | 0) == ((pointer | 0) + (ptrheap[pointer >> 2] | 0) + 8 | 0)) {
 
             // Update the size to encompass both blocks.
             ptrheap[pointer >> 2] = (ptrheap[pointer >> 2] | 0) + (ptrheap[nextPtr >> 2] | 0) + 8 | 0;
@@ -237,9 +237,9 @@ function free(pointer) {
     // been reached. That means it's an easy fix: simply set the free pointer
     // of the previous block to equal the current pointer.
 
-    if (prevPtr != 0) {
+    if ((prevPtr | 0) != 0) {
         // First, try compacting the current block with the previous one.
-        if (ptrheap[prevPtr - 4 >> 2] + prevPtr - 4 == pointer) {
+        if (((ptrheap[prevPtr - 4 >> 2] | 0) + (prevPtr | 0) - 4 | 0) == (pointer | 0)) {
             // We're immediately subsequent.
 
             // Update the previous free pointer to know that we're at the end
@@ -247,7 +247,7 @@ function free(pointer) {
             ptrheap[prevPtr >> 2] = 0;
             // Update the size of the previous block to include the size of
             // the current block.
-            ptrheap[prevPtr - 4 >> 2] = ptrheap[prevPtr - 4 >> 2] + ptrheap[pointer >> 2] + 8 | 0;
+            ptrheap[prevPtr - 4 >> 2] = (ptrheap[prevPtr - 4 >> 2] | 0) + (ptrheap[pointer >> 2] | 0) + 8 | 0;
             return;
 
         }
