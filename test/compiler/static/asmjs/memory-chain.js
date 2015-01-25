@@ -113,6 +113,48 @@ describe('Memory (chain) special module', function() {
 
         });
 
+        it('should compact freed memory', function() {
+            var pointers = [];
+            var x;
+            var size = LOWEST_ORDER * 128;
+            var max_ptr = HEAP_SIZE;
+            while (1) {
+                x = mod.malloc(size);
+                if (x === 0) break;
+                pointers.push(x | 0);
+            }
+
+            var freeable = pointers.shift();
+            var freeable2 = pointers.shift();
+            var freeable3 = pointers.shift();
+            // Freeing in this order ensures that adjacency from both
+            // directions will be tested.
+            mod.free(freeable2);
+            mod.free(freeable);
+            mod.free(freeable3);
+
+            assert.notEqual(mod.malloc(size * 3), 0);
+
+        });
+
+        it('should compact freed memory at the end of the free list', function() {
+            // Unlike the previous test, there is no allocated memory after the
+            // last freed block of memory.
+            var freeable = mod.malloc(128);
+            var freeable2 = mod.malloc(128);
+            var freeable3 = mod.malloc(128);
+            // Freeing in this order ensures that adjacency from both
+            // directions will be tested.
+            mod.free(freeable2);
+            mod.free(freeable);
+            mod.free(freeable3);
+
+            assert.equal(mod.malloc(128), freeable);
+            assert.equal(mod.malloc(128), freeable2);
+            assert.equal(mod.malloc(128), freeable3);
+
+        });
+
     });
 
     describe('calloc', function() {

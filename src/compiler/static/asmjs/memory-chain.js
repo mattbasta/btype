@@ -185,42 +185,75 @@ function free(pointer) {
 
     nextPtr = ptrheap[0] | 0;
     while (nextPtr != 0) {
-        if (nextPtr > pointer) {
-            // We've encountered the next free block after the pointer. At this
-            // point, we need to update the previous and next blocks to link
-            // the previous block with this one and this one with the next.
 
-            // Update the previous free block to point at this block.
-            ptrheap[prevPtr >> 2] = pointer;
-            // Update this block to point at the next one.
-            ptrheap[pointer + 4 >> 2] = nextPtr;
-
-            // FIXME: This should test in reverse as well.
-
-            // If this block is adjacent to the next block, combine the two.
-            if (nextPtr == (pointer + ptrheap[pointer >> 2] + 8 | 0)) {
-                // Update the size to encompass both blocks.
-                ptrheap[pointer >> 2] = (ptrheap[pointer >> 2] | 0) + (ptrheap[nextPtr >> 2] | 0) + 8 | 0;
-                // Update the free pointer of the current block to be whatever the
-                // next block's is.
-                ptrheap[pointer + 4 >> 2] = ptrheap[nextPtr + 4 >> 2] | 0;
-            }
-
-            return;
+        // If the current free list pointer is before the freeing pointer,
+        // continue traversing the free list.
+        if (nextPtr <= pointer) {
+            // Update the pointers to continue iterating the free list.
+            // temp = nextPtr | 0;
+            prevPtr = nextPtr + 4 | 0;
+            nextPtr = ptrheap[nextPtr + 4 >> 2] | 0;
+            continue;
         }
 
+        // We've encountered the next free block after the pointer. At this
+        // point, we need to update the previous and next blocks to link
+        // the previous block with this one and this one with the next.
 
-        // Update the pointers to continue iterating the free list.
-        temp = prevPtr | 0;
-        prevPtr = nextPtr + 4 | 0;
-        nextPtr = ptrheap[temp + 4 >> 2] | 0;
+        // Update the previous free block to point at this block.
+        ptrheap[prevPtr >> 2] = pointer | 0;
+        // Update this block to point at the next one.
+        ptrheap[pointer + 4 >> 2] = nextPtr | 0;
+
+        // If this isn't the first item in the free list...
+        if (prevPtr != 0) {
+            // and the current block is immediately adjacent to the
+            // previous free block...
+            if (prevPtr + ptrheap[prevPtr - 4 >> 2] + 4 == pointer) {
+                // Combine the two blocks together.
+
+                // First, update the size of the previous block
+                ptrheap[prevPtr - 4 >> 2] = ptrheap[prevPtr - 4 >> 2] + ptrheap[pointer >> 2] + 8;
+                // Next, update the pointer to look like the next pointer
+                // so we can compact in the other direction as well.
+                pointer = prevPtr - 4 | 0;
+            }
+        }
+
+        // If this block is adjacent to the next block, combine the two.
+        if (nextPtr == (pointer + ptrheap[pointer >> 2] + 8 | 0)) {
+
+            // Update the size to encompass both blocks.
+            ptrheap[pointer >> 2] = (ptrheap[pointer >> 2] | 0) + (ptrheap[nextPtr >> 2] | 0) + 8 | 0;
+            // Update the free pointer of the current block to be whatever the
+            // next block's is.
+            ptrheap[pointer + 4 >> 2] = ptrheap[nextPtr + 4 >> 2] | 0;
+        }
+
+        return;
     }
 
     // If we've gotten to this point, it means the end of the free list has
     // been reached. That means it's an easy fix: simply set the free pointer
     // of the previous block to equal the current pointer.
 
-    ptrheap[prevPtr >> 2] = pointer | 0;
+    if (prevPtr != 0) {
+        // First, try compacting the current block with the previous one.
+        if (ptrheap[prevPtr - 4 >> 2] + prevPtr - 4 == pointer) {
+            // We're immediately subsequent.
 
-    // TODO: This should test in reverse as well.
+            // Update the previous free pointer to know that we're at the end
+            // of the free list.
+            ptrheap[prevPtr >> 2] = 0;
+            // Update the size of the previous block to include the size of
+            // the current block.
+            ptrheap[prevPtr - 4 >> 2] = ptrheap[prevPtr - 4 >> 2] + ptrheap[pointer >> 2] + 8 | 0;
+            return;
+
+        }
+    }
+
+    ptrheap[prevPtr >> 2] = pointer | 0;
+    ptrheap[pointer + 4 >> 2] = 0;
+
 }
