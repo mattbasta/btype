@@ -499,9 +499,17 @@ var NODES = {
 
         var output = this.value.toString();
         var type = this.getType(ctx);
-        if ((type.typeName === 'float' || type.typeName === 'sfloat') && output.indexOf('.') === -1) {
+
+        var isSfloat = type.typeName === 'sfloat';
+
+        if ((type.typeName === 'float' || isSfloat) && output.indexOf('.') === -1) {
             output += '.0';
         }
+
+        if (isSfloat) {
+            output = 'fround(' + output + ')';
+        }
+
         return output
     },
     Symbol: function() {
@@ -570,7 +578,7 @@ var NODES = {
             case 'int':
                 switch (targetType.typeName) {
                     case 'uint': return '(+int2uint(' + base + '))';
-                    case 'sfloat':
+                    case 'sfloat': return typeAnnotation(typeAnnotation(base, baseType), types.publicTypes.sfloat);
                     case 'float': return typeAnnotation(typeAnnotation(base, baseType), types.publicTypes.float);
                     case 'byte': return base;
                     case 'bool': return '(' + base + ' != 0)';
@@ -627,6 +635,7 @@ var NODES = {
         var childType = baseType.contentsType;
         var typedArr = 'ptrheap';
         if (childType.typeName === 'float') typedArr = 'floatheap';
+        else if (childType.typeName === 'sfloat') typedArr = 'sfloatheap';
         else if (childType.typeName === 'byte') typedArr = 'memheap';
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
