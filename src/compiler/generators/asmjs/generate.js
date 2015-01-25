@@ -6,6 +6,8 @@ var jsTranslate = require('./translate');
 var postOptimizer = require('../js/postOptimizer');
 var traverser = require('../../traverser');
 
+var argv = require('minimist')(process.argv.slice(2));
+
 
 function getHeapSize(n) {
     // This calculates the next power of two
@@ -101,7 +103,17 @@ module.exports = function generate(env, ENV_VARS) {
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/casting.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/funcref.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/gc.js')).toString();
-    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory.js')).toString();
+    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/heap.js')).toString();
+
+    var asmMemoryMode = argv['asmjs-memory'] || 'chain';
+    switch (asmMemoryMode) {
+        case 'buddy':
+        case 'chain':
+            break;
+        default:
+            asmMemoryMode = 'chain';
+    }
+    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory-' + asmMemoryMode + '.js')).toString();
 
     // Translate and output each included context
     body += env.included.map(jsTranslate).join('\n\n');

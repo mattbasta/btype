@@ -3,7 +3,8 @@ var fs = require('fs');
 var path = require('path');
 
 
-var memModule = fs.readFileSync(path.resolve(__dirname, '../../../../src/compiler/static/asmjs/memory.js')).toString();
+var heapModule = fs.readFileSync(path.resolve(__dirname, '../../../../src/compiler/static/asmjs/heap.js')).toString();
+var memModule = fs.readFileSync(path.resolve(__dirname, '../../../../src/compiler/static/asmjs/memory-buddy.js')).toString();
 
 
 var HEAP_SIZE = 1024 * 1024;
@@ -18,6 +19,7 @@ function getInstance() {
         'var LOWEST_ORDER_POWER = 4;',
         'var BUDDY_SPACE = ' + BUDDY_SPACE + ';',
         'var heap = new ArrayBuffer(HEAP_SIZE + BUDDY_SPACE);', // We don't need to make this a power of two for tests.
+        heapModule, // Include the heap module so we have the appropriate heap views.
     ].join('\n');
 
     var returns = [
@@ -33,7 +35,7 @@ function getInstance() {
     return eval('(function() {' + setup + memModule + '\nreturn {' + returns + '}}())');
 }
 
-describe('Memory special module', function() {
+describe('Memory (buddy) special module', function() {
 
     var mod;
     beforeEach(function() {
