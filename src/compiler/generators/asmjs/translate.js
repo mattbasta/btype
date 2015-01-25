@@ -521,7 +521,11 @@ var NODES = {
         type = this.getType(ctx);
         var size;
         if (type._type === 'array') {
-            size = '(' + typeAnnotation(_node(this.params[0], env, ctx, 1), this.params[0].getType(ctx)) + ' + 8|0)';
+            // 16 because it's 8 bytes of overhead for normal object shape plus
+            // an extra eight bytes to store the length. We use 8 bytes instead
+            // of 4 (it's a 32-bit unsigned integer) because the start of the
+            // array body needs to be at an 8-byte multiple.
+            size = '(' + typeAnnotation(_node(this.params[0], env, ctx, 1), this.params[0].getType(ctx)) + ' + 16|0)';
         } else {
             size = type.getSize() + 8;
         }
@@ -641,8 +645,8 @@ var NODES = {
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
         var lookup = typedArr + '[((' +
-            // +8 for memory overhead, +4 for the array length
-            _node(this.base, env, ctx, 1) + ') + (' + _node(this.subscript, env, ctx, 1) + ') + 12)' +
+            // +8 for memory overhead, +8 for the array length
+            _node(this.base, env, ctx, 1) + ') + (' + _node(this.subscript, env, ctx, 1) + ' * ' + childType.getSize() + ' | 0) + 16)' +
             HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);

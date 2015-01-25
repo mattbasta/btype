@@ -40,7 +40,9 @@ function Array_(contentsType, length) {
     this.length = length;
 
     this.subscript = function(index) {
-        return 4 + index * this.contentType.getSize();
+        // We have an offset of 8 because primitives that take up eight bytes
+        // need to be aligned to a multiple of 8 on the heap.
+        return 8 + index * this.contentType.getSize();
     };
     this.getSize = function() {
         return null; // Must be special-cased.
