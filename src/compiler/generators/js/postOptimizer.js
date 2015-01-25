@@ -274,6 +274,19 @@ function cleanUpTypecasting(body) {
             node.left = node.left.left;
             return iterator(node);
         }
+        if (node.type === 'CallExpression') {
+            // Check that the callee is `fround()`
+            if (node.callee.type !== 'Identifier') return;
+            if (node.callee.name !== 'fround') return;
+
+            // Check that the first argument is a call to `fround()`
+            if (node.arguments.length !== 1) return;
+            if (node.arguments[0].type !== 'CallExpression') return;
+            if (node.arguments[0].callee.type !== 'Identifier') return;
+            if (node.arguments[0].callee.name !== 'fround') return;
+            node.arguments[0] = node.arguments[0].arguments[0];
+            return iterator(node);
+        }
     }
     traverse(body, iterator);
 }
