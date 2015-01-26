@@ -86,7 +86,7 @@ function _node(node, env, ctx, prec, extra) {
 
 function typeAnnotation(base, type) {
     if (!type) return base;
-    if (/^[\d\.]+$/.exec(base)) return base;
+    if (/^\-?[\d\.]+$/.exec(base)) return base;
 
     var origBase = base;
     base = '(' + base + ')';
@@ -525,7 +525,13 @@ var NODES = {
             // an extra eight bytes to store the length. We use 8 bytes instead
             // of 4 (it's a 32-bit unsigned integer) because the start of the
             // array body needs to be at an 8-byte multiple.
-            size = '(' + typeAnnotation(_node(this.params[0], env, ctx, 1), this.params[0].getType(ctx)) + ' + 16|0)';
+            var innerTypeSize = type.contentsType._type === 'primitive' ? type.contentsType.getSize() : 4;
+            size = '(' +
+                '((' +
+                    '(' +
+                        typeAnnotation('(' + _node(this.params[0], env, ctx, 1) + ')', this.params[0].getType(ctx)) +
+                    ') * ' + innerTypeSize +
+                ') | 0) + 16 | 0)';
         } else {
             size = type.getSize() + 8;
         }
@@ -644,9 +650,11 @@ var NODES = {
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
+        var elementSize = childType.typeName === 'primitive' ? childType.getSize() : '4';
         var lookup = typedArr + '[((' +
+            _node(this.base, env, ctx, 1) + ') + (' +
             // +8 for memory overhead, +8 for the array length
-            _node(this.base, env, ctx, 1) + ') + (' + _node(this.subscript, env, ctx, 1) + ' * ' + childType.getSize() + ' | 0) + 16)' +
+            '((' + _node(this.subscript, env, ctx, 1) + ') * ' + elementSize + ') | 0) + 16)' +
             HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
