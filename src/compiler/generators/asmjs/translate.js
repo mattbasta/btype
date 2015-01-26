@@ -215,8 +215,8 @@ var NODES = {
 
             return typeAnnotation(
                 temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, 18) + '|0, ' +
-                paramList +
+                _node(this.callee.base, env, ctx, 18) + '|0' +
+                (this.params.length ? ',' + paramList : '') +
                 ')',
                 funcType.getReturnType()
             );

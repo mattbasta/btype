@@ -111,10 +111,16 @@ function Struct(name, contentsTypeMap) {
     this.objConstructor = null;
     this.methods = {} // Mapping of given names to assigned names
 
+    function memberSize(name) {
+        var type = contentsTypeMap[name];
+        if (type._type === 'primitive') return type.getSize();
+        return 4; // pointer size
+    }
+
     function getLayout() {
         var keys = Object.keys(contentsTypeMap);
         keys.sort(function(a, b) {
-            return contentsTypeMap[a].getSize() > contentsTypeMap[b].getSize();
+            return memberSize(a) < memberSize(b);
         });
         return keys;
     }
@@ -126,7 +132,7 @@ function Struct(name, contentsTypeMap) {
         var offsets = {};
         var i = 0;
         layout.forEach(function(key) {
-            var size = contentsTypeMap[key].getSize();
+            var size = memberSize(key);
             offsets[key] = i;
             i += size;
         });
@@ -139,6 +145,7 @@ function Struct(name, contentsTypeMap) {
         var order = getLayout().map(function(member) {
             return contentsTypeMap[member];
         });
+        console.log(this.typeName, order);
         return cachedOrderedLayout = order;
     };
 

@@ -25,7 +25,9 @@ function makeModule(env, ENV_VARS, body) {
         'var heap = new ArrayBuffer(' + getHeapSize(ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         // Shim imul if it doesn't exist (*COUGH* NODE *COUGH*)
         'this.Math.imul = this.Math.imul || function imul(a, b) {return (a | 0) * (b | 0) | 0;};',
-        'this.Math.fround = this.Math.fround || function fround(x) {var f32 = new Float32Array(1);return f32[0] = x, f32[0];};',
+        // Shim fround in the same way
+        'var f32_ = new Float32Array(1);',
+        'this.Math.fround = this.Math.fround || function fround(x) {return f32[0] = x, f32[0];};',
         // Get an instance of the asm module, passing in all of the externally requested items
         'var ret = module(this, {' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';

@@ -11,13 +11,17 @@ exports.substitute = function substitute(cb) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
-    this.value.validateTypes(ctx);
-    var valueType = this.value.getType(ctx);
+    if (this.value) this.value.validateTypes(ctx);
+
+    var valueType = this.value ? this.value.getType(ctx) : null;
     var func = ctx.scope;
     var funcReturnType = func.returnType && func.returnType.getType(ctx);
     if (!!valueType !== !!funcReturnType) {
         throw new TypeError('Mismatched void/typed return type');
     }
+
+    if (!valueType) return;
+
     if (!funcReturnType.equals(valueType)) {
         throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
     }
