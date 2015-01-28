@@ -314,7 +314,6 @@ module.exports = function generateContext(env, tree, filename, rootContext, priv
                         objType.methods[method.name] = method.base.__assignedName;
                     });
                 }
-                doTraverse(node);
                 return;
         }
     }
