@@ -20,6 +20,7 @@ var safeCastMap = {
     bool: ['byte', 'int', 'uint'],
     byte: ['int', 'bool', 'float', 'sfloat', 'uint'],
     float: ['int', 'byte', 'bool', 'sfloat'],
+    sfloat: ['float'],
     int: ['float', 'sfloat', 'bool', 'byte', 'uint'],
     uint: ['float', 'sfloat', 'int', 'byte'],
 };

@@ -36,7 +36,7 @@ exports.validateTypes = function validateTypes(ctx) {
     }
 
     var paramTypes = base.getArgs();
-    var signatureLength = paramTypes.length;
+    var signatureLength = paramTypes.length + signatureOffset;
     // Ignore the `self` parameter on object methods
     if (base.__isObjectMethod) {
         signatureLength--;
@@ -44,7 +44,7 @@ exports.validateTypes = function validateTypes(ctx) {
 
     if (this.params.length < signatureLength) {
         throw new TypeError('Too few arguments passed to function call: ' + this.params.length + ' != ' + signatureLength);
-    } else if (this.params.length < signatureLength) {
+    } else if (this.params.length > signatureLength) {
         throw new TypeError('Too many arguments passed to function call: ' + this.params.length + ' != ' + signatureLength);
     }
 

@@ -6,16 +6,15 @@ function traverse(node, cb, after, parent, member) {
     var res = cb(node, parent, member);
     if (res === false) return;
     for (var key in node) {
-        if (node.hasOwnProperty(key)) {
-            var child = node[key];
-            if (typeof child === 'object' && child !== null) {
-                if (Array.isArray(child)) {
-                    child.forEach(function(childNode) {
-                        traverse(childNode, cb, after, node, key);
-                    });
-                } else {
-                    traverse(child, cb, after, node, key);
+        if (!node.hasOwnProperty(key)) continue;
+        var child = node[key];
+        if (typeof child === 'object' && child !== null) {
+            if (Array.isArray(child)) {
+                for (var i = 0; i < child.length; i++) {
+                    traverse(child[i], cb, after, node, key);
                 }
+            } else {
+                traverse(child, cb, after, node, key);
             }
         }
     }
