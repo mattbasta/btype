@@ -10,3 +10,7 @@ exports.Datenowunix = function() {
 exports.Datenowfloat = function() {
     return 'function() {return (new Date()).getTime() / 1000;}';
 };
+
+exports.Performancenow = function() {
+    return '(function() {return performance.now.bind(performance) || function() {return (new Date()).getTime();};}())'
+};
