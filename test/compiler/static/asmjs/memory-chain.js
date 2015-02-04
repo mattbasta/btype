@@ -181,7 +181,7 @@ describe('Memory (chain) special module', function() {
 
             var calloced = mod.calloc(size);
             for (i = calloced; i < calloced + size; i++) {
-                assert.equal(mod.view[i], 0);
+                assert.equal(mod.view[i], 0, 'Invalid at address ' + i + ' with ' + mod.view[i]);
             }
 
         });

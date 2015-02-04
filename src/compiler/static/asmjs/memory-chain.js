@@ -141,9 +141,10 @@ function malloc(bytes) {
 function calloc(bytes) {
     bytes = bytes | 0;
 
-    var ptr = 0;
-    var iter = 0;
     var destination = 0;
+    var iter = 0;
+    var n = 0;
+    var ptr = 0;
 
     ptr = malloc(bytes) | 0;
 
@@ -152,13 +153,40 @@ function calloc(bytes) {
         return 0;
     }
 
+    // Anything requesting zero bytes should be just as happy with the null pointer.
+    if ((bytes | 0) < 8) {
+        bytes = 8;
+    }
+
     iter = ptr | 0;
     destination = ptr + bytes | 0;
 
     // Set all requested bytes to zero
-    for (; (iter | 0) < (destination | 0); iter = iter + 1 | 0) {
-        memheap[iter] = 0;
+    // Duff's device to improve calloc
+    n = ((bytes | 0) + 7 | 0) / 8 | 0;
+    switch ((bytes | 0) % 8 | 0) {
+        case 0: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 7: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 6: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 5: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 4: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 3: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 2: memheap[iter] = 0; iter = iter + 1 | 0;
+        case 1: memheap[iter] = 0; iter = iter + 1 | 0;
     }
+    n = n - 1 | 0;
+    while ((n | 0) > 0) {
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        memheap[iter] = 0; iter = iter + 1 | 0;
+        n = n - 1 | 0;
+    }
+
     return ptr | 0;
 }
 
