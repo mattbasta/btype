@@ -1,0 +1,12 @@
+import foreign;
+
+
+func printint(int:i) {
+    foreign.external.Consolelog._null.int(i);
+}
+export printint;
+
+func printfloat(float:i) {
+    foreign.external.Consolelog._null.float(i);
+}
+export printfloat;
