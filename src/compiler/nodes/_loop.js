@@ -1,5 +1,7 @@
 var types = require('../types');
 
+var ident = require('./_utils').ident;
+
 
 exports.traverse = function traverse(cb) {
     if (this.assignment) cb(this.assignment, 'assignment');

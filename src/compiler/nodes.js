@@ -38,6 +38,7 @@ var NODES = {
     Switch: require('./nodes/Switch'),
     Subscript: require('./nodes/Subscript'),
     Symbol: require('./nodes/Symbol'),
+    TupleLiteral: require('./nodes/TupleLiteral'),
     Type: require('./nodes/Type'),
     TypeCast: require('./nodes/TypeCast'),
     TypeMember: require('./nodes/TypeMember'),

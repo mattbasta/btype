@@ -541,6 +541,24 @@ module.exports = function Parser(tokenizer) {
         );
     }
 
+    function parseTuple(base) {
+        var endBracket;
+        var content = [];
+        do {
+            content.push(parseExpression());
+        } while (accept(','));
+
+        endBracket = assert(']');
+
+        return node(
+            'TupleLiteral',
+            base.start,
+            endBracket.end,
+            {content: content}
+        );
+
+    }
+
     function parseExpressionModifier(base, precedence) {
         var part;
         var peeked = peek();
@@ -608,6 +626,8 @@ module.exports = function Parser(tokenizer) {
                     parsed = parseExpression();
                     assert(')');
                     return parsed;
+                case 't[':
+                    return parseTuple(base);
                 case 'true':
                 case 'false':
                     return node(
