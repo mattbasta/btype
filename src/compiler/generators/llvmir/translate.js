@@ -249,7 +249,7 @@ var NODES = {
     Binop: _binop,
     CallStatement: function(env, ctx, tctx) {
         // TODO: Is there a GC issue here?
-        _node(this.base, env, ctx, tctx, 'stmt');
+        tctx.write(_node(this.base, env, ctx, tctx, 'stmt'));
     },
     CallRaw: function(env, ctx, tctx, extra) {
         var outReg = tctx.getRegister();

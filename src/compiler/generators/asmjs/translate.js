@@ -1,29 +1,45 @@
 var types = require('../../types');
 
 
-var OP_PREC = {
-    '*': 5,
-    '/': 5,
-    '%': 5,
+function TranslationContext(env, ctx) {
+    this.env = env;
+    this.ctx = ctx;
 
-    '+': 6,
-    '-': 6,
+    this.outputStack = [''];
+    this.countStack = [0];
+    this.indentation = '';
 
-    '<<': 7,
-    '>>': 7,
+    this.uniqCounter = 0;
 
-    '<': 8,
-    '<=': 8,
-    '>': 8,
-    '>=': 8,
+    this.push = function() {
+        this.outputStack.unshift('');
+        this.countStack.unshift(this.countStack[0]);
+        this.indentation += '    ';
+    };
 
-    '==': 9,
-    '!=': 9,
+    this.pop = function() {
+        var popped = this.outputStack.shift();
+        this.outputStack[0] += popped;
+        this.countStack.shift();
+        this.indentation = this.indentation.substr(4);
+    };
 
-    '&': 10,
-    '^': 11,
-    '|': 12,
-};
+    this.write = function(data, noIndent) {
+        this.outputStack[0] += (noIndent ? '' : this.indentation) + data + '\n';
+    };
+
+    this.prepend = function(data, noIndent) {
+        this.outputStack[0] = (noIndent ? '' : this.indentation) + data + '\n' + this.outputStack[0];
+    };
+
+    this.toString = function() {
+        if (this.outputStack.length > 1) {
+            throw new Error('Leaking output in asm.js generator');
+        }
+        return this.outputStack[0];
+    };
+
+}
 
 var HEAP_MODIFIERS = {
     memheap: '>>0',
@@ -41,10 +57,10 @@ function trimSemicolon(inp) {
     return inp;
 }
 
-function _binop(env, ctx, prec) {
+function _binop(env, ctx, tctx) {
     var out;
-    var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
-    var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
+    var left = _node(this.left, env, ctx, tctx);
+    var right = _node(this.right, env, ctx, tctx);
 
     var leftType = this.left.getType(ctx).flatTypeName();
     var rightType = this.right.getType(ctx).flatTypeName();
@@ -57,8 +73,6 @@ function _binop(env, ctx, prec) {
         return typeAnnotation(out, ctx.env.registeredOperatorReturns[operatorStmtFunc]);
     }
 
-    var oPrec = OP_PREC[this.operator] || 13;
-
     switch (this.operator) {
         case 'and':
         case 'or':
@@ -68,7 +82,6 @@ function _binop(env, ctx, prec) {
                 this.right.getType(ctx) === types.publicTypes.int) {
 
                 out = '(imul(' + left + ', ' + right + ')|0)';
-                oPrec = 18;
                 break;
             }
         default:
@@ -80,8 +93,8 @@ function _binop(env, ctx, prec) {
     return typeAnnotation(out, this.getType(ctx));
 }
 
-function _node(node, env, ctx, prec, extra) {
-    return NODES[node.type].call(node, env, ctx, prec, extra);
+function _node(node, env, ctx, tctx, extra) {
+    return NODES[node.type].call(node, env, ctx, tctx, extra);
 }
 
 function typeAnnotation(base, type) {
@@ -143,25 +156,20 @@ function getFunctionDerefs(ctx, exclude) {
 
 
 var NODES = {
-    Root: function(env, ctx) {
+    Root: function(env, ctx, tctx) {
         env.__globalPrefix = '';
         env.__stdlibRequested = {};
         env.__foreignRequested = {};
-        var output = this.body.map(function(stmt) {
-            return _node(stmt, env, ctx, 0);
-        }).join('\n');
-        output = env.__globalPrefix + output;
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.prepend(env.__globalPrefix);
         delete env.__globalPrefix;
         delete env.__stdlibRequested;
         delete env.__foreignRequested;
-        return output;
     },
-    Unary: function(env, ctx, prec) {
-        // Precedence here will always be 4.
-        var out = _node(this.base, env, ctx, 4);
-        if (4 < prec) {
-            out = '(' + out + ')';
-        }
+    Unary: function(env, ctx, tctx) {
+        var out = _node(this.base, env, ctx, tctx);
         if (this.operator === '~') {
             out = '(~' + out + ')';
         } else if (this.operator === '!') {
@@ -173,37 +181,35 @@ var NODES = {
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
-    CallStatement: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 0);
+    CallStatement: function(env, ctx, tctx) {
+        tctx.write(_node(this.base, env, ctx, tctx) + ';');
     },
-    CallRaw: function(env, ctx, prec) {
-        return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
+    CallRaw: function(env, ctx, tctx) {
+        return _node(this.callee, env, ctx, tctx) + '(/* CallRaw */' +
             this.params.map(function(param) {
-                return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
+                return typeAnnotation(_node(param, env, ctx, tctx), param.getType(ctx));
             }).join(',') +
-            ')' +
-            (!prec ? ';' : '');
+            ')';
     },
-    CallDecl: function(env, ctx, prec) {
+    CallDecl: function(env, ctx, tctx) {
         return '(' +
             typeAnnotation(
-                _node(this.callee, env, ctx, 1) +
+                _node(this.callee, env, ctx, tctx) +
                     '(/* CallDecl */' +
                     this.params.map(function(param) {
-                        return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
+                        return typeAnnotation(_node(param, env, ctx, tctx), param.getType(ctx));
                     }).join(',') +
                     ')',
                 this.callee.getType(ctx).getReturnType()
             ) +
-            ')' +
-            (!prec ? ';' : '');
+            ')';
     },
-    CallRef: function(env, ctx, prec) {
+    CallRef: function(env, ctx, tctx) {
         var funcType = this.callee.getType(ctx);
         var listName = env.getFuncListName(funcType);
 
         var paramList = this.params.map(function(param) {
-            return typeAnnotation(_node(param, env, ctx, 18), param.getType(ctx));
+            return typeAnnotation(_node(param, env, ctx, tctx), param.getType(ctx));
         }).join(',');
 
         var isMethodCall = funcType.__isMethod;
@@ -215,7 +221,7 @@ var NODES = {
 
             return typeAnnotation(
                 temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, 18) + '|0' +
+                _node(this.callee.base, env, ctx, tctx) + '|0' +
                 (this.params.length ? ',' + paramList : '') +
                 ')',
                 funcType.getReturnType()
@@ -226,7 +232,7 @@ var NODES = {
             return '(' +
                 typeAnnotation(
                     env.funcList[listName][0] + '(/* CallRef;Compacted */' +
-                    (isMethodCall ? 'ptrheap[(' + _node(this.callee, env, ctx, 1) + ' + 4) >> 2]|0' : '') +
+                    (isMethodCall ? 'ptrheap[(' + _node(this.callee, env, ctx, tctx) + ' + 4) >> 2]|0' : '') +
                     (isMethodCall && this.params.length ? ',' : '') +
                     paramList +
                     ')',
@@ -238,15 +244,14 @@ var NODES = {
         return '(' +
             typeAnnotation(
                 listName + '$$call(/* CallRef */' +
-                    _node(this.callee, env, ctx, 1) +
+                    _node(this.callee, env, ctx, tctx) +
                     (this.params.length ? ',' : '') +
                     paramList + ')',
                 funcType.getReturnType()
             ) +
-            ')' +
-            (!prec ? ';' : '');
+            ')';
     },
-    FunctionReference: function(env, ctx, prec) {
+    FunctionReference: function(env, ctx, tctx) {
         var funcName = this.base.__refName;
         var funcType = this.base.getType(ctx);
         var listName = env.getFuncListName(funcType);
@@ -254,9 +259,9 @@ var NODES = {
         // TODO: Optimize this for the case that there is only one function in
         // the table.
 
-        return '((getfuncref(' + this.base.__refIndex + ', ' + _node(this.ctx, env, ctx) + ')|0) | 0)';
+        return '((getfuncref(' + this.base.__refIndex + ', ' + _node(this.ctx, env, ctx, tctx) + ')|0) | 0)';
     },
-    Member: function(env, ctx, prec, parent) {
+    Member: function(env, ctx, tctx, parent) {
         var baseType = this.base.getType(ctx);
         if (baseType._type === 'module') {
             return baseType.memberMapping[this.child];
@@ -287,13 +292,13 @@ var NODES = {
         }
 
         if (baseType._type === '_foreign_curry') {
-            return _node(this.base, env, ctx, 1);
+            return _node(this.base, env, ctx, tctx);
         }
 
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
             var objectMethodFunc = ctx.lookupFunctionByName(baseType.getMethod(this.child));
             var objectMethodFuncIndex = env.registerFunc(objectMethodFunc);
-            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, 1) + ')|0) | 0)';
+            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, tctx) + ')|0) | 0)';
         }
 
         var layout = baseType.getLayout();
@@ -305,22 +310,22 @@ var NODES = {
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
-        var lookup = typedArr + '[((' + _node(this.base, env, ctx, 1) + ') + (' + (layout[this.child] + 8) + '))' + HEAP_MODIFIERS[typedArr] + ']';
+        var lookup = typedArr + '[((' + _node(this.base, env, ctx, tctx) + ') + (' + (layout[this.child] + 8) + '))' + HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
         }
         return lookup;
     },
-    Assignment: function(env, ctx, prec) {
-        var baseContent = typeAnnotation(_node(this.value, env, ctx, 1), this.value.getType(ctx));
+    Assignment: function(env, ctx, tctx) {
+        var baseContent = typeAnnotation(_node(this.value, env, ctx, tctx, 'Assignment'), this.value.getType(ctx));
 
         var valueType = this.value.getType(ctx);
         if (valueType._type !== 'primitive') {
             baseContent = '(gcref((' + baseContent + ')|0)|0)';
         }
-        return _node(this.base, env, ctx, 1, 'Assignment') + ' = ' + baseContent + ';';
+        tctx.write(_node(this.base, env, ctx, tctx, 'Assignment') + ' = ' + baseContent + ';');
     },
-    Declaration: function(env, ctx, prec) {
+    Declaration: function(env, ctx, tctx) {
         var type = this.value.getType(ctx);
         var output = 'var ' + this.__assignedName + ' = ';
 
@@ -331,168 +336,195 @@ var NODES = {
 
         var def = (type && type.typeName === 'float') ? '0.0' : '0';
         output += def + ';\n';
-        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
-        return output;
+
+        tctx.write(output);
+        tctx.write(this.__assignedName + ' = ' + _node(this.value, env, ctx, tctx) + ';');
     },
     ConstDeclaration: function() {
         return NODES.Declaration.apply(this, arguments);
     },
-    Return: function(env, ctx, prec) {
-        var output = getFunctionDerefs(ctx, this.value);
+    Return: function(env, ctx, tctx) {
+        tctx.write(getFunctionDerefs(ctx, this.value));
+
         if (!this.value) {
             if (ctx.scope.__objectSpecial === 'constructor') {
-                return output + 'return ' + ctx.scope.params[0].__assignedName + ';';
+                tctx.write('return ' + ctx.scope.params[0].__assignedName + ';');
+                return;
             }
-            return output + 'return;';
+            tctx.write('return;');
+            return;
         }
-        return output + 'return ' + typeAnnotation(_node(this.value, env, ctx, 1, 'Return'), this.value.getType(ctx)) + ';';
+
+        tctx.write('return ' + typeAnnotation(_node(this.value, env, ctx, tctx, 'Return'), this.value.getType(ctx)) + ';');
     },
-    Export: function() {return '';},
-    Import: function() {return '';},
-    For: function(env, ctx, prec) {
+    Export: function() {},
+    Import: function() {},
+    For: function(env, ctx, tctx) {
         // FIXME: Make this valid asm
-        return 'for (' +
-            _node(this.assignment, env, ctx, 0) +
-            _node(this.condition, env, ctx, 0) + ';' +
-            trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
-            ') {\n' +
-            this.loop.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}';
+        tctx.write(
+            'for (' +
+            _node(this.assignment, env, ctx, tctx) +
+            _node(this.condition, env, ctx, tctx) + ';' +
+            trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, tctx) : '') +
+            ') {'
+        );
+        tctx.push();
+        this.loop.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+        tctx.pop();
+        tctx.write('}');
     },
-    DoWhile: function(env, ctx, prec) {
+    DoWhile: function(env, ctx, tctx) {
         // FIXME: Make this valid asm
-        return 'do {' +
-            this.loop.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '} while (' +
-            _node(this.condition, env, ctx, 0) +
-            ');';
+        tctx.write(
+            'do {'
+        );
+        tctx.push();
+        this.loop.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+        tctx.pop();
+        tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + ');');
     },
-    While: function(env, ctx, prec) {
+    While: function(env, ctx, tctx) {
         // FIXME: Make this valid asm
-        return 'while (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.loop.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}';
+        tctx.write('while (' + _node(this.condition, env, ctx, tctx) + ') {');
+        tctx.push();
+        this.loop.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+        tctx.pop();
+        tctx.write('}');
     },
-    Switch: function(env, ctx, prec) {
-        return 'switch (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.cases.map(function(_case) {
-                return _node(_case, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    Switch: function(env, ctx, tctx) {
+        tctx.write('switch (' + _node(this.condition, env, ctx, tctx) + ') {');
+        tctx.push();
+        this.cases.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+        tctx.pop();
+        tctx.write('}');
     },
-    Case: function(env, ctx, prec) {
-        return 'case ' +
-            _node(this.value, env, ctx, 0) +
-            ';\n' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n');
+    Case: function(env, ctx, tctx) {
+        tctx.write('case ' + _node(this.value, env, ctx, tctx) + ':');
+        tctx.push();
+        this.body.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+        tctx.pop();
     },
-    If: function(env, ctx, prec) {
-        return 'if (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {\n' +
-            this.consequent.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '\n}' +
-            (this.alternate ? ' else {\n' + this.alternate.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') + '\n}' : '');
+    If: function(env, ctx, tctx) {
+        tctx.write('if (' + _node(this.condition, env, ctx, tctx) + ') {');
+        tctx.push();
+        this.consequent.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+        tctx.pop();
+        if (this.alternate) {
+            tctx.write('} else {');
+            tctx.push();
+            this.alternate.forEach(function(x) {
+                _node(x, env, ctx, tctx);
+            });
+            tctx.pop();
+        }
+        tctx.write('}');
     },
-    Function: function(env, _, prec) {
+    Function: function(env, _, tctx, parent) {
         var ctx = this.__context;
-        var output = 'function ' + this.__assignedName + '(';
-        output += this.params.map(function(param) {
-            return _node(param, env, ctx, 1);
-        }).join(',');
-        output += '){';
+
+        tctx.write(
+            'function ' + this.__assignedName + '(' +
+            this.params.map(function(param) {
+                return _node(param, env, ctx, tctx);
+            }).join(',') +
+            ') {'
+        );
         if (this.name) {
-            output += ' /* ' + this.name + ' */';
+            tctx.write('/* ' + this.name + ' */');
         }
-        output += '\n';
+
+        tctx.push();
 
         // asm.js parameter annotations
         if (this.params.length) {
-            output += '    ' + this.params.map(function(param) {
+            this.params.forEach(function(param) {
                 var paramType = param.getType(ctx);
-                return param.__assignedName + ' = ' + typeAnnotation(param.__assignedName, paramType) + ';';
-            }).join('\n    ');
-
-            output += '\n';
+                tctx.write(param.__assignedName + ' = ' + typeAnnotation(param.__assignedName, paramType) + ';');
+            });
         }
 
-        output += '    ' + this.body.map(function(stmt) {
-            return _node(stmt, env, ctx, 0);
-        }).join('\n    ');
-
+        this.body.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
 
         var returnType = this.getType(ctx).getReturnType();
         var hasReturnStatement = this.body.length && this.body[this.body.length - 1].type === 'Return';
         if (returnType && !hasReturnStatement) {
-            output += getFunctionDerefs(ctx);
-            output += '\n     return 0';
+            tctx.write(getFunctionDerefs(ctx));
             if (returnType.typeName === 'float' ||
                 returnType.typeName === 'sfloat') {
-                output += '.0';
+                tctx.write('return 0.0;');
+            } else {
+                tctx.write('return 0;');
             }
-            output += ';';
+
         } else if (!returnType && this.__objectSpecial === 'constructor') {
-            output += getFunctionDerefs(ctx);
+            tctx.write(getFunctionDerefs(ctx));
             // Constructors always are "void", but the implementation always
             // returns the pointer to the initialized object.
-            output += '\n     return ' + this.params[0].__assignedName + ' | 0;';
+            tctx.write('return ' + this.params[0].__assignedName + ' | 0;');
+
         } else if (!hasReturnStatement) {
-            output += getFunctionDerefs(ctx);
+            tctx.write(getFunctionDerefs(ctx));
         }
 
-        output += '\n}';
-        return output;
+
+        tctx.pop();
+        tctx.write('}');
     },
-    OperatorStatement: function(env, ctx, prec) {
+    OperatorStatement: function(env, ctx, tctx) {
         var ctx = this.__context;
-        var output = 'function ' + this.__assignedName + '(' +
-            _node(this.left, env, ctx, 1) + ', ' +
-            _node(this.right, env, ctx, 1) + ') {\n';
+
+        tctx.write(
+            'function ' + this.__assignedName + '(' +
+            _node(this.left, env, ctx, tctx) + ', ' +
+            _node(this.right, env, ctx, tctx) +
+            ') {'
+        );
+        tctx.push();
 
         var leftType = this.left.getType(ctx);
-        output += this.left.__assignedName + ' = ' + typeAnnotation(this.left.__assignedName, leftType) + ';';
+        tctx.write(this.left.__assignedName + ' = ' + typeAnnotation(this.left.__assignedName, leftType) + ';');
         var rightType = this.right.getType(ctx);
-        output += this.right.__assignedName + ' = ' + typeAnnotation(this.right.__assignedName, rightType) + ';';
+        tctx.write(this.right.__assignedName + ' = ' + typeAnnotation(this.right.__assignedName, rightType) + ';');
 
-        output += '    ' + this.body.map(function(stmt) {
-            return _node(stmt, env, ctx, 0);
-        }).join('\n    ');
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+
+        tctx.write(getFunctionDerefs(ctx));
 
         var returnType = this.getType(ctx).getReturnType();
         if (returnType && this.body[this.body.length - 1].type !== 'Return') {
-            output += '\n     return 0';
             if (returnType.typeName === 'float' ||
                 returnType.typeName === 'sfloat') {
-                output += '.0';
+                tctx.write('return 0.0;');
+            } else {
+                tctx.write('return 0;');
             }
-            output += ';';
         }
 
-        output += '\n}';
-        return output;
+        tctx.pop();
+        tctx.write('}');
 
     },
     Type: function() {return '';},
-    TypedIdentifier: function(env, ctx, prec) {
+    TypedIdentifier: function(env, ctx, tctx) {
         return this.__assignedName;
     },
-    Literal: function(env, ctx) {
+    Literal: function(env, ctx, tctx) {
         if (this.value === true) return '1';
         if (this.value === false) return '0';
         if (this.value === null) return '0';
@@ -515,7 +547,7 @@ var NODES = {
     Symbol: function() {
         return this.__refName;
     },
-    New: function(env, ctx) {
+    New: function(env, ctx, tctx) {
         var type = this.getType(ctx);
         if (typeof type === 'string') debugger;
         type = this.getType(ctx);
@@ -529,7 +561,7 @@ var NODES = {
             size = '(' +
                 '((' +
                     '(' +
-                        typeAnnotation('(' + _node(this.params[0], env, ctx, 1) + ')', this.params[0].getType(ctx)) +
+                        typeAnnotation('(' + _node(this.params[0], env, ctx, tctx) + ')', this.params[0].getType(ctx)) +
                     ') * ' + innerTypeSize +
                 ') | 0) + 16 | 0)';
         } else {
@@ -538,48 +570,42 @@ var NODES = {
         var output = '(gcref(calloc(' + size + ')|0)|0)';
         if (type instanceof types.Struct && type.objConstructor) {
             output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {
-                return typeAnnotation(_node(param, env, ctx, 1), param.getType(ctx));
+                return typeAnnotation(_node(param, env, ctx, tctx), param.getType(ctx));
             }).join(', ') : '') + ')|0)';
         }
 
         return output;
     },
 
-    Break: function() {
-        return 'break;';
+    Break: function(env, ctx, tctx) {
+        tctx.write('break;');
     },
-    Continue: function() {
-        return 'continue;';
+    Continue: function(env, ctx, tctx) {
+        tctx.write('continue;');
     },
 
-    ObjectDeclaration: function(env, ctx) {
-        var output = '';
-
+    ObjectDeclaration: function(env, ctx, tctx) {
         if (this.objConstructor) {
-            output = _node(this.objConstructor, env, ctx, 0) + '\n';
+            _node(this.objConstructor, env, ctx, tctx);
         }
 
-        output += this.methods.map(function(method) {
-            return _node(method, env, ctx, 0);
-        }).join('\n');
-
-        return output;
+        this.methods.forEach(function(method) {
+            _node(method, env, ctx, tctx);
+        });
     },
-    ObjectMember: function() {
-        return '';
+    ObjectMember: function() {},
+    ObjectMethod: function(env, ctx, tctx) {
+        _node(this.base, env, ctx, tctx);
     },
-    ObjectMethod: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, prec);
-    },
-    ObjectConstructor: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, prec);
+    ObjectConstructor: function(env, ctx, tctx) {
+        _node(this.base, env, ctx, tctx);
     },
 
-    TypeCast: function(env, ctx, prec) {
+    TypeCast: function(env, ctx, tctx) {
         var baseType = this.left.getType(ctx);
         var targetType = this.rightType.getType(ctx);
 
-        var base = _node(this.left, env, ctx, 1);
+        var base = _node(this.left, env, ctx, tctx);
         if (baseType.equals(targetType)) return base;
 
         // base = typeAnnotation(base, baseType);
@@ -636,7 +662,7 @@ var NODES = {
 
     },
 
-    Subscript: function(env, ctx, prec, parent) {
+    Subscript: function(env, ctx, tctx, parent) {
         var baseType = this.base.getType(ctx);
         if (baseType._type !== 'array') {
             throw new Error('Cannot subscript non-arrays in asmjs');
@@ -652,9 +678,9 @@ var NODES = {
 
         var elementSize = childType.typeName === 'primitive' ? childType.getSize() : '4';
         var lookup = typedArr + '[((' +
-            _node(this.base, env, ctx, 1) + ') + (' +
+            _node(this.base, env, ctx, tctx) + ') + (' +
             // +8 for memory overhead, +8 for the array length
-            '((' + _node(this.subscript, env, ctx, 1) + ') * ' + elementSize + ') | 0) + 16)' +
+            '((' + _node(this.subscript, env, ctx, tctx) + ') * ' + elementSize + ') | 0) + 16)' +
             HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
@@ -665,7 +691,9 @@ var NODES = {
 };
 
 module.exports = function translate(ctx) {
-    return _node(ctx.scope, ctx.env, ctx, 0);
+    var tctx = new TranslationContext(ctx.env, ctx);
+    _node(ctx.scope, ctx.env, ctx, tctx);
+    return tctx.toString();
 };
 
 module.exports.typeAnnotation = typeAnnotation;
