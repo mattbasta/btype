@@ -15,7 +15,7 @@ describe('Tuple literal parsing', function() {
 
     it('should work with basic tuples', function() {
         compareTree(
-            'x = t[1, 2];',
+            'x = [:1, 2];',
             _root([
                 node(
                     'Assignment',

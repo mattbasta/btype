@@ -1,4 +1,4 @@
-tuple<int, int, int>:foo = t[false, 1.2, false];
+tuple<int, int, int>:foo = [: false, 1.2, false];
 
 func main() {}
 export main;

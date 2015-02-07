@@ -626,7 +626,7 @@ module.exports = function Parser(tokenizer) {
                     parsed = parseExpression();
                     assert(')');
                     return parsed;
-                case 't[':
+                case '[:':
                     return parseTuple(base);
                 case 'true':
                 case 'false':
