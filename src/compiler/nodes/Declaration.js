@@ -15,7 +15,7 @@ exports.getType = function getType(ctx) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
-    this.value.validateTypes(ctx);
+    this.value.validateTypes(ctx, this);
 
     if (this.value.type === 'Literal' &&
         this.value.value === null) {

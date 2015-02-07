@@ -21,7 +21,7 @@ exports.getType = function getType(ctx) {
     return baseType.getSubscriptType(index) || null;
 };
 
-exports.validateTypes = function validateTypes(ctx) {
+exports.validateTypes = function validateTypes(ctx, parentNode) {
     var baseType = this.base.getType(ctx);
     if (!baseType.isSubscriptable()) {
         throw new TypeError('Cannot subscript ' + this.toString());
@@ -33,6 +33,19 @@ exports.validateTypes = function validateTypes(ctx) {
         subscriptType.typeName !== 'int') {
         throw new TypeError('Cannot subscript with a non-int value. (' + subscriptType.toString() + ' given)');
     }
+
+    if (parentNode && parentNode.type === 'Declaration' && !parentNode.declType &&
+        baseType._type === 'tuple') {
+        if (this.subscript.type !== 'Literal' ||
+            subscriptType._type !== 'primitive' ||
+            subscriptType.typeName !== 'int') {
+            throw new TypeError('Cannot subscript tuple with non-int literal vlaue');
+        }
+        if (this.subscript.value < 0 || this.subscript.value >= baseType.contentsTypeArr.length) {
+            throw new TypeError('Invalid subscript for tuple: ' + this.subscript.value + ' of ' + baseType.toString());
+        }
+    }
+
 
     this.base.validateTypes(ctx);
     this.subscript.validateTypes(ctx);

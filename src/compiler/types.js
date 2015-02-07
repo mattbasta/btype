@@ -223,7 +223,7 @@ function Tuple(contentsTypeArr) {
     }
 
     function getLayout() {
-        var keys = this.contentsTypeArr.map(function(_, i) {return i;});
+        var keys = contentsTypeArr.map(function(_, i) {return i;});
         keys.sort(function(a, b) {
             return memberSize(a) < memberSize(b);
         });
@@ -232,13 +232,15 @@ function Tuple(contentsTypeArr) {
 
     var cachedLayoutIndices;
     this.getLayoutIndex = function(index) {
-        if (cachedLayoutIndices) return cachedLayoutIndices[index];
-        var layout = getLayout();
-        var indices = {};
-        layout.forEach(function(key, i) {
-            indices[key] = i;
-        });
-        return (cachedLayoutIndices = indices)[index];
+        index = index | 0;
+        var sum = 0;
+        for (var i = 0; i < this.contentsTypeArr.length; i++) {
+            if (i === index) {
+                return sum;
+            }
+            sum += memberSize(i);
+        }
+        throw new TypeError('Invalid layout index: ' + index + ' in tuple ' + this.toString());
     };
 
     this.equals = function(x) {
@@ -250,6 +252,14 @@ function Tuple(contentsTypeArr) {
 
     this.toString = function() {
         return 'tuple<' + this.contentsTypeArr.map(function(t) {return t.toString();}).join(',') + '>';
+    };
+
+    this.getSize = function() {
+        var sum = 0;
+        for (var i = 0; i < this.contentsTypeArr.length; i++) {
+            sum += memberSize(i);
+        }
+        return sum;
     };
 
     this.flatTypeName = function() {

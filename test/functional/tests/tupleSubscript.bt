@@ -1,0 +1,5 @@
+func int:main() {
+    var x = [: 1, 2, 3, 4];
+    return x[2];
+}
+export main;

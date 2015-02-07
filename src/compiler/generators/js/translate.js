@@ -452,7 +452,7 @@ var NODES = {
     },
 
     TupleLiteral: function(env, ctx) {
-        return '[' + this.content.map(function(x) {return x.toString();}).join(',') + ']';
+        return '[' + this.content.map(function(x) {return _node(x, env, ctx, 1);}).join(',') + ']';
     },
 
 };

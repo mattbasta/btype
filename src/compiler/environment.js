@@ -141,7 +141,7 @@ Environment.prototype.addContext = function(context) {
 };
 
 Environment.prototype.registerType = function(assignedName, type, context) {
-    type.__assignedName = assignedName;
+    type.__assignedName = assignedName || this.namer();
     this.typeMap[assignedName] = type;
     this.typeContextMap[assignedName] = context;
     this.types.push(type);
