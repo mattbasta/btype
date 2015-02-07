@@ -77,7 +77,6 @@ function trimBody(body) {
             if (stack[i].type === 'AssignmentExpression') return stack[i].left.name;
             if (stack[i].type === 'ReturnStatement') return 'root';
         }
-        console.error(stack);
         throw new Error('Unknown accessor name');
     }
 

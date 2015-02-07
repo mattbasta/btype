@@ -145,7 +145,6 @@ function Struct(name, contentsTypeMap) {
         var order = getLayout().map(function(member) {
             return contentsTypeMap[member];
         });
-        console.log(this.typeName, order);
         return cachedOrderedLayout = order;
     };
 

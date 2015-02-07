@@ -20,6 +20,6 @@ exports.validateTypes = function validateTypes(ctx) {
 };
 
 exports.toString = function toString() {
-    return 'FunctionReference(' + this.ctx.toString() + '):\n' +
+    return 'FunctionReference(' + (this.ctx ? this.ctx.toString() : 'null') + '):\n' +
         indentEach(this.base.toString()) + '\n';
 };

@@ -156,6 +156,12 @@ var NODES = {
             (!prec ? ';' : '');
     },
     FunctionReference: function(env, ctx, prec) {
+        if (!this.ctx) {
+            // If there is no context, it means it's just a root global or
+            // needs no context.
+            return _node(this.base, env, ctx, 1);
+        }
+
         var ctx = _node(this.ctx, env, ctx);
         if (ctx === '0') {
             return _node(this.base, env, ctx, 1);

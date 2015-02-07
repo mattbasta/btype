@@ -259,6 +259,10 @@ var NODES = {
         // TODO: Optimize this for the case that there is only one function in
         // the table.
 
+        if (!this.ctx) {
+            return '((getfuncref(' + this.base.__refIndex + ', 0)|0) | 0)';
+        }
+
         return '((getfuncref(' + this.base.__refIndex + ', ' + _node(this.ctx, env, ctx, tctx) + ')|0) | 0)';
     },
     Member: function(env, ctx, tctx, parent) {
@@ -331,7 +335,8 @@ var NODES = {
 
         if (this.value.type === 'Literal') {
             output += (this.value.value || '0').toString() + ';';
-            return output;
+            tctx.write(output);
+            return;
         }
 
         var def = (type && type.typeName === 'float') ? '0.0' : '0';

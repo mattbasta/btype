@@ -145,6 +145,46 @@ function getFunctionContext(ctx, name) {
     return funcctx;
 }
 
+function processRoot(rootContext) {
+    // In the root context, the first thing we want to do is convert any
+    // function expressions into function references.
+    var stack = [];
+    var funcsToAppend = [];
+    traverser.traverse(rootContext.scope, function(node, member) {
+        if (node.type !== 'Function') {
+            stack.unshift(node);
+            return;
+        }
+
+        // Ignore non-expression functions
+        if (member === 'loop' || member === 'body' ||
+            stack[0] instanceof nodes.ObjectConstructor ||
+            stack[0] instanceof nodes.ObjectMethod) {
+            return false;
+        }
+
+        funcsToAppend.push(node);
+
+        stack[0][member] = new nodes.FunctionReference({
+            base: new nodes.Symbol({
+                name: node.name || node.__assignedName,
+                __refContext: rootContext,
+                __refType: node.getType(rootContext),
+                __refName: node.__assignedName,
+                __isFunc: true,
+            }),
+            ctx: null,
+        });
+        return false;
+
+    }, function() {
+        stack.shift();
+    });
+
+    rootContext.scope.body = rootContext.scope.body.concat(funcsToAppend);
+
+}
+
 function processContext(rootContext, ctx, tree) {
     rootContext.__transformEncounteredContexts = rootContext.__transformEncounteredContexts || [];
     var encounteredContexts = rootContext.__transformEncounteredContexts;
@@ -155,7 +195,7 @@ function processContext(rootContext, ctx, tree) {
     // conversion.
     // Since side effects are not introduced directly when a function
     // contains other nested functions, the efficacy of class 1
-    // transfprmations is not decreased.
+    // transformations is not decreased.
 
     if (ctx !== rootContext) {
         // Process this individual context's function.
@@ -509,6 +549,7 @@ var transform = module.exports = function(rootContext) {
     // Traverse down into the context tree and process each context in turn.
     // This uses depth-first search.
     processContext(rootContext, rootContext);
+    processRoot(rootContext);
 
     // Perform all uplifting at the end.
     rootContext.__transformEncounteredContexts.forEach(upliftContext.bind(null, rootContext));

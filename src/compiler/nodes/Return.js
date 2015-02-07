@@ -29,5 +29,5 @@ exports.validateTypes = function validateTypes(ctx) {
 
 exports.toString = function toString() {
     return 'Return:\n' +
-           (this.value ? indentEach(this.value.toString()) : '    void') + '\n';
+           (this.value ? indentEach(this.value.toString()) : '    void');
 };

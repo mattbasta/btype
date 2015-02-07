@@ -36,7 +36,7 @@ exports.toString = function toString() {
            '    Left:\n' +
            indentEach(this.left.toString(), 2) + '\n' +
            '    Right:\n' +
-           indentEach(this.right.toString(), 2) + '\n';
+           indentEach(this.right.toString(), 2);
 };
 
 exports.isOverloaded = binop.isOverloaded;

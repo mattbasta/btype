@@ -80,6 +80,7 @@ function registerAllUsedMethods(env) {
 
     env.included.forEach(function(ctx) {
         traverser.traverse(ctx.scope, function(node) {
+            if (!node) return;
             if (node.type !== 'Member') return;
 
             var baseType = node.base.getType(ctx);
@@ -137,25 +138,39 @@ module.exports = function generate(env, ENV_VARS) {
         var paramList = funcType.args.map(function(param, i) {
             return '$param' + i;
         });
-        return 'function ' + flist + '$$call($$ctx' +
-            (paramList.length ? ',' : '') +
-            paramList.join(',') +
-            ') {\n' +
-            '    $$ctx = $$ctx | 0;\n' +
-            funcType.args.map(function(arg, i) {
-                var base = '$param' + i;
-                return '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg) + ';';
-            }).join('\n') + '\n' +
-            '    return ' + jsTranslate.typeAnnotation(
-                    flist + '[ptrheap[$$ctx >> 2]&' + (funcList.length - 1) + '](' +
-                        'ptrheap[$$ctx + 4 >> 2]|0' +
-                        (paramList.length ? ',' : '') +
-                        paramList.join(',') +
-                        ')',
-                    funcType.returnType
-                ) +
-                ';\n' +
-            '}';
+
+        var output = 'function ' + flist + '$$call($$ctx';
+
+        if (paramList.length) {
+            output += ', ';
+            output += paramList.join(', ');
+        }
+
+        output += ') {\n';
+
+        output += '    $$ctx = $$ctx | 0;\n';
+        funcType.args.forEach(function(arg, i) {
+            var base = '$param' + i;
+            output += '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg) + ';\n';
+        });
+
+        output += '    var funcId = 0;\n';
+        output += '    funcId = ptrheap[$$ctx >> 2];\n';
+        output += '    var funcCtx = 0;\n';
+        output += '    funcCtx = ptrheap[$$ctx + 4 >> 2];\n';
+
+        var callBase = flist + '[funcId & ' + (funcList.length - 1) + ']';
+        var rawCall = callBase + '(' + paramList.join(', ') + ')';
+        output += '    if (!funcCtx) {\n';
+        output += '        return ' + jsTranslate.typeAnnotation(rawCall, funcType.returnType) + ';\n';
+        output += '    }\n';
+
+        var fullCall = callBase + '(funcCtx | 0' + (paramList.length ? ', ' + paramList.join(', ') : '') + ')';
+        output += '    return ' + jsTranslate.typeAnnotation(fullCall, funcType.returnType) + ';\n';
+
+        output += '}';
+        return output;
+
     }).join('\n');
 
     // Compile function lists
