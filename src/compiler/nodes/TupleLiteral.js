@@ -1,5 +1,7 @@
 var types = require('../types');
 
+var indentEach = require('./_utils').indentEach;
+
 
 exports.traverse = function traverse(cb) {
     this.content.forEach(function(c) {

@@ -216,12 +216,29 @@ function Tuple(contentsTypeArr) {
     this._type = 'tuple';
     this.contentsTypeArr = contentsTypeArr;
 
-    this.resolve = function(pointer) {
-        return HeapLookup({
-            heap: 'ptrheap',
-            pointer: base,
-            offset: 0
+    function memberSize(index) {
+        var type = contentsTypeArr[index];
+        if (type._type === 'primitive') return type.getSize();
+        return 4; // pointer size
+    }
+
+    function getLayout() {
+        var keys = this.contentsTypeArr.map(function(_, i) {return i;});
+        keys.sort(function(a, b) {
+            return memberSize(a) < memberSize(b);
         });
+        return keys;
+    }
+
+    var cachedLayoutIndices;
+    this.getLayoutIndex = function(index) {
+        if (cachedLayoutIndices) return cachedLayoutIndices[index];
+        var layout = getLayout();
+        var indices = {};
+        layout.forEach(function(key, i) {
+            indices[key] = i;
+        });
+        return (cachedLayoutIndices = indices)[index];
     };
 
     this.equals = function(x) {
@@ -229,6 +246,10 @@ function Tuple(contentsTypeArr) {
         return this.contentsTypeArr.every(function(type, i) {
             return type.equals(x.contentsTypeArr[i]);
         });
+    };
+
+    this.toString = function() {
+        return 'tuple<' + this.contentsTypeArr.map(function(t) {return t.toString();}).join(',') + '>';
     };
 
     this.flatTypeName = function() {

@@ -451,6 +451,10 @@ var NODES = {
             _node(this.subscript, env, ctx, 1) + ']';
     },
 
+    TupleLiteral: function(env, ctx) {
+        return '[' + this.content.map(function(x) {return x.toString();}).join(',') + ']';
+    },
+
 };
 
 module.exports = function translateJS(ctx) {

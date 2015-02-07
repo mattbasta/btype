@@ -25,6 +25,8 @@ exports.getType = function getType(ctx) {
         );
     } else if (this.name === 'array') {
         return this.__type = new types.Array(this.traits[0].getType(ctx));
+    } else if (this.name === 'tuple') {
+        return this.__type = new types.Tuple(this.traits.map(function(t) {return t.getType(ctx);}));
     }
 
     return this.__type = ctx.resolveType(this.name);

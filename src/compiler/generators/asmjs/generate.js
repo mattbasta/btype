@@ -173,6 +173,23 @@ module.exports = function generate(env, ENV_VARS) {
 
     }).join('\n');
 
+    body += env.types.map(function(type) {
+        if (type._type !== 'tuple') return '';
+        return 'function makeTuple$' + type.flatTypeName() + '(' +
+            type.contentsTypeArr.map(function(x, i) {return 'm' + i;}).join(',') +
+            ') {\n' +
+            type.contentsTypeArr.map(function(x, i) {
+                return '    m' + i + ' = ' + typeAnnotation('m' + i, x) + ';\n';
+            }).join('') +
+            '    var x = gcref(malloc(' + (type.getSize() + 8) + '|0)|0);\n'
+            type.contentsTypeArr.map(function(x, i) {
+                var typedArr = jsTranslate.heapName(x);
+                return '    ' + typedArr + '[x + ' + (type.getLayoutIndex(i) + 8) + jsTranslate.HEAP_MODIFIERS[typedArr] + '] = ' + typeAnnotation('m' + i, x) + ';\n';
+            }).join('') +
+            '    return x | 0;\n' +
+            '}';
+    }, env).join('\n\n') + '\n';
+
     // Compile function lists
     body += '\n' + Object.keys(env.funcList).map(function(flist) {
         if (env.funcList[flist].length === 1) return '';

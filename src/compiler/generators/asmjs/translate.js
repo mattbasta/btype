@@ -97,6 +97,16 @@ function _node(node, env, ctx, tctx, extra) {
     return NODES[node.type].call(node, env, ctx, tctx, extra);
 }
 
+function heapName(type) {
+    var typedArr = 'ptrheap';
+    if (type.typeName === 'float') typedArr = 'floatheap';
+    else if (type.typeName === 'sfloat') typedArr = 'sfloatheap';
+    else if (type.typeName === 'byte') typedArr = 'memheap';
+    else if (type.typeName === 'bool') typedArr = 'memheap';
+    else if (type.typeName === 'int') typedArr = 'intheap';
+    return typedArr;
+}
+
 function typeAnnotation(base, type) {
     if (!type) return base;
     if (/^\-?[\d\.]+$/.exec(base)) return base;
@@ -674,12 +684,7 @@ var NODES = {
         }
 
         var childType = baseType.contentsType;
-        var typedArr = 'ptrheap';
-        if (childType.typeName === 'float') typedArr = 'floatheap';
-        else if (childType.typeName === 'sfloat') typedArr = 'sfloatheap';
-        else if (childType.typeName === 'byte') typedArr = 'memheap';
-        else if (childType.typeName === 'bool') typedArr = 'memheap';
-        else if (childType.typeName === 'int') typedArr = 'intheap';
+        var typedArr = heapName(childType);
 
         var elementSize = childType.typeName === 'primitive' ? childType.getSize() : '4';
         var lookup = typedArr + '[((' +
@@ -693,6 +698,15 @@ var NODES = {
         return lookup;
     },
 
+    TupleLiteral: function(env, ctx, tctx) {
+        var type = this.getType(ctx);
+        return '(makeTuple$' + type.flatTypeName() + '(' +
+            this.content.map(function(c, i) {
+                return typeAnnotation(c.toString(), type.contentsTypeArr[i]);
+            }).join(',') +
+            ')|0)';
+    },
+
 };
 
 module.exports = function translate(ctx) {
@@ -702,3 +716,5 @@ module.exports = function translate(ctx) {
 };
 
 module.exports.typeAnnotation = typeAnnotation;
+module.exports.heapName = heapName;
+module.exports.HEAP_MODIFIERS = HEAP_MODIFIERS;

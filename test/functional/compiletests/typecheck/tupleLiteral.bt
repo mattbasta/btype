@@ -1,0 +1,4 @@
+tuple<int, int, int>:foo = t[1, 2, 3];
+
+func main() {}
+export main;
