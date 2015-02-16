@@ -133,7 +133,7 @@ describe('context', function() {
 
             var type = ctx.functions[0].getType(ctx);
             assert.ok(type instanceof types.Func, 'The base type should be "func"');
-            assert.equal(type.args.length, 2, 'There should be three traits: return type and two params');
+            assert.equal(type.args.length, 2, 'There should be three attributes: return type and two params');
             assert.equal(type.args[0].typeName, 'str', 'The first param should be "str"');
             assert.ok(type.args[1] instanceof types.Func, 'The second param should be "func"');
             assert.equal(type.args[1].args.length, 1, 'There should be one arg for the second param');

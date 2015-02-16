@@ -80,12 +80,12 @@ exports._i = function _i(text) {
     );
 };
 
-exports._type = function _type(text, traits) {
+exports._type = function _type(text, attributes) {
     return node(
         'Type',
         {
             name: text,
-            traits: traits || []
+            attributes: attributes || []
         }
     );
 };

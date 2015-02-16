@@ -124,7 +124,7 @@ function getFunctionContext(ctx, name) {
     var funcctxType = functionContexts.newFuncCtx(funcctxTypeName, mapping, ctx);
 
     var wrappedType = new nodes.Type({
-        traits: [],
+        attributes: [],
         name: funcctxTypeName,
     });
 

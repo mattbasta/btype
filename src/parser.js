@@ -721,24 +721,24 @@ module.exports = function Parser(tokenizer) {
         return next;
     }
 
-    function parseType(base, isTrait) {
-        if (isTrait && accept('null')) {
+    function parseType(base, isAttribute) {
+        if (isAttribute && accept('null')) {
             return null;
         }
 
         var type = base || accept('func') || assert('identifier');
         var typeEnd = type;
-        var traits = [];
+        var attributes = [];
         if (type.type !== 'null' && accept('<')) {
             do {
-                traits.push(parseType(null, true));
+                attributes.push(parseType(null, true));
             } while (accept(','));
             typeEnd = assert('>');
         }
 
         var output;
 
-        if (!traits.length && peek().type === '.') {
+        if (!attributes.length && peek().type === '.') {
             output = node(
                 'Symbol',
                 type.start,
@@ -766,7 +766,7 @@ module.exports = function Parser(tokenizer) {
                 typeEnd.end,
                 {
                     name: type.text,
-                    traits: traits
+                    attributes: attributes
                 }
             );
         }
@@ -892,7 +892,7 @@ module.exports = function Parser(tokenizer) {
                 assert(':'); // for sanity and to pop
                 return parseDeclaration(temp);
             } else if (peeked.type === '<') {
-                // We've encountered the traits chunk of a typed identifier.
+                // We've encountered the attributes chunk of a typed identifier.
                 if (base.length === 1) {
                     temp = parseType(base[0]);
                 } else {
@@ -1073,7 +1073,7 @@ module.exports = function Parser(tokenizer) {
                             0,
                             {
                                 name: name.text,
-                                traits: [],
+                                attributes: [],
                             }
                         ),
                         name: 'self',
@@ -1151,7 +1151,7 @@ module.exports = function Parser(tokenizer) {
                             0,
                             {
                                 name: name.text,
-                                traits: [],
+                                attributes: [],
                             }
                         ),
                         name: 'self',
