@@ -192,7 +192,13 @@ var NODES = {
     RelativeBinop: _binop,
     Binop: _binop,
     CallStatement: function(env, ctx, tctx) {
-        tctx.write(_node(this.base, env, ctx, tctx) + ';');
+        var output = _node(this.base, env, ctx, tctx);
+
+        if (this.base.getType(ctx)._type !== 'primitive') {
+            output = 'gcderef(' + output + ')';
+        }
+
+        tctx.write(output + ';');
     },
     CallRaw: function(env, ctx, tctx) {
         return typeAnnotation(_node(this.callee, env, ctx, tctx) + '(/* CallRaw */' +
