@@ -4,7 +4,7 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverseStatements = function traverseStatements(cb) {
-    cb(this.loop, 'loop');
+    cb(this.body, 'body');
 };
 
 exports.traverse = _loop.traverse;
@@ -21,5 +21,5 @@ exports.toString = function toString() {
             '    Iteration:\n' +
             indentEach(this.iteration.toString(), 2) + '\n' : '') +
            '    Body:\n' +
-           indentEach(this.loop.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
+           indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
 };

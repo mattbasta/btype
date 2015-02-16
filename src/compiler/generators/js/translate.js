@@ -238,14 +238,14 @@ var NODES = {
             _node(this.condition, env, ctx, 0) + ';' +
             trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
             ') {' +
-            this.loop.map(function(stmt) {
+            this.body.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') +
             '}';
     },
     DoWhile: function(env, ctx, prec) {
         return 'do {' +
-            this.loop.map(function(stmt) {
+            this.body.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') +
             '} while (' +
@@ -256,7 +256,7 @@ var NODES = {
         return 'while (' +
             _node(this.condition, env, ctx, 0) +
             ') {' +
-            this.loop.map(function(stmt) {
+            this.body.map(function(stmt) {
                 return _node(stmt, env, ctx, 0);
             }).join('\n') +
             '}';

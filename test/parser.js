@@ -134,7 +134,7 @@ describe('Parser', function() {
                         17,
                         {
                             condition: _i('x'),
-                            loop: [node(
+                            body: [node(
                                 'CallStatement',
                                 10,
                                 16,
@@ -165,7 +165,7 @@ describe('Parser', function() {
                         15,
                         {
                             condition: _i('x'),
-                            loop: [node(
+                            body: [node(
                                 'CallStatement',
                                 8,
                                 15,
@@ -199,7 +199,7 @@ describe('Parser', function() {
                         21,
                         {
                             condition: _i('x'),
-                            loop: [node(
+                            body: [node(
                                 'CallStatement',
                                 4,
                                 10,
@@ -269,7 +269,7 @@ describe('Parser', function() {
                                     )
                                 }
                             ),
-                            loop: [node(
+                            body: [node(
                                 'CallStatement',
                                 33,
                                 39,
@@ -319,7 +319,7 @@ describe('Parser', function() {
                                 }
                             ),
                             iteration: null,
-                            loop: [node(
+                            body: [node(
                                 'CallStatement',
                                 22,
                                 28,
@@ -369,7 +369,7 @@ describe('Parser', function() {
                                 }
                             ),
                             iteration: null,
-                            loop: [node(
+                            body: [node(
                                 'CallStatement',
                                 20,
                                 27,

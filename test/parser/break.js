@@ -58,7 +58,7 @@ describe('`break` parser', function() {
                                 )
                             }
                         ),
-                        loop: [node('Break', 33, 38, {})],
+                        body: [node('Break', 33, 38, {})],
                     }
                 )
             ])
@@ -74,7 +74,7 @@ describe('`break` parser', function() {
                     18,
                     {
                         condition: _i('x'),
-                        loop: [node('Break', 11, 16, {})],
+                        body: [node('Break', 11, 16, {})],
                     }
                 )
             ])
@@ -90,7 +90,7 @@ describe('`break` parser', function() {
                     22,
                     {
                         condition: _i('x'),
-                        loop: [node('Break', 4, 9, {})],
+                        body: [node('Break', 4, 9, {})],
                     }
                 )
             ])

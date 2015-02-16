@@ -301,7 +301,7 @@ module.exports = function Parser(tokenizer) {
             'While',
             head.start,
             end.end,
-            {condition: condition, loop: body}
+            {condition: condition, body: body}
         );
     }
     function parseDoWhile() {
@@ -321,7 +321,7 @@ module.exports = function Parser(tokenizer) {
             'DoWhile',
             head.start,
             end.end,
-            {condition: condition, loop: body}
+            {condition: condition, body: body}
         );
     }
     function parseFor() {
@@ -357,7 +357,7 @@ module.exports = function Parser(tokenizer) {
                 assignment: assignment,
                 condition: condition,
                 iteration: iteration || null,
-                loop: body,
+                body: body,
             }
         );
     }

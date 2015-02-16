@@ -377,7 +377,7 @@ var NODES = {
         tctx.write('br i1 ' + condResult + ', label %' + innerLbl + ', label %' + afterLbl);
         tctx.write(innerLbl + ':', true);
 
-        this.loop.forEach(function(stmt) {
+        this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
 
@@ -390,7 +390,7 @@ var NODES = {
 
         tctx.write(loopLbl + ':', true);
 
-        this.loop.forEach(function(stmt) {
+        this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
 
@@ -410,7 +410,7 @@ var NODES = {
         tctx.write('br i1 ' + condition + ', label %' + loopLbl + ', label %' + afterLbl);
         tctx.write(loopLbl + ':', true);
 
-        this.loop.forEach(function(stmt) {
+        this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
 

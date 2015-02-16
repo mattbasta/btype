@@ -26,7 +26,6 @@ function markFirstClassFunctions(context) {
                 // Mark function expressions directly.
                 if (node.type === 'Function') {
                     if (marker === 'body') return;
-                    if (marker === 'loop') return;
                     if (marker === 'consequent') return;
                     if (marker === 'alternate') return;
                     node.__firstClass = true;
@@ -157,7 +156,7 @@ function processRoot(rootContext) {
         }
 
         // Ignore non-expression functions
-        if (member === 'loop' || member === 'body' ||
+        if (member === 'body' ||
             stack[0] instanceof nodes.ObjectConstructor ||
             stack[0] instanceof nodes.ObjectMethod) {
             return false;

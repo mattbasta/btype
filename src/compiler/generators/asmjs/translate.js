@@ -390,7 +390,7 @@ var NODES = {
             ') {'
         );
         tctx.push();
-        this.loop.forEach(function(x) {
+        this.body.forEach(function(x) {
             _node(x, env, ctx, tctx);
         });
         tctx.pop();
@@ -402,7 +402,7 @@ var NODES = {
             'do {'
         );
         tctx.push();
-        this.loop.forEach(function(x) {
+        this.body.forEach(function(x) {
             _node(x, env, ctx, tctx);
         });
         tctx.pop();
@@ -412,7 +412,7 @@ var NODES = {
         // FIXME: Make this valid asm
         tctx.write('while (' + _node(this.condition, env, ctx, tctx) + ') {');
         tctx.push();
-        this.loop.forEach(function(x) {
+        this.body.forEach(function(x) {
             _node(x, env, ctx, tctx);
         });
         tctx.pop();

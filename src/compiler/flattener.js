@@ -152,7 +152,6 @@ function isNodeBoundary(node, member) {
     return node.type === 'Function' ||
         member === 'consequent' ||
         member === 'alternate' ||
-        member === 'loop' ||
         member === 'body';
 }
 

@@ -58,7 +58,7 @@ describe('`continue` parser', function() {
                                 )
                             }
                         ),
-                        loop: [node('Continue', 33, 41, {})],
+                        body: [node('Continue', 33, 41, {})],
                     }
                 )
             ])
@@ -74,7 +74,7 @@ describe('`continue` parser', function() {
                     21,
                     {
                         condition: _i('x'),
-                        loop: [node('Continue', 11, 19, {})],
+                        body: [node('Continue', 11, 19, {})],
                     }
                 )
             ])
@@ -90,7 +90,7 @@ describe('`continue` parser', function() {
                     25,
                     {
                         condition: _i('x'),
-                        loop: [node('Continue', 4, 12, {})],
+                        body: [node('Continue', 4, 12, {})],
                     }
                 )
             ])
