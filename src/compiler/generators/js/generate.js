@@ -120,7 +120,13 @@ module.exports = function generate(env, ENV_VARS) {
             env.typeContextMap[type.__assignedName]
         );
     }, env).join('\n\n') + '\n';
+
     body += env.included.map(jsTranslate).join('\n\n');
+
+    // Pre-define any string literals
+    body += Object.keys(env.registeredStringLiterals).map(function(str) {
+        return 'var ' + env.registeredStringLiterals[str] + ' = ' + JSON.stringify(str) + ';';
+    }).join('\n');
 
     if (env.inits.length) {
         body += '\nfunction $init() {\n' +

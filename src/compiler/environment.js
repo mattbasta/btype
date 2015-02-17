@@ -56,6 +56,9 @@ function Environment(name) {
     // Map of operator statement assigned names to their return types
     this.registeredOperatorReturns = {}
 
+    // Mapping of string literal text to a global name for the string
+    this.registeredStringLiterals = {};
+
 }
 
 Environment.prototype.loadFile = function(filename, tree, privileged) {
@@ -199,6 +202,13 @@ Environment.prototype.findFunctionByAssignedName = function(assignedName) {
         }
     }
     return null;
+};
+
+Environment.prototype.getStrLiteralIdentifier = function(text) {
+    if (text in this.registeredStringLiterals) {
+        return this.registeredStringLiterals[text];
+    }
+    return this.registeredStringLiterals[text] = this.namer();
 };
 
 module.exports.Environment = Environment;

@@ -321,6 +321,10 @@ var NODES = {
         return this.__assignedName;
     },
     Literal: function() {
+        if (this.litType === 'str') {
+            return env.getStrLiteralIdentifier(this.value);
+        }
+
         if (this.value === true) return 'true';
         if (this.value === false) return 'false';
         if (this.value === null) return 'null';

@@ -28,8 +28,24 @@ function makeModule(env, ENV_VARS, body) {
         // Shim fround in the same way
         'var f32_ = new Float32Array(1);',
         'this.Math.fround = this.Math.fround || function fround(x) {return f32[0] = x, f32[0];};',
+        // String literal initialization
+        'var strings = [' + Object.keys(env.registeredStringLiterals).map(function(str) {
+            return JSON.stringify(str);
+        }).join(',') + '];',
+        'var stringsPtr = 0;',
+        'var u32 = new Uint32Array(heap);',
+        'function initString(ptr) {',
+        '    var x = strings[stringsPtr++];',
+        '    u32[ptr >> 2] = x.length;',
+        '    u32[ptr + 1 >> 2] = x.length;',
+        '    ptr += 8;',
+        '    var len = x.length;',
+        '    for (var i = 0; i < len; i++) {',
+        '        u32[(ptr >> 2) + i] = x.charCodeAt(i);',
+        '    }',
+        '}',
         // Get an instance of the asm module, passing in all of the externally requested items
-        'var ret = module(this, {' + env.foreigns.map(function(foreign) {
+        'var ret = module(this, {__initString: initString,' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';
             if (foreign in externalFuncs) {
                 base += externalFuncs[foreign]();
@@ -121,12 +137,20 @@ module.exports = function generate(env, ENV_VARS) {
     // Translate and output each included context
     body += env.included.map(jsTranslate).join('\n\n');
 
+    // Pre-define any string literals
+    body += Object.keys(env.registeredStringLiterals).map(function(str) {
+        return 'var ' + env.registeredStringLiterals[str] + ' = 0;';
+    }).join('\n');
+
     if (env.inits.length) {
-        body += '\nfunction $init() {\n' +
-            '    ' + env.inits.map(function(init) {
-                return init.__assignedName + '();';
-            }).join('\n    ') + '\n' +
-            '}\n';
+        body += '\nfunction $init() {\n';
+        body += '    ' + Object.keys(env.registeredStringLiterals).map(function(str) {
+            return env.registeredStringLiterals[str] + ' = gcref(malloc(' + str.length + '));';
+        }).join('\n    ') + '\n';
+        body += '    ' + env.inits.map(function(init) {
+            return init.__assignedName + '();';
+        }).join('\n    ') + '\n';
+        body += '}\n';
         env.requested.exports['$init'] = '$init';
     }
 
