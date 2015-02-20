@@ -1,0 +1,4 @@
+func int:main() {
+    return 'foo'.length;
+}
+export main;

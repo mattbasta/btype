@@ -315,6 +315,12 @@ var NODES = {
             return typeAnnotation(_node(this.base, env, ctx, tctx), this.getType(ctx));
         }
 
+        var base = '(' + typeAnnotation(_node(this.base, env, ctx, tctx), this.base.getType(ctx)) + ')';
+
+        if ((baseType._type === 'string' || baseType._type === 'array') && this.child === 'length') {
+            return '(ptrheap[' + base + ' + 8 >> 2]|0)';
+        }
+
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
             var objectMethodFunc = ctx.lookupFunctionByName(baseType.getMethod(this.child));
             var objectMethodFuncIndex = env.registerFunc(objectMethodFunc);
@@ -330,7 +336,7 @@ var NODES = {
         else if (childType.typeName === 'bool') typedArr = 'memheap';
         else if (childType.typeName === 'int') typedArr = 'intheap';
 
-        var lookup = typedArr + '[((' + typeAnnotation(_node(this.base, env, ctx, tctx), this.base.getType(ctx)) + ') + (' + (layout[this.child] + 8) + '))' + HEAP_MODIFIERS[typedArr] + ']';
+        var lookup = typedArr + '[(' + base + ' + (' + (layout[this.child] + 8) + '))' + HEAP_MODIFIERS[typedArr] + ']';
         if (parent !== 'Assignment' && parent !== 'Return') {
             lookup = typeAnnotation(lookup, childType);
         }
@@ -578,17 +584,27 @@ var NODES = {
         type = this.getType(ctx);
         var size;
         if (type._type === 'array') {
+
+            if (!env.__hasNewArray) {
+                env.__globalPrefix += 'function makeArray(length, elemSize) {\n';
+                env.__globalPrefix += '    length = length | 0;\n';
+                env.__globalPrefix += '    elemSize = elemSize | 0;\n';
+                env.__globalPrefix += '    var ptr = 0;\n';
+                env.__globalPrefix += '    ptr = gcref(calloc((length * elemSize | 0) + 16 | 0) | 0) | 0;\n';
+                env.__globalPrefix += '    ptrheap[ptr + 8 >> 2] = length | 0;\n';
+                env.__globalPrefix += '    ptrheap[ptr + 12 >> 2] = length | 0;\n'; // TODO: figure this out
+                env.__globalPrefix += '    return ptr | 0;\n';
+                env.__globalPrefix += '}\n';
+
+                env.__hasNewArray = true;
+            }
+
             // 16 because it's 8 bytes of overhead for normal object shape plus
             // an extra eight bytes to store the length. We use 8 bytes instead
             // of 4 (it's a 32-bit unsigned integer) because the start of the
             // array body needs to be at an 8-byte multiple.
             var innerTypeSize = type.contentsType._type === 'primitive' ? type.contentsType.getSize() : 4;
-            size = '(' +
-                '((' +
-                    '(' +
-                        typeAnnotation('(' + _node(this.params[0], env, ctx, tctx) + ')', this.params[0].getType(ctx)) +
-                    ') * ' + innerTypeSize +
-                ') | 0) + 16 | 0)';
+            return '(makeArray(' + typeAnnotation('(' + _node(this.params[0], env, ctx, tctx) + ')', this.params[0].getType(ctx)) + ', ' + innerTypeSize + ')|0)';
         } else {
             size = type.getSize() + 8;
         }

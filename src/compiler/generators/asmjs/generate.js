@@ -111,7 +111,7 @@ function registerAllUsedMethods(env) {
             if (node.type !== 'Member') return;
 
             var baseType = node.base.getType(ctx);
-            if (!baseType.hasMethod(node.child)) return;
+            if (!baseType.hasMethod || !baseType.hasMethod(node.child)) return;
 
             var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
 
@@ -161,7 +161,7 @@ module.exports = function generate(env, ENV_VARS) {
         body += '\nfunction $init() {\n';
         body += '    ' + registeredStringLiterals.map(function(str) {
             var name = env.registeredStringLiterals[str];
-            var out = name + ' = gcref(malloc(' + str.length + ')|0)|0;\n    ';
+            var out = name + ' = gcref(malloc(' + (str.length * 4 + 8) + ')|0)|0;\n    ';
             out += 'initString(' + name + '|0);'
             return out;
         }).join('\n    ') + '\n';

@@ -68,6 +68,14 @@ function Array_(contentsType) {
         return this.contentsType;
     };
 
+    this.hasMember = function(name) {
+        return name === 'length';
+    };
+
+    this.getMemberType = function(name) {
+        return {length: public_.int}[name];
+    };
+
 }
 
 function String_() {
@@ -95,6 +103,14 @@ function String_() {
 
     this.getSubscriptType = function(index) {
         return private_.uint;
+    };
+
+    this.hasMember = function(name) {
+        return name === 'length';
+    };
+
+    this.getMemberType = function(name) {
+        return {length: public_.int}[name];
     };
 
 }
@@ -441,9 +457,7 @@ var private_ = exports.privateTypes = {
     'uint': new Primitive('uint', 'uint32')
 };
 
-public_.str = new Struct('str', {
-    _data: new Slice(private_.byte),
-});
+public_.str = new String_();
 
 exports.resolve = function(typeName, privileged) {
     if (typeName in public_) return public_[typeName];

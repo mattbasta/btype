@@ -193,6 +193,13 @@ var NODES = {
             return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, 1) + ')';
         }
 
+        if (baseType._type === 'string' || baseType._type === 'array') {
+            switch (this.child) {
+                case 'length':
+                    return base + '.length';
+            }
+        }
+
         return base + '.' + this.child;
     },
     Assignment: function(env, ctx, prec) {

@@ -1,0 +1,5 @@
+func int:main() {
+    var x = new array<int>(10);
+    return x.length;
+}
+export main;

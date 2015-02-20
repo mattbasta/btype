@@ -134,7 +134,7 @@ describe('context', function() {
             var type = ctx.functions[0].getType(ctx);
             assert.ok(type instanceof types.Func, 'The base type should be "func"');
             assert.equal(type.args.length, 2, 'There should be three attributes: return type and two params');
-            assert.equal(type.args[0].typeName, 'str', 'The first param should be "str"');
+            assert.equal(type.args[0]._type, 'string');
             assert.ok(type.args[1] instanceof types.Func, 'The second param should be "func"');
             assert.equal(type.args[1].args.length, 1, 'There should be one arg for the second param');
             assert.equal(type.args[1].returnType, null, 'The return type of the second param should be void');
@@ -151,10 +151,10 @@ describe('context', function() {
             var type = ctx.functions[0].getType(ctx);
             assert.ok(type instanceof types.Func, 'The base type should be "func"');
             assert.equal(type.args.length, 1, 'There should be one argument');
-            assert.equal(type.args[0].typeName, 'str', 'The first param should be "str"');
+            assert.equal(type.args[0]._type, 'string', 'The first param should be "str"');
 
             var paramType = ctx.functions[0].__context.typeMap[ctx.functions[0].__context.nameMap.foo];
-            assert.equal(paramType.typeName, 'str', 'The type of the param declared as a variable in the scope should be "str"');
+            assert.equal(paramType._type, 'string', 'The type of the param declared as a variable in the scope should be "str"');
         });
 
         it('should declare nested functions as variables in the global scope', function() {
