@@ -5,6 +5,20 @@ function node(name, start, end, args) {
     return new (nodes[name])(start, end, args);
 }
 
+function parseString(input) {
+    var stripped = input.substring(1, input.length - 1);
+
+    return stripped.replace(/\\\w/gi, function(_, b) {
+        switch (b) {
+            case 'r': return '\r';
+            case 'n': return '\n';
+            case 't': return '\t';
+            case '0': return '\0';
+            case '\\': return '\\';
+        }
+    });
+}
+
 module.exports = function Parser(tokenizer) {
     var peeked = null;
     function peek() {
@@ -661,7 +675,6 @@ module.exports = function Parser(tokenizer) {
                     );
                 case 'float':
                 case 'int':
-                case 'str':
                     return node(
                         'Literal',
                         base.start,
@@ -669,6 +682,16 @@ module.exports = function Parser(tokenizer) {
                         {
                             litType: base.type,
                             value: base.text,
+                        }
+                    );
+                case 'str':
+                    return node(
+                        'Literal',
+                        base.start,
+                        base.end,
+                        {
+                            litType: base.type,
+                            value: parseString(base.text),
                         }
                     );
                 // Unary operators

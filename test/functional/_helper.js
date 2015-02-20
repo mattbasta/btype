@@ -119,3 +119,52 @@ describe('Failure tests', function() {
     );
 
 });
+
+describe('String tests', function() {
+
+    function run(code, format, expectation) {
+        var parsed = parser(lexer(code));
+        var compiled = compiler('test', parsed, format);
+
+        var mod;
+        try {
+            mod = (new Function('return ' + compiled))();
+        } catch (e) {
+            assert.fail('Error during initialization: ' + e.toString());
+        }
+
+        var result;
+        try {
+            result = mod.main();
+        } catch (e) {
+            console.error(compiled);
+            throw e;
+        }
+
+        var converted = mod.$strings.read(result);
+        assert.equal(converted, expectation);
+    }
+
+    globEach(
+        path.resolve(__dirname, 'strings'),
+        '.bt',
+        function(btPath) {
+            var read = fs.readFileSync(btPath).toString();
+            var readExpectation = fs.readFileSync(btPath + '.txt').toString().trim();
+
+            describe(btPath, function() {
+
+                it('in JS', function jsStringTestBody() {
+                    run(read, 'js', readExpectation);
+                });
+
+                it('in Asm.js', function asmjsStringTestBody() {
+                    run(read, 'asmjs', readExpectation);
+                });
+
+            });
+
+        }
+    );
+
+});

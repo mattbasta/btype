@@ -320,7 +320,7 @@ var NODES = {
     TypedIdentifier: function(env, ctx, prec) {
         return this.__assignedName;
     },
-    Literal: function() {
+    Literal: function(env) {
         if (this.litType === 'str') {
             return env.getStrLiteralIdentifier(this.value);
         }

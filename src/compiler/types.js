@@ -34,10 +34,9 @@ function Primitive(typeName, backing) {
     };
 
 }
-function Array_(contentsType, length) {
+function Array_(contentsType) {
     this._type = 'array';
     this.contentsType = contentsType;
-    this.length = length;
 
     this.subscript = function(index) {
         // We have an offset of 8 because primitives that take up eight bytes
@@ -49,17 +48,16 @@ function Array_(contentsType, length) {
     };
 
     this.toString = function() {
-        return 'array<' + contentsType.toString() + ',' + length + '>';
+        return 'array<' + contentsType.toString() + '>';
     };
 
     this.flatTypeName = function() {
-        return 'array$' + contentsType.flatTypeName() + '$' + length;
+        return 'array$' + contentsType.flatTypeName();
     };
 
     this.equals = function(x) {
-        return x instanceof Array_ &&
-            this.contentsType.equals(x.contentsType) &&
-            this.length === x.length;
+        if (x instanceof String_ && this.contentsType.equals(private_.uint)) return true;
+        return x instanceof Array_ && this.contentsType.equals(x.contentsType);
     };
 
     this.isSubscriptable = function() {
@@ -71,6 +69,36 @@ function Array_(contentsType, length) {
     };
 
 }
+
+function String_() {
+    this._type = 'string';
+
+    this.subscript = function(index) {
+        return 8 + index * 4; // 4 == sizeof(uint)
+    };
+    this.getSize = function() {
+        return null; // Must be special-cased.
+    };
+
+    this.flatTypeName = this.toString = function() {
+        return 'string';
+    };
+
+    this.equals = function(x) {
+        if (x instanceof Array_ && x.contentsType.equals(private_.uint)) return true;
+        return x instanceof String_;
+    };
+
+    this.isSubscriptable = function() {
+        return true;
+    };
+
+    this.getSubscriptType = function(index) {
+        return private_.uint;
+    };
+
+}
+
 function Slice(contentsType) {
     this._type = 'slice';
     this.contentsType = contentsType;
@@ -355,6 +383,7 @@ function Func(returnType, args) {
 exports.Primitive = Primitive;
 exports.Array = Array_;
 exports.Slice = Slice;
+exports.String = String_;
 exports.Struct = Struct;
 exports.Tuple = Tuple;
 exports.Func = Func;

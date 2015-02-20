@@ -29,20 +29,30 @@ function makeModule(env, ENV_VARS, body) {
         'var f32_ = new Float32Array(1);',
         'this.Math.fround = this.Math.fround || function fround(x) {return f32[0] = x, f32[0];};',
         // String literal initialization
-        'var strings = [' + Object.keys(env.registeredStringLiterals).map(function(str) {
+        'var strings = [' + Object.keys(env.registeredStringLiterals).sort().map(function(str) {
             return JSON.stringify(str);
         }).join(',') + '];',
         'var stringsPtr = 0;',
         'var u32 = new Uint32Array(heap);',
         'function initString(ptr) {',
         '    var x = strings[stringsPtr++];',
-        '    u32[ptr >> 2] = x.length;',
-        '    u32[ptr + 1 >> 2] = x.length;',
-        '    ptr += 8;',
+        '    u32[ptr + 8 >> 2] = x.length;',
+        '    u32[ptr + 12 >> 2] = x.length;',
+        '    ptr += 16;',
         '    var len = x.length;',
         '    for (var i = 0; i < len; i++) {',
         '        u32[(ptr >> 2) + i] = x.charCodeAt(i);',
         '    }',
+        '}',
+        'function readString(ptr) {',
+        '    var len = u32[ptr + 8 >> 2];',
+        '    var start = ptr + 16 >> 2;',
+        '    if (this.TextDecoder) return (new TextDecoder()).decode(u32.subarray(start, start + len));', // faster cheaty way
+        '    var out = "";', // slower less cheaty way
+        '    for (var i = 0; i < len; i++) {',
+        '        out += String.fromCharCode(u32[start + i]);',
+        '    }',
+        '    return out;',
         '}',
         // Get an instance of the asm module, passing in all of the externally requested items
         'var ret = module(this, {__initString: initString,' + env.foreigns.map(function(foreign) {
@@ -59,6 +69,7 @@ function makeModule(env, ENV_VARS, body) {
         // Return the processed asm module
         'return {',
         '$internal:{heap:heap, malloc: ret.malloc, free: ret.free, calloc: ret.calloc},',
+        '$strings:{read: readString},',
         Object.keys(env.requested.exports).map(function(e) {
             return e + ': ret.' + e;
         }).join(',\n'),
@@ -138,14 +149,21 @@ module.exports = function generate(env, ENV_VARS) {
     body += env.included.map(jsTranslate).join('\n\n');
 
     // Pre-define any string literals
-    body += Object.keys(env.registeredStringLiterals).map(function(str) {
-        return 'var ' + env.registeredStringLiterals[str] + ' = 0;';
-    }).join('\n');
+    var registeredStringLiterals = Object.keys(env.registeredStringLiterals).sort();
+    if (registeredStringLiterals.length) {
+        body += 'var initString = foreign.__initString;'
+        body += registeredStringLiterals.map(function(str) {
+            return 'var ' + env.registeredStringLiterals[str] + ' = 0;';
+        }).join('\n');
+    }
 
-    if (env.inits.length) {
+    if (env.inits.length || registeredStringLiterals.length) {
         body += '\nfunction $init() {\n';
-        body += '    ' + Object.keys(env.registeredStringLiterals).map(function(str) {
-            return env.registeredStringLiterals[str] + ' = gcref(malloc(' + str.length + '));';
+        body += '    ' + registeredStringLiterals.map(function(str) {
+            var name = env.registeredStringLiterals[str];
+            var out = name + ' = gcref(malloc(' + str.length + ')|0)|0;\n    ';
+            out += 'initString(' + name + '|0);'
+            return out;
         }).join('\n    ') + '\n';
         body += '    ' + env.inits.map(function(init) {
             return init.__assignedName + '();';

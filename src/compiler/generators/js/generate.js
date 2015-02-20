@@ -30,7 +30,12 @@ function makeModule(env, ENV_VARS, body) {
             return base;
         }).join(',') + '});',
         'if (ret.$init) {ret.$init();delete ret.$init;}',
-        'return ret;',
+        'return {',
+        '$strings:{read: function(x) {return x;}},', // noop
+        Object.keys(env.requested.exports).map(function(e) {
+            return e + ': ret.' + e;
+        }).join(',\n'),
+        '};',
         '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign) {',
         'var fround = stdlib.Math.fround;',
         body,

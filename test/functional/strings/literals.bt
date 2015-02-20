@@ -1,0 +1,4 @@
+func str:main() {
+    return 'foo';
+}
+export main;
