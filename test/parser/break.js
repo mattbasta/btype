@@ -14,17 +14,17 @@ var _root = require('./_utils')._root;
 describe('`break` parser', function() {
     it('should be valid within `for` loops', function() {
         compareTree(
-            'for (x = 0; x < 10; x = x + 1;) {break;}',
+            'for x = 0; x < 10; x = x + 1; {break;}',
             _root([
                 node(
                     'For',
                     0,
-                    40,
+                    38,
                     {
                         assignment: node(
                             'Assignment',
-                            5,
-                            11,
+                            3,
+                            10,
                             {
                                 base: _i('x'),
                                 value: _int(0)
@@ -32,8 +32,8 @@ describe('`break` parser', function() {
                         ),
                         condition: node(
                             'RelativeBinop',
-                            11,
-                            18,
+                            10,
+                            17,
                             {
                                 operator: '<',
                                 left: _i('x'),
@@ -42,14 +42,14 @@ describe('`break` parser', function() {
                         ),
                         iteration: node(
                             'Assignment',
-                            19,
-                            30,
+                            18,
+                            29,
                             {
                                 base: _i('x'),
                                 value: node(
                                     'Binop',
-                                    23,
-                                    29,
+                                    22,
+                                    28,
                                     {
                                         operator: '+',
                                         left: _i('x'),
@@ -58,7 +58,7 @@ describe('`break` parser', function() {
                                 )
                             }
                         ),
-                        body: [node('Break', 33, 38, {})],
+                        body: [node('Break', 31, 36, {})],
                     }
                 )
             ])

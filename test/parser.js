@@ -225,17 +225,17 @@ describe('Parser', function() {
     describe('`for` loops', function() {
         it('should parse for loops', function() {
             compareTree(
-                'for (x = 0; x < 10; x = x + 1;) {foo();}',
+                'for x = 0; x < 10; x = x + 1; {foo();}',
                 _root([
                     node(
                         'For',
                         0,
-                        40,
+                        38,
                         {
                             assignment: node(
                                 'Assignment',
-                                5,
-                                11,
+                                3,
+                                10,
                                 {
                                     base: _i('x'),
                                     value: _int(0)
@@ -243,8 +243,8 @@ describe('Parser', function() {
                             ),
                             condition: node(
                                 'RelativeBinop',
-                                11,
-                                18,
+                                10,
+                                17,
                                 {
                                     operator: '<',
                                     left: _i('x'),
@@ -253,14 +253,14 @@ describe('Parser', function() {
                             ),
                             iteration: node(
                                 'Assignment',
-                                19,
-                                30,
+                                18,
+                                29,
                                 {
                                     base: _i('x'),
                                     value: node(
                                         'Binop',
-                                        23,
-                                        29,
+                                        22,
+                                        28,
                                         {
                                             operator: '+',
                                             left: _i('x'),
@@ -271,13 +271,13 @@ describe('Parser', function() {
                             ),
                             body: [node(
                                 'CallStatement',
-                                33,
-                                39,
+                                31,
+                                37,
                                 {
                                     base: node(
                                         'CallRaw',
-                                        33,
-                                        38,
+                                        31,
+                                        36,
                                         {
                                             callee: _i('foo'),
                                             params: []
@@ -292,17 +292,17 @@ describe('Parser', function() {
         });
         it('should parse for loops without an iteration', function() {
             compareTree(
-                'for (x = 0; x < 10;) {foo();}',
+                'for x = 0; x < 10; {foo();}',
                 _root([
                     node(
                         'For',
                         0,
-                        29,
+                        27,
                         {
                             assignment: node(
                                 'Assignment',
-                                5,
-                                11,
+                                3,
+                                10,
                                 {
                                     base: _i('x'),
                                     value: _int(0)
@@ -310,8 +310,8 @@ describe('Parser', function() {
                             ),
                             condition: node(
                                 'RelativeBinop',
-                                11,
-                                18,
+                                10,
+                                17,
                                 {
                                     operator: '<',
                                     left: _i('x'),
@@ -321,13 +321,13 @@ describe('Parser', function() {
                             iteration: null,
                             body: [node(
                                 'CallStatement',
-                                22,
-                                28,
+                                20,
+                                26,
                                 {
                                     base: node(
                                         'CallRaw',
-                                        22,
-                                        27,
+                                        20,
+                                        25,
                                         {
                                             callee: _i('foo'),
                                             params: []

@@ -132,10 +132,16 @@ module.exports = function Parser(tokenizer) {
     function parseIf() {
         var head;
         if (!(head = accept('if'))) return;
-        assert('(');
+        var hasParen = !!accept('(');
+        var hasBraces;
         var condition = parseExpression();
-        assert(')');
-        var hasBraces = !!accept('{');
+        if (hasParen) {
+            assert(')');
+            hasBraces = !!accept('{');
+        } else {
+            assert('{')
+            hasBraces = true;
+        }
         var body;
         var end;
         if (hasBraces) {
@@ -173,9 +179,7 @@ module.exports = function Parser(tokenizer) {
     function parseSwitch() {
         var head;
         if (!(head = accept('switch'))) return;
-        assert('(');
         var condition = parseExpression();
-        assert(')');
         assert('{');
 
         var cases = [];
@@ -294,10 +298,16 @@ module.exports = function Parser(tokenizer) {
     function parseWhile() {
         var head;
         if (!(head = accept('while'))) return;
-        assert('(');
+        var hasParen = !!accept('(');
+        var hasBraces;
         var condition = parseExpression();
-        assert(')');
-        var hasBraces = !!accept('{');
+        if (hasParen) {
+            assert(')');
+            hasBraces = !!accept('{');;
+        } else {
+            assert('{');
+            hasBraces = true;
+        }
         var body;
         var end;
         if (hasBraces) {
@@ -327,9 +337,7 @@ module.exports = function Parser(tokenizer) {
         loopDepth--;
         assert('}');
         assert('while');
-        assert('(');
         var condition = parseExpression();
-        assert(')');
         var end = assert(';');
         return node(
             'DoWhile',
@@ -341,18 +349,25 @@ module.exports = function Parser(tokenizer) {
     function parseFor() {
         var head;
         if (!(head = accept('for'))) return;
-        assert('(');
+        var hasParen = !!accept('(');
         var assignment = parseAssignment();
         var condition = parseExpression();
         assert(';');
         var iteration;
-        if (!accept(')')) {
+        if (hasParen ? peek().type !== ')' : peek().type !== '{') {
             iteration = parseAssignment();
+        }
+        var hasBraces;
+        if (!hasParen) {
+            assert('{');
+            hasBraces = true;
+        } else {
             assert(')');
+            hasBraces = !!accept('{');
         }
         var end;
         var body;
-        if (!!accept('{')) {
+        if (hasBraces) {
             loopDepth++;
             body = parseStatements('}');
             loopDepth--;
