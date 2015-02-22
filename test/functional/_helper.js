@@ -88,13 +88,25 @@ describe('Compile tests', function() {
         function(btPath) {
             var read = fs.readFileSync(btPath).toString();
 
-            it(btPath, function compileTestBody() {
-                var parsed = parser(lexer(read));
-                var compiled = compiler('test', parsed);
-                assert.ok(compiled);
+
+            describe(btPath, function() {
+                it('compiles to JS', function compileTestBody() {
+                    var parsed = parser(lexer(read));
+                    var compiled = compiler('test', parsed, 'js');
+                    assert.ok(compiled);
+                });
+                it('compiles to Asm.js', function compileTestBody() {
+                    var parsed = parser(lexer(read));
+                    var compiled = compiler('test', parsed, 'asmjs');
+                    assert.ok(compiled);
+                });
+                it('compiles to LLVM IR', function compileTestBody() {
+                    var parsed = parser(lexer(read));
+                    var compiled = compiler('test', parsed, 'llvmir');
+                    assert.ok(compiled);
+                });
 
             });
-
         }
     );
 

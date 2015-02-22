@@ -115,38 +115,6 @@ function String_() {
 
 }
 
-function Slice(contentsType) {
-    this._type = 'slice';
-    this.contentsType = contentsType;
-
-    // this.subscript = function(index) {
-    //     return 4 + index * this.contentType.getSize();
-    // };
-    // this.getSize = function() {
-    //     return this.length * this.contentsType.getSize() + 4;
-    // };
-
-    this.toString = function() {
-        return 'slice<' + contentsType.toString() + '>';
-    };
-
-    this.flatTypeName = function() {
-        return 'slice$' + contentsType.flatTypeName();
-    };
-
-    this.equals = function(x) {
-        return x instanceof Slice && this.contentsType.equals(x.contentsType);
-    };
-
-    this.isSubscriptable = function() {
-        return true;
-    };
-
-    this.getSubscriptType = function(index) {
-        return this.contentsType;
-    };
-
-}
 function Struct(name, contentsTypeMap) {
     this._type = 'struct';
     this.typeName = name;
@@ -398,7 +366,6 @@ function Func(returnType, args) {
 
 exports.Primitive = Primitive;
 exports.Array = Array_;
-exports.Slice = Slice;
 exports.String = String_;
 exports.Struct = Struct;
 exports.Tuple = Tuple;

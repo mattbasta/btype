@@ -3,10 +3,10 @@ var makeName = exports.makeName = function makeName(assignedName) {
     return assignedName.replace(/\$/g, '_');
 };
 
-exports.getLLVMType = function getLLVMType(type) {
+var getLLVMType = exports.getLLVMType = function getLLVMType(type) {
     if (type._type === 'primitive') {
         switch (type.typeName) {
-            case 'bool': return 'i1';
+            case 'bool': return 'i8'; // TODO: would this be better as i1?
             case 'int': return 'i32';
             case 'float': return 'double';
             case 'sfloat': return 'float';
@@ -18,5 +18,31 @@ exports.getLLVMType = function getLLVMType(type) {
         throw new TypeError('Unknown type name "' + type.typeName + '"');
     }
 
-    return '%' + makeName(type.flatTypeName()) + ' *';
+    if (type._type === 'func') {
+        return '%' + makeName(type.flatTypeName());
+    }
+
+    return '%' + makeName(type.flatTypeName()) + '*';
+};
+
+exports.getAlignment = function getAlignment(type) {
+    if (type._type === 'primitive') {
+        return type.getSize();
+    }
+    if (type._type === 'func') {
+        return 8;
+    }
+    return 4;
+};
+
+exports.getFunctionSignature = function getFunctionSignature(type) {
+    var out = type.returnType ? getLLVMType(type.returnType) : 'void';
+    out += ' (';
+    if (type.args.length) {
+        out += type.args.map(getLLVMType).join(', ');
+    } else {
+        out += '...';
+    }
+    out += ')*';
+    return out;
 };

@@ -10,11 +10,47 @@ var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
 
 
+function translateArrayTypes(env) {
+    return Object.keys(env.__arrayTypes).map(function(arr) {
+        var type = env.__arrayTypes[arr];
+        var typeName = getLLVMType(type);
+        var innerTypeName = getLLVMType(type.contentsType);
+
+        var out = [
+            typeName + ' = type { i32, [0 x ' + innerTypeName + '] }',
+
+            // Some of these concepts are borrowed from here:
+            // http://nondot.org/sabre/LLVMNotes/SizeOf-OffsetOf-VariableSizedStructs.txt
+            'define ' + typeName + ' @btmake_' + typeName.substr(1) + '(i32 %length) nounwind {',
+            '    %size = getelementptr ' + typeName + ' null, i32 0, i64 1, i32 %length',
+            '    %sizeU = bitcast ' + innerTypeName + ' %size to i32',
+            '    %ptr = call i8* @malloc(i32 %sizeU)',
+            // TODO: make this use calloc
+            '    %result = bitcast i8* %ptr to ' + typeName,
+            '    %sizePtr = getelementptr ' + typeName + ' %result, i32 0, i64 0',
+            '    store i32 %length, i8* %sizePtr',
+            '    ret ' + typeName + ' %result',
+            '}',
+        ];
+
+        return out.join('\n');
+    }).join('\n');
+}
+
+function foreignFuncs(env) {
+    return env.foreigns.map(function(foreign) {
+        //
+    }).join('\n');
+}
+
+
 function makeModule(env, ENV_VARS, body) {
 
     return [
-        'declare i8* @malloc(i32)',
-        'declare void @free(i8*)',
+        fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/memory.ll')).toString(),
+
+        foreignFuncs(env),
+        translateArrayTypes(env),
 
         body,
         '!0 = metadata !{metadata !"BType/LLVM IR compile target (github.com/mattbasta/btype)"}',

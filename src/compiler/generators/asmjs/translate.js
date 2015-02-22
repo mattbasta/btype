@@ -582,7 +582,6 @@ var NODES = {
         var type = this.getType(ctx);
         if (typeof type === 'string') debugger;
         type = this.getType(ctx);
-        var size;
         if (type._type === 'array') {
 
             if (!env.__hasNewArray) {
@@ -605,9 +604,8 @@ var NODES = {
             // array body needs to be at an 8-byte multiple.
             var innerTypeSize = type.contentsType._type === 'primitive' ? type.contentsType.getSize() : 4;
             return '(makeArray(' + typeAnnotation('(' + _node(this.params[0], env, ctx, tctx) + ')', this.params[0].getType(ctx)) + ', ' + innerTypeSize + ')|0)';
-        } else {
-            size = type.getSize() + 8;
         }
+        var size = type.getSize() + 8;
         var output = '(gcref(calloc(' + size + ')|0)|0)';
         if (type instanceof types.Struct && type.objConstructor) {
             output = '(' + type.objConstructor + '(' + output + (this.params.length ? ', ' + this.params.map(function(param) {

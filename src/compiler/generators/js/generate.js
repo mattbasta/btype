@@ -61,8 +61,6 @@ function typeTranslate(type, context) {
             return '/* primitive: ' + type.toString() + ' */';
         case 'array':
             return '/* array type: ' + type.toString() + ' */';
-        case 'slice':
-            return '/* slice type: ' + type.toString() + ' */';
 
         case 'struct':
             var constructorFunc;

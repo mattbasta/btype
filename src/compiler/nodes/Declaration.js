@@ -11,7 +11,7 @@ exports.substitute = function substitute(cb) {
 };
 
 exports.getType = function getType(ctx) {
-    return (this.declType || this.value).getType(ctx);
+    return this.__staticType || (this.declType || this.value).getType(ctx);
 };
 
 exports.validateTypes = function validateTypes(ctx) {
@@ -27,7 +27,14 @@ exports.validateTypes = function validateTypes(ctx) {
         return;
     }
 
-    if (!this.declType) return;
+    if (!this.declType) {
+        if (this.value.getType(ctx) === null) {
+            throw new TypeError('Declaration with no type information');
+        }
+
+        this.__staticType = this.value.getType(ctx);
+        return;
+    }
     var declType = this.declType.getType(ctx);
     var valueType = this.value.getType(ctx);
     if (!valueType.equals(declType)) {
