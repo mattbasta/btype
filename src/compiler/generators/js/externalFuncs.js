@@ -15,6 +15,10 @@ exports.Performancenow = function() {
     return '(function() {return performance.now.bind(performance) || function() {return (new Date()).getTime();};}())'
 };
 
-exports.Consolelog = function() {
+exports.Consolelogint = function() {
+    return 'console.log.bind(console)'
+};
+
+exports.Consolelogfloat = function() {
     return 'console.log.bind(console)'
 };

@@ -410,7 +410,7 @@ module.exports = function Parser(tokenizer) {
             {
                 declType: type || null,
                 identifier: identifier.text,
-                value: value
+                value: value,
             }
         );
     }
@@ -475,7 +475,7 @@ module.exports = function Parser(tokenizer) {
             end.end,
             {
                 callee: base,
-                params: params
+                params: params,
             }
         );
     }
@@ -488,7 +488,7 @@ module.exports = function Parser(tokenizer) {
             child.end,
             {
                 base: base,
-                child: child.text
+                child: child.text,
             }
         );
     }

@@ -427,7 +427,7 @@ var NODES = {
         if (baseType._type === '_foreign') {
             env.foreigns.push(this.child);
             if (!(this.child in env.__foreignRequested)) {
-                var funcVal = externalFuncs[this.child]();
+                var funcVal = externalFuncs[this.child](env);
                 env.__globalPrefix += funcVal + '\n';
                 env.__foreignRequested[this.child] = true;
             }
