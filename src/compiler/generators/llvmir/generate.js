@@ -9,6 +9,8 @@ var traverser = require('../../traverser');
 var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
 
+var argv = require('minimist')(process.argv.slice(2));
+
 
 function translateArrayTypes(env) {
     return Object.keys(env.__arrayTypes).map(function(arr) {
@@ -37,10 +39,31 @@ function translateArrayTypes(env) {
     }).join('\n');
 }
 
-function foreignFuncs(env) {
-    return env.foreigns.map(function(foreign) {
-        //
-    }).join('\n');
+function getRuntime(env) {
+    if (!argv.runtime) {
+        return '';
+    }
+
+    var entry = argv['runtime-entry'];
+    if (!(entry in env.requested.exports)) {
+        throw new TypeError('Cannot find requested runtime entry point in exported functions: ' + entry);
+    }
+
+    var funcName = env.requested.exports[entry];
+    var func = env.requested.typeMap[funcName];
+
+    if (func.returnType || func.args.length) {
+        throw new TypeError('Cannot use "' + entry + '" as entry point because it has incompatible signature: ' + func.toString());
+    }
+
+    return [
+        'define i32 @main() nounwind ssp uwtable {',
+        'entry:',
+        '    call void @' + makeName(funcName) + '()',
+        '    ret i32 0',
+        '}',
+    ].join('\n');
+
 }
 
 
@@ -49,10 +72,12 @@ function makeModule(env, ENV_VARS, body) {
     return [
         fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/memory.ll')).toString(),
 
-        foreignFuncs(env),
         translateArrayTypes(env),
 
         body,
+
+        getRuntime(env),
+
         '!0 = metadata !{metadata !"BType/LLVM IR compile target (github.com/mattbasta/btype)"}',
     ].join('\n');
 

@@ -190,6 +190,12 @@ Environment.prototype.make = function(outputLanguage) {
         throw new Error('No context was requested for export.');
     }
 
+    if (outputLanguage === 'debug-tree') {
+        return this.included.map(function(i) {
+            return i.scope.toString();
+        }).join('\n');
+    }
+
     var generator = require('./generators/' + outputLanguage + '/generate');
     return generator(this, ENV_VARS);
 };

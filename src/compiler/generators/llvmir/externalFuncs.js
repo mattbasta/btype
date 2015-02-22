@@ -33,7 +33,7 @@ function addPrintf(env) {
         '@.str.percd = private unnamed_addr constant [3 x i8] c"%d\00", align 1',
         '@.str.percf = private unnamed_addr constant [3 x i8] c"%f\00", align 1',
         'declare i32 @printf(i8*, ...)',
-    ].join('\n');
+    ].join('\n') + '\n';
 
     env.__hasForeignPrintf = true;
 }
@@ -43,6 +43,7 @@ exports.Consolelogint = function(env) {
     return [
         'define void @foreign_Consolelogint(i32 %inp) {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percd, i32 0, i32 0), i32 %inp)',
+        '    ret void',
         '}',
     ].join('\n');
 };
@@ -52,6 +53,7 @@ exports.Consolelogfloat = function(env) {
     return [
         'define void @foreign_Consolelogfloat(double %inp) {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percf, i32 0, i32 0), double %inp)',
+        '    ret void',
         '}',
     ].join('\n');
 };
@@ -61,6 +63,7 @@ exports.Consolelogsfloat = function(env) {
     return [
         'define void @foreign_Consolelogfloat(float %inp) {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percf, i32 0, i32 0), float %inp)',
+        '    ret void',
         '}',
     ].join('\n');
 };

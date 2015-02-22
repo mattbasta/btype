@@ -351,9 +351,9 @@ function processFunc(rootContext, node, context) {
         traverser.traverse(node, function(node) {
             if (!node || node.type !== 'CallRaw') return;
             // Ignore calls to non-symbols
-            if (node.callee.type !== 'Symbol') return false;
+            if (node.callee.type !== 'Symbol') return;
             // Ignore calls to non-functions
-            if (!node.callee.__isFunc) return false;
+            if (!node.callee.__isFunc) return;
 
             node.params.unshift(getContextReference());
         });
@@ -446,7 +446,7 @@ function processCallNodes(node, context) {
             );
         };
 
-    });
+    }, true);
 }
 
 function upliftContext(rootContext, ctx) {

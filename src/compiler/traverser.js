@@ -41,14 +41,15 @@ module.exports.iterateBodies = function iterateBodies(tree, cb, filter) {
 var findAndReplace = module.exports.findAndReplace = function findAndReplace(tree, filter, preTraverse) {
     tree.traverse.call(tree, function findAndReplaceIterator(node, member) {
         if (!node) return;
-        if (preTraverse) findAndReplace(node, filter);
+        if (preTraverse) findAndReplace(node, filter, preTraverse);
         var replacer;
         if (filter && (replacer = filter(node, member))) {
             tree.substitute.call(tree, function findAndReplaceFilter(sNode, member) {
                 if (node !== sNode) return sNode;
-                return replacer(sNode, member);
+                var replacement = replacer(sNode, member);
+                return replacement;
             });
         }
-        if (!preTraverse) findAndReplace(node, filter);
+        if (!preTraverse) findAndReplace(node, filter, preTraverse);
     });
 };

@@ -194,7 +194,8 @@ var NODES = {
     CallStatement: function(env, ctx, tctx) {
         var output = _node(this.base, env, ctx, tctx);
 
-        if (this.base.getType(ctx)._type !== 'primitive') {
+        var baseType = this.base.getType(ctx);
+        if (baseType && baseType._type !== 'primitive') {
             output = 'gcderef(' + output + ')';
         }
 

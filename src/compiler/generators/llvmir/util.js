@@ -4,6 +4,9 @@ var makeName = exports.makeName = function makeName(assignedName) {
 };
 
 var getLLVMType = exports.getLLVMType = function getLLVMType(type) {
+    if (!type) {
+        return 'void';
+    }
     if (type._type === 'primitive') {
         switch (type.typeName) {
             case 'bool': return 'i8'; // TODO: would this be better as i1?

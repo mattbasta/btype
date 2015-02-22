@@ -17,11 +17,13 @@ function TranslationContext(env, ctx) {
     this.indentation = '';
     this.loopStack = [];
 
+    this.termToName = null;
+
     this.uniqCounter = 0;
 
     this.push = function() {
         this.outputStack.unshift('');
-        this.countStack.unshift(this.countStack[0]);
+        this.countStack.unshift(0);
         this.indentation += '    ';
     };
 
@@ -37,6 +39,7 @@ function TranslationContext(env, ctx) {
         this.outputStack[0] += popped;
         this.countStack.shift();
         this.indentation = this.indentation.substr(4);
+        this.termToName = null;
     };
 
     this.popLoop = function(startLabel, exitLabel) {
@@ -44,6 +47,13 @@ function TranslationContext(env, ctx) {
     };
 
     this.write = function(data, noIndent) {
+        if (this.termToName !== null) {
+            if (!noIndent) {
+                this.outputStack[0] += this.termToName + '\n';
+            }
+            this.termToName = null;
+        }
+
         this.outputStack[0] += (noIndent ? '' : this.indentation) + data + '\n';
     };
 
@@ -65,6 +75,14 @@ function TranslationContext(env, ctx) {
     this.getUniqueLabel = function(prefix) {
         return (prefix || 'lbl') + (this.uniqCounter++);
     };
+
+    this.writeLabel = function(label) {
+        this.termToName = label + ':';
+    };
+
+    this.writeTerminatorLabel = function(name) {
+        this.writeLabel(this.getUniqueLabel(name || 'term'));
+    };
 }
 
 
@@ -72,7 +90,7 @@ function _binop(env, ctx, tctx) {
     var out;
     var left = _node(this.left, env, ctx, tctx);
     var right = _node(this.right, env, ctx, tctx);
-    var outReg = tctx.getRegister();
+    var outReg;
 
     var outType = this.getType(ctx);
 
@@ -87,7 +105,8 @@ function _binop(env, ctx, tctx) {
 
         var operatorStmtFunc = ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator];
 
-        tctx.write(outReg + ' = call fastcc ' + getLLVMType(outType) + ' @' + makeName(operatorStmtFunc) + '(' +
+        outReg = tctx.getRegister();
+        tctx.write(outReg + ' = call ' + getLLVMType(outType) + ' @' + makeName(operatorStmtFunc) + '(' +
             getLLVMType(leftType) + ' ' + left + ', ' +
             getLLVMType(rightType) + ' ' + right +
             ')');
@@ -226,7 +245,8 @@ function _binop(env, ctx, tctx) {
             throw new Error('Unknown binary operator: ' + this.operator);
     }
 
-    tctx.write(outReg + ' = ' + out + ' ' + getLLVMType(outType) + ' ' + left + ', ' + right);
+    outReg = tctx.getRegister();
+    tctx.write(outReg + ' = ' + out + ' ' + getLLVMType(leftType) + ' ' + left + ', ' + right);
     return outReg;
 }
 
@@ -273,15 +293,10 @@ var NODES = {
     Binop: _binop,
     CallStatement: function(env, ctx, tctx) {
         // TODO: Is there a GC issue here?
-        tctx.write(_node(this.base, env, ctx, tctx, 'stmt'));
+        _node(this.base, env, ctx, tctx, 'stmt');
     },
     CallRaw: function(env, ctx, tctx, extra) {
-        var outReg = tctx.getRegister();
-        var output = outReg + ' = call ';
-
-        // `fastcc` is a calling convention that attempts to make the call as
-        // fast as possible.
-        output += 'fastcc ';
+        var output = extra === 'stmt' ? 'call ' : ' = call ';
 
         // Add the expected return type
         if (extra === 'stmt') {
@@ -298,14 +313,19 @@ var NODES = {
         output += '(';
 
         output += this.params.map(function(param) {
-            var paramType = param.getType(ctx);
-            return getLLVMType(paramType) + ' ' + _node(param, env, ctx, tctx);
+            return getLLVMType(param.getType(ctx)) + ' ' + _node(param, env, ctx, tctx);
         }).join(', ');
 
         output += ')';
 
-        tctx.write(output);
-        return outReg;
+        if (extra !== 'stmt') {
+            var outReg = tctx.getRegister();
+            output = outReg + output;
+            tctx.write(output);
+            return outReg;
+        } else {
+            tctx.write(output);
+        }
 
     },
     CallDecl: function(env, ctx, tctx, extra) {
@@ -347,15 +367,19 @@ var NODES = {
         var nullLabel = this.getUniqueLabel('isnull');
         var unnullLabel = this.getUniqueLabel('unnull');
         var afternullLabel = this.getUniqueLabel('afternull');
+
+        tctx.getRegister(); // waste a register for `br` because it's a terminator instruction
         tctx.write('br i1 ' + isNullCmpReg + ', label %' + nullLabel + ', label %' + unnullLabel);
 
-        tctx.write(nullLabel + ':', true);
+        tctx.writeLabel(nullLabel);
         var nullRetPtr = this.getRegister();
         tctx.write(nullRetPtr + ' = call ' + returnType + ' ' + funcReg + '(' + params + ')');
         tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+
+        tctx.getRegister(); // waste a register for `br` because it's a terminator instruction
         tctx.write('br label %' + afternullLabel);
 
-        tctx.write(unnullLabel + ':', true);
+        tctx.writeLabel(unnullLabel);
         var unnullRetPtr = this.getRegister();
         tctx.write(
             unnullRetPtr + ' = call ' + returnType + ' ' + funcReg +
@@ -367,7 +391,7 @@ var NODES = {
         );
         tctx.write('store ' + returnType + ' ' + unnullRetPtr + ', ' + returnType + '* ' + callRetPtr);
 
-        tctx.write(afternullLabel + ':', true);
+        tctx.writeLabel(afternullLabel);
         tctx.write(callRet + ' = load ' + returnType + ' ' + callRetPtr);
         return callRet;
 
@@ -409,7 +433,7 @@ var NODES = {
     Member: function(env, ctx, tctx, parent) {
         var baseType = this.base.getType(ctx);
         if (baseType._type === 'module') {
-            return baseType.memberMapping[this.child];
+            return '@' + makeName(baseType.memberMapping[this.child]);
         }
 
         if (baseType._type === '_stdlib') {
@@ -461,7 +485,7 @@ var NODES = {
         var typeName = getLLVMType(type);
 
         var value = _node(this.value, env, ctx, tctx);
-        var base = _node(this.base, env, ctx, tctx);
+        var base = _node(this.base, env, ctx, tctx, 'lvalue');
 
         tctx.write('store ' + typeName + ' ' + value + ', ' + typeName + '* ' + base + ', align ' + getAlignment(type));
     },
@@ -473,7 +497,7 @@ var NODES = {
         var typeName = getLLVMType(declType);
         var ptrName = '%' + makeName(this.__assignedName);
         if (this.value) {
-            tctx.write('store ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType));
+            tctx.write('store ' + getLLVMType(this.value.getType(ctx)) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType));
         } else {
             tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName);
         }
@@ -483,10 +507,15 @@ var NODES = {
     },
     Return: function(env, ctx, tctx) {
         if (!this.value) {
-            tctx.write('ret void');
+            tctx.write('br label %exitLabel');
+            tctx.writeTerminatorLabel();
             return;
         }
-        tctx.write('ret ' + getLLVMType(this.value.getType(ctx)) + ' ' + _node(this.value, env, ctx, tctx));
+        var value = _node(this.value, env, ctx, tctx);
+        var retType = getLLVMType(this.value.getType(ctx));
+        tctx.write('store ' + retType + ' ' + value + ', ' + retType + '* %retVal');
+        tctx.write('br label %exitLabel');
+        tctx.writeTerminatorLabel();
     },
     Export: function() {},
     Import: function() {},
@@ -497,27 +526,27 @@ var NODES = {
         _node(this.assignment, env, ctx, tctx);
 
         var loopLbl = tctx.getUniqueLabel('loop');
-        tctx.write(loopLbl + ':', true);
+        tctx.writeLabel(loopLbl);
 
         tctx.pushLoop(loopLbl, afterLbl);
 
         var condResult = _node(this.condition, env, ctx, tctx);
         tctx.write('br i1 ' + condResult + ', label %' + innerLbl + ', label %' + afterLbl);
-        tctx.write(innerLbl + ':', true);
+        tctx.writeLabel(innerLbl);
 
         this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
 
         tctx.write('br label %' + loopLbl);
-        tctx.write(afterLbl + ':', true);
+        tctx.writeLabel(afterLbl);
         tctx.popLoop();
     },
     DoWhile: function(env, ctx, tctx) {
         var loopLbl = tctx.getUniqueLabel('loop');
         var afterLbl = tctx.getUniqueLabel('after');
 
-        tctx.write(loopLbl + ':', true);
+        tctx.writeLabel(loopLbl);
         tctx.pushLoop(loopLbl, afterLbl);
 
         this.body.forEach(function(stmt) {
@@ -526,12 +555,12 @@ var NODES = {
 
         var condition = _node(this.condition, env, ctx, tctx);
         tctx.write('br i1 ' + condition + ', label %' + loopLbl + ', label %' + afterLbl);
-        tctx.write(afterLbl + ':', true);
+        tctx.writeLabel(afterLbl);
         tctx.popLoop();
     },
     While: function(env, ctx, tctx) {
         var beforeLbl = tctx.getUniqueLabel('before');
-        tctx.write(beforeLbl + ':', true);
+        tctx.writeLabel(beforeLbl);
 
         var condition = _node(this.condition, env, ctx, tctx);
 
@@ -540,14 +569,14 @@ var NODES = {
         tctx.pushLoop(loopLbl, afterLbl);
 
         tctx.write('br i1 ' + condition + ', label %' + loopLbl + ', label %' + afterLbl);
-        tctx.write(loopLbl + ':', true);
+        tctx.writeLabel(loopLbl);
 
         this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
 
         tctx.write('br label %' + afterLbl);
-        tctx.write(afterLbl + ':', true);
+        tctx.writeLabel(afterLbl);
         tctx.popLoop();
     },
     Switch: function(env, ctx, tctx) {
@@ -562,7 +591,7 @@ var NODES = {
         var alternateLbl = this.alternate ? tctx.getUniqueLabel('alternate') : afterLbl;
 
         tctx.write('br i1 ' + condition + ', label %' + consequentLbl + ', label %' + alternateLbl);
-        tctx.write(consequentLbl + ':', true);
+        tctx.writeLabel(consequentLbl);
 
         this.consequent.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
@@ -571,29 +600,36 @@ var NODES = {
         tctx.write('br label %' + afterLbl);
 
         if (this.alternate) {
-            tctx.write(alternateLbl + ':', true);
+            tctx.writeLabel(alternateLbl);
             this.alternate.forEach(function(stmt) {
                 _node(stmt, env, ctx, tctx);
             });
         }
 
-        tctx.write(afterLbl + ':', true);
+        tctx.writeLabel(afterLbl);
 
     },
     Function: function(env, ctx, tctx) {
         var context = this.__context;
         var funcType = this.getType(ctx);
         var returnType = funcType.getReturnType();
+        var returnTypeName = getLLVMType(returnType);
 
         tctx.write('define ' +
-            (returnType ? getLLVMType(returnType) : 'void') +
+            (returnType ? returnTypeName : 'void') +
             ' @' + makeName(this.__assignedName) +
             '(' +
             this.params.map(function(param) {
                 return getLLVMType(param.getType(ctx)) + ' %param_' + makeName(param.__assignedName);
-            }).join(', ') + ') nounwind {');
+            }).join(', ') + ') nounwind ssp uwtable {');
 
         tctx.push();
+
+        tctx.writeLabel('entry');
+
+        if (returnType) {
+            tctx.write('%retVal = alloca ' + returnTypeName + ', align ' + getAlignment(returnType));
+        }
 
         Object.keys(context.typeMap).forEach(function(v) {
             var type = context.typeMap[v];
@@ -611,27 +647,44 @@ var NODES = {
             _node(stmt, env, context, tctx);
         });
 
+        tctx.write('br label %exitLabel');
+
+        tctx.writeLabel('exitLabel');
+
+        if (returnType) {
+            var outReg = tctx.getRegister();
+            tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal');
+            tctx.write('ret ' + returnTypeName + ' ' + outReg);
+        } else {
+            tctx.write('ret void');
+        }
+
         tctx.pop();
 
-        tctx.write('}');
+        tctx.write('}\n');
     },
     OperatorStatement: function(env, ctx, tctx) {
+        var context = this.__context;
+        var funcType = this.getType(ctx);
+        var returnType = funcType.getReturnType();
+        var returnTypeName = getLLVMType(returnType);
+
         tctx.write('define @' + makeName(this.__assignedName) +
             getLLVMType(this.returnType.getType(ctx)) +
             ' (' +
             getLLVMType(this.left.getType(ctx)) + ' %' +  _node(this.left, env, ctx, tctx) + ', ' +
             getLLVMType(this.right.getType(ctx)) + ' %' +  _node(this.right, env, ctx, tctx) +
-            ') nounwind {');
+            ') nounwind ssp uwtable {');
 
         tctx.push();
 
         this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
+            _node(stmt, env, context, tctx);
         });
 
         tctx.pop();
 
-        tctx.write('}');
+        tctx.write('}\n');
     },
     TypedIdentifier: function(env, ctx, tctx) {
         return makeName(this.__assignedName);
@@ -640,11 +693,16 @@ var NODES = {
         if (this.value === true) return 'true';
         if (this.value === false) return 'false';
         if (this.value === null) return 'null';
-        return getLLVMType(this.getType(ctx)) + ' ' + this.value.toString();
+        return this.value.toString();
+        // return getLLVMType(this.getType(ctx)) + ' ' + this.value.toString();
     },
-    Symbol: function(env, ctx, tctx) {
+    Symbol: function(env, ctx, tctx, extra) {
         if (this.__isFunc) {
             return '@' + makeName(this.__refName);
+        }
+
+        if (extra === 'lvalue') {
+            return '%' + makeName(this.__refName);
         }
 
         var reg = tctx.getRegister();
