@@ -1,5 +1,7 @@
 # btype
 
+[![Join the chat at https://gitter.im/mattbasta/btype](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mattbasta/btype?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://travis-ci.org/mattbasta/btype.svg?branch=master)](https://travis-ci.org/mattbasta/btype)
 
 ## A fast language for the web
