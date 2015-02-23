@@ -106,7 +106,7 @@ function registerAllUsedMethods(env) {
             if (node.type !== 'Member') return;
 
             var baseType = node.base.getType(ctx);
-            if (!baseType.hasMethod(node.child)) return;
+            if (!baseType.hasMethod || !baseType.hasMethod(node.child)) return;
 
             var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
 

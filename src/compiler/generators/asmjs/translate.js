@@ -712,6 +712,7 @@ var NODES = {
         var typedArr;
 
         if (baseType._type === 'tuple') {
+            // TODO: make this validate the subscript?
             childType = baseType.contentsTypeArr[this.subscript.value];
             typedArr = heapName(childType);
             return typeAnnotation(

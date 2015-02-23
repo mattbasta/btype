@@ -1,4 +1,5 @@
 var assert = require('assert');
+var child_process = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
@@ -35,9 +36,15 @@ function globEach(path_, ext, callback, doneCallback) {
 
 describe('Parity tests', function() {
 
-    function run(code, format, expectation) {
+    function compile(code, format) {
         var parsed = parser(lexer(code));
         var compiled = compiler('test', parsed, format);
+
+        return compiled;
+    }
+
+    function run(code, format, expectation) {
+        var compiled = compile(code, format);
 
         var mod;
         try {
@@ -71,6 +78,38 @@ describe('Parity tests', function() {
 
                 it('in Asm.js', function asmjsFunctionalTestBody() {
                     run(read, 'asmjs', readExpectation);
+                });
+
+                it('in LLVM IR', function llvmirFunctionalTestBody() {
+                    try {
+                        var compiled = compile(read, 'llvmir');
+                    } catch(e) {
+                        // this.skip();
+                        throw e;
+                    }
+
+                    // var opt = child_process.spawn('opt');
+
+                    // opt.on('error', function() {
+                    //     done(new Error('Error processing file'));
+                    // });
+                    // opt.on('exit', function(code) {
+                    //     if (code !== 0) {
+                    //         done(new Error('Error processing file'));
+                    //     } else {
+                    //         done();
+                    //     }
+                    // });
+                    // opt.on('close', function(code) {
+                    //     if (code !== 0) {
+                    //         done(new Error('Error processing file'));
+                    //     } else {
+                    //         done();
+                    //     }
+                    // });
+
+                    // opt.stdin.write(compiled);
+
                 });
 
             });

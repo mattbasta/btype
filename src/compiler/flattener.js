@@ -35,6 +35,7 @@ function upliftExpressionsFromBody(ctx, body) {
             __context: ctx,
 
             declType: new nodes.Type({
+                __type: type,
                 attributes: [],
                 name: type.typeName,
             }),

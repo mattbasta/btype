@@ -355,24 +355,24 @@ var NODES = {
             return typeName + ' ' + _node(p, env, ctx, tctx);
         }).join(', ');
 
-        var isNullCmpReg = this.getRegister();
+        var isNullCmpReg = tctx.getRegister();
         tctx.write(isNullCmpReg + ' = icmp eq i8* ' + ctxReg + ', null');
 
         var returnType = getLLVMType(this.getType(ctx));
-        var callRetPtr = this.getRegister();
+        var callRetPtr = tctx.getRegister();
         tctx.write(callRetPtr + ' = alloca ' + returnType);
-        var callRet = this.getRegister();
+        var callRet = tctx.getRegister();
 
 
-        var nullLabel = this.getUniqueLabel('isnull');
-        var unnullLabel = this.getUniqueLabel('unnull');
-        var afternullLabel = this.getUniqueLabel('afternull');
+        var nullLabel = tctx.getUniqueLabel('isnull');
+        var unnullLabel = tctx.getUniqueLabel('unnull');
+        var afternullLabel = tctx.getUniqueLabel('afternull');
 
         tctx.getRegister(); // waste a register for `br` because it's a terminator instruction
         tctx.write('br i1 ' + isNullCmpReg + ', label %' + nullLabel + ', label %' + unnullLabel);
 
         tctx.writeLabel(nullLabel);
-        var nullRetPtr = this.getRegister();
+        var nullRetPtr = tctx.getRegister();
         tctx.write(nullRetPtr + ' = call ' + returnType + ' ' + funcReg + '(' + params + ')');
         tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr);
 
@@ -380,7 +380,7 @@ var NODES = {
         tctx.write('br label %' + afternullLabel);
 
         tctx.writeLabel(unnullLabel);
-        var unnullRetPtr = this.getRegister();
+        var unnullRetPtr = tctx.getRegister();
         tctx.write(
             unnullRetPtr + ' = call ' + returnType + ' ' + funcReg +
             '(' +
@@ -432,6 +432,7 @@ var NODES = {
     },
     Member: function(env, ctx, tctx, parent) {
         var baseType = this.base.getType(ctx);
+        var base;
         if (baseType._type === 'module') {
             return '@' + makeName(baseType.memberMapping[this.child]);
         }
@@ -464,10 +465,44 @@ var NODES = {
         }
 
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
-            throw new Error('Not Implemented: method');
-            var objectMethodFunc = ctx.lookupFunctionByName(baseType.getMethod(this.child));
-            var objectMethodFuncIndex = env.registerFunc(objectMethodFunc);
-            return '((getboundmethod(' + objectMethodFuncIndex + ', ' + _node(this.base, env, ctx, tctx) + ')|0) | 0)';
+            var type = this.getType(ctx);
+            var typeName = getLLVMType(type);
+
+            var funcType = getFunctionSignature(type);
+
+            if (!(typeName in env.__funcrefTypes)) {
+                env.__globalPrefix += '\n' + typeName + ' = type { ' + funcType + ', i8* }'
+                env.__funcrefTypes[typeName] = true;
+            }
+
+            var reg = tctx.getRegister();
+            tctx.write(reg + ' = call i8* @malloc(i32 16)'); // 16 is just to be safe for 64 bit
+            var regPtr = tctx.getRegister();
+            tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName + '*');
+
+            var funcLocPtr = tctx.getRegister();
+            tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
+            tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr);
+
+            var baseLocPtr = tctx.getRegister();
+            tctx.write(baseLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
+            var baseTypeName = getLLVMType(baseType);
+            var baseCastLocPtr = tctx.getRegister();
+            base = _node(this.base, env, ctx, tctx);
+            tctx.write(baseCastLocPtr + ' = bitcast ' + baseTypeName + ' ' + base + ' to i8*');
+            tctx.write('store i8* ' + baseCastLocPtr + ', i8** ' + baseLocPtr);
+
+            return regPtr;
+        }
+
+        if ((baseType._type === 'array' || baseType._type === 'string') && this.child === 'length') {
+            var lenRegPtr = tctx.getRegister();
+            var lenReg = tctx.getRegister();
+            base = _node(this.base, env, ctx, tctx);
+            tctx.write(lenRegPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 0');
+            tctx.write(lenReg + ' = load i32* ' + lenRegPtr);
+
+            return lenReg;
         }
 
         var layoutIndex = baseType.getLayoutIndex(this.child);
@@ -491,13 +526,10 @@ var NODES = {
     },
     Declaration: function(env, ctx, tctx) {
         var declType = this.getType(ctx);
-        if (declType === null) {
-            console.log(this);
-        }
         var typeName = getLLVMType(declType);
         var ptrName = '%' + makeName(this.__assignedName);
         if (this.value) {
-            tctx.write('store ' + getLLVMType(this.value.getType(ctx)) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType));
+            tctx.write('store ' + getLLVMType(declType) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType));
         } else {
             tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName);
         }
@@ -875,6 +907,40 @@ var NODES = {
         }
 
         return base;
+    },
+
+    Subscript: function(env, ctx, tctx, parent) {
+        var baseType = this.base.getType(ctx);
+        if (baseType._type !== 'array' && baseType._type !== 'tuple') {
+            throw new Error('Cannot subscript non-arrays in llvmir');
+        }
+
+        var childType;
+        var posPtr;
+        var valReg;
+
+        var base = _node(this.base, env, ctx, tctx);
+
+        if (baseType._type === 'tuple') {
+            // TODO: make this validate the subscript?
+            childType = baseType.contentsTypeArr[this.subscript.value];
+
+            posPtr = tctx.getRegister();
+            tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 ' + this.subscript.value);
+            valReg = tctx.getRegister();
+            tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr);
+            return valReg;
+        }
+
+        childType = baseType.contentsType;
+        var child = _node(this.subscript, env, ctx, tctx);
+
+        posPtr = tctx.getRegister();
+        tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 1, i64 ' + child);
+        valReg = tctx.getRegister();
+        tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr);
+
+        return valReg;
     },
 
     TupleLiteral: function(env, ctx, tctx) {
