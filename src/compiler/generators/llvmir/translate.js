@@ -96,8 +96,8 @@ function _binop(env, ctx, tctx) {
 
     var leftType = this.left.getType(ctx);
     var rightType = this.right.getType(ctx);
-    var leftTypeString = leftType.toString();
-    var rightTypeString = rightType.toString();
+    var leftTypeString = leftType.flatTypeName();
+    var rightTypeString = rightType.flatTypeName();
 
     if (ctx.env.registeredOperators[leftTypeString] &&
         ctx.env.registeredOperators[leftTypeString][rightTypeString] &&
@@ -262,9 +262,10 @@ var NODES = {
         env.__globalPrefix = '';
         env.__foreignRequested = {};
         env.__arrayTypes = {};
+        env.__tupleTypes = {};
         env.__funcrefTypes = {};
         this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
+            _node(stmt, env, ctx, tctx, 'root');
         });
         tctx.prepend(env.__globalPrefix);
         delete env.__globalPrefix;
@@ -342,11 +343,11 @@ var NODES = {
         var outputReg = tctx.getRegister();
         var funcPtrReg = tctx.getRegister();
         var funcReg = tctx.getRegister();
-        tctx.write(funcPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0');
+        tctx.write(funcPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0, i32 0');
         tctx.write(funcReg + ' = load ' + typeRefName + ' ' + funcPtrReg);
         var ctxPtrReg = tctx.getRegister();
         var ctxReg = tctx.getRegister();
-        tctx.write(ctxPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 1');
+        tctx.write(ctxPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0, i32 1');
         tctx.write(ctxReg + ' = load i8* ' + ctxPtrReg);
 
         var params = this.params.map(function(p) {
@@ -403,21 +404,21 @@ var NODES = {
         var funcType = getFunctionSignature(type);
 
         if (!(typeName in env.__funcrefTypes)) {
-            env.__globalPrefix += '\n' + typeName + ' = type { ' + funcType + ', i8* }'
+            env.__globalPrefix += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { ' + funcType + ', i8* }'
             env.__funcrefTypes[typeName] = true;
         }
 
         var reg = tctx.getRegister();
         tctx.write(reg + ' = call i8* @malloc(i32 16)'); // 16 is just to be safe for 64 bit
         var regPtr = tctx.getRegister();
-        tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName + '*');
+        tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
         var funcLocPtr = tctx.getRegister();
-        tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0');
+        tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
         tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr);
 
         var ctxLocPtr = tctx.getRegister();
-        tctx.write(ctxLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 1');
+        tctx.write(ctxLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
         if (this.ctx) {
             var ctxType = this.ctx.getType(ctx);
             var ctxTypeName = getLLVMType(ctxType);
@@ -430,7 +431,7 @@ var NODES = {
 
         return regPtr;
     },
-    Member: function(env, ctx, tctx, parent) {
+    Member: function(env, ctx, tctx, extra) {
         var baseType = this.base.getType(ctx);
         var base;
         if (baseType._type === 'module') {
@@ -471,7 +472,7 @@ var NODES = {
             var funcType = getFunctionSignature(type);
 
             if (!(typeName in env.__funcrefTypes)) {
-                env.__globalPrefix += '\n' + typeName + ' = type { ' + funcType + ', i8* }'
+                env.__globalPrefix += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { ' + funcType + ', i8* }'
                 env.__funcrefTypes[typeName] = true;
             }
 
@@ -496,23 +497,30 @@ var NODES = {
         }
 
         if ((baseType._type === 'array' || baseType._type === 'string') && this.child === 'length') {
-            var lenRegPtr = tctx.getRegister();
-            var lenReg = tctx.getRegister();
             base = _node(this.base, env, ctx, tctx);
+            var lenRegPtr = tctx.getRegister();
             tctx.write(lenRegPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 0');
+            var lenReg = tctx.getRegister();
             tctx.write(lenReg + ' = load i32* ' + lenRegPtr);
 
             return lenReg;
         }
 
         var layoutIndex = baseType.getLayoutIndex(this.child);
-        var outReg = tctx.getRegister();
 
-        tctx.write(outReg + ' = extractvalue ' +
-            getLLVMType(this.getType(ctx)) + ' ' +
-            _node(this.base, env, ctx, tctx),
-            ', ' +
-            layoutIndex);
+        base = _node(this.base, env, ctx, tctx);
+
+        var outRegPtr = tctx.getRegister();
+        tctx.write(outRegPtr + ' = getelementptr ' +
+            getLLVMType(baseType) + ' ' +
+            base + ', i32 0, i32 ' + layoutIndex);
+
+        if (extra === 'lvalue') {
+            return outRegPtr;
+        }
+
+        var outReg = tctx.getRegister();
+        tctx.write(outReg + ' = load ' + getLLVMType(this.getType(ctx)) + '* ' + outRegPtr);
         return outReg;
     },
     Assignment: function(env, ctx, tctx) {
@@ -524,9 +532,15 @@ var NODES = {
 
         tctx.write('store ' + typeName + ' ' + value + ', ' + typeName + '* ' + base + ', align ' + getAlignment(type));
     },
-    Declaration: function(env, ctx, tctx) {
+    Declaration: function(env, ctx, tctx, parent) {
         var declType = this.getType(ctx);
         var typeName = getLLVMType(declType);
+
+        if (parent === 'root') {
+            tctx.write('@' + makeName(this.__assignedName) + ' = common global ' + getLLVMType(declType) + ' 0');
+            return;
+        }
+
         var ptrName = '%' + makeName(this.__assignedName);
         if (this.value) {
             tctx.write('store ' + getLLVMType(declType) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType));
@@ -666,7 +680,6 @@ var NODES = {
         Object.keys(context.typeMap).forEach(function(v) {
             var type = context.typeMap[v];
             tctx.write('%' + makeName(v) + ' = alloca ' + getLLVMType(type) + ', align ' + getAlignment(type));
-
         });
 
         this.params.forEach(function(p) {
@@ -701,18 +714,48 @@ var NODES = {
         var returnType = funcType.getReturnType();
         var returnTypeName = getLLVMType(returnType);
 
-        tctx.write('define @' + makeName(this.__assignedName) +
+        tctx.write('define ' +
             getLLVMType(this.returnType.getType(ctx)) +
+            ' @' + makeName(this.__assignedName) +
             ' (' +
-            getLLVMType(this.left.getType(ctx)) + ' %' +  _node(this.left, env, ctx, tctx) + ', ' +
-            getLLVMType(this.right.getType(ctx)) + ' %' +  _node(this.right, env, ctx, tctx) +
+            getLLVMType(this.left.getType(ctx)) + ' %param_' +  _node(this.left, env, ctx, tctx) + ', ' +
+            getLLVMType(this.right.getType(ctx)) + ' %param_' +  _node(this.right, env, ctx, tctx) +
             ') nounwind ssp uwtable {');
 
         tctx.push();
 
+        tctx.writeLabel('entry');
+
+        var leftName = makeName(this.left.__assignedName);
+        var leftType = this.left.getType(ctx);
+        var leftTypeName = getLLVMType(leftType);
+        var rightName = makeName(this.right.__assignedName);
+        var rightType = this.right.getType(ctx);
+        var rightTypeName = getLLVMType(rightType);
+        // tctx.write('%' + leftName + ' = alloca ' + leftTypeName + ', align ' + getAlignment(leftType));
+        // tctx.write('%' + rightName + ' = alloca ' + rightTypeName + ', align ' + getAlignment(rightType));
+
+        Object.keys(context.typeMap).forEach(function(v) {
+            var type = context.typeMap[v];
+            tctx.write('%' + makeName(v) + ' = alloca ' + getLLVMType(type) + ', align ' + getAlignment(type));
+        });
+
+        tctx.write('store ' + leftTypeName + ' %param_' + leftName + ', ' + leftTypeName + '* %' + leftName);
+        tctx.write('store ' + rightTypeName + ' %param_' + rightName + ', ' + rightTypeName + '* %' + rightName);
+
+        tctx.write('%retVal = alloca ' + returnTypeName + ', align ' + getAlignment(returnType));
+
         this.body.forEach(function(stmt) {
             _node(stmt, env, context, tctx);
         });
+
+        tctx.write('br label %exitLabel');
+
+        tctx.writeLabel('exitLabel');
+
+        var outReg = tctx.getRegister();
+        tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal');
+        tctx.write('ret ' + returnTypeName + ' ' + outReg);
 
         tctx.pop();
 
@@ -722,6 +765,27 @@ var NODES = {
         return makeName(this.__assignedName);
     },
     Literal: function(env, ctx, tctx) {
+        if (this.litType === 'str') {
+            var strLitIdent = '@string.' + makeName(env.getStrLiteralIdentifier(this.value));
+
+            var strPtr = tctx.getRegister();
+            tctx.write(strPtr + ' = call i8* @malloc(i32 16)');
+            var castStrPtr = tctx.getRegister();
+            tctx.write(castStrPtr + ' = bitcast i8* ' + strPtr + ' to %string*');
+            var lenPtr = tctx.getRegister();
+            tctx.write(lenPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 0');
+            tctx.write('store i32 ' + (this.value.length + 1) + ', i32* ' + lenPtr);
+            var capacityPtr = tctx.getRegister();
+            tctx.write(capacityPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 1');
+            tctx.write('store i32 ' + (this.value.length + 1) + ', i32* ' + capacityPtr);
+
+            var strBodyPtr = tctx.getRegister();
+            tctx.write(strBodyPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 2');
+            tctx.write('store i16* getelementptr inbounds ([' + (this.value.length + 1) + ' x i16]* ' + strLitIdent + ', i32 0, i32 0), i16** ' + strBodyPtr + ', align 4');
+
+            return castStrPtr;
+        }
+
         if (this.value === true) return 'true';
         if (this.value === false) return 'false';
         if (this.value === null) return 'null';
@@ -733,13 +797,21 @@ var NODES = {
             return '@' + makeName(this.__refName);
         }
 
+        var rootContext = ctx.parent;
+        while (rootContext.parent) rootContext = rootContext.parent;
+
         if (extra === 'lvalue') {
-            return '%' + makeName(this.__refName);
+            return (this.__refContext === rootContext ? '@' : '%') + makeName(this.__refName);
         }
 
         var reg = tctx.getRegister();
         var type = this.getType(ctx);
-        tctx.write(reg + ' = load ' + getLLVMType(type) + '* %' + makeName(this.__refName));
+
+        if (this.__refContext === rootContext) {
+            tctx.write(reg + ' = load ' + getLLVMType(type) + '* @' + makeName(this.__refName));
+        } else {
+            tctx.write(reg + ' = load ' + getLLVMType(type) + '* %' + makeName(this.__refName));
+        }
         return reg;
     },
     New: function(env, ctx, tctx) {
@@ -774,12 +846,9 @@ var NODES = {
                 }).join(', '),
             ].join(', ');
 
-            var constructedReg = tctx.getRegister();
-            tctx.write(constructedReg + ' = call ' + targetType + ' @' + makeName(type.objConstructor) + '(' + params + ')');
-            return constructedReg;
-        } else {
-            return ptrReg;
+            tctx.write('call void @' + makeName(type.objConstructor) + '(' + params + ')');
         }
+        return ptrReg;
     },
 
     Break: function() {
@@ -803,14 +872,14 @@ var NODES = {
         _node(this.base, env, ctx, tctx);
     },
     ObjectConstructor: function(env, ctx, tctx) {
-        // Constructors are merged with the constructor in `typeTranslate`
-        // in the generate module.
+        _node(this.base, env, ctx, tctx);
     },
 
     TypeCast: function(env, ctx, tctx) {
         var baseType = this.left.getType(ctx);
         var baseTypeName = getLLVMType(baseType);
         var targetType = this.rightType.getType(ctx);
+        var targetTypeName = getLLVMType(targetType);
 
         var base = _node(this.left, env, ctx, tctx);
         if (baseType.equals(targetType)) return base;
@@ -822,10 +891,10 @@ var NODES = {
                 switch (targetType.typeName) {
                     case 'float':
                     case 'sfloat':
-                        tctx.write(resPtr + ' = sitofp ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = sitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'byte':
-                        tctx.write(resPtr + ' = trunc ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = trunc ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'bool':
                         tctx.write(resPtr + ' = icmp ne ' + baseTypeName + ' ' + base + ', 0');
@@ -835,10 +904,10 @@ var NODES = {
                 switch (targetType.typeName) {
                     case 'float':
                     case 'sfloat':
-                        tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'byte':
-                        tctx.write(resPtr + ' = trunc ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = trunc ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'bool':
                         tctx.write(resPtr + ' = icmp ne ' + baseTypeName + ' ' + base + ', 0')
@@ -847,46 +916,46 @@ var NODES = {
             case 'sfloat':
                 switch (targetType.typeName) {
                     case 'int':
-                        tctx.write(resPtr + ' = fptosi ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = fptosi ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'float':
-                        tctx.write(resPtr + ' = fext ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = fext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'byte':
                     case 'uint':
-                        tctx.write(resPtr + ' = fptoui ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = fptoui ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'bool':
-                        tctx.write(resPtr + ' = fcmp ne ' + baseTypeName + ' ' + base + ', 0')
+                        tctx.write(resPtr + ' = fcmp one ' + baseTypeName + ' ' + base + ', 0.0')
                         return resPtr;
                 }
             case 'float':
                 switch (targetType.typeName) {
                     case 'int':
-                        tctx.write(resPtr + ' = fptosi ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = fptosi ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'uint':
                     case 'byte':
-                        tctx.write(resPtr + ' = fptoui ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = fptoui ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'bool':
-                        tctx.write(resPtr + ' = fcmp ne ' + baseTypeName + ' ' + base + ', 0')
+                        tctx.write(resPtr + ' = fcmp one ' + baseTypeName + ' ' + base + ', 0.0')
                         return resPtr;
                     case 'sfloat':
-                        tctx.write(resPtr + ' = fptrunc ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = fptrunc ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                 }
             case 'byte':
                 switch (targetType.typeName) {
                     case 'int':
-                        tctx.write(resPtr + ' = sext ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = sext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'uint':
-                        tctx.write(resPtr + ' = zext ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = zext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'float':
                     case 'sfloat':
-                        tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'bool':
                         tctx.write(resPtr + ' = icmp ne ' + baseTypeName + ' ' + base + ', 0')
@@ -897,11 +966,11 @@ var NODES = {
                     case 'int':
                     case 'uint':
                     case 'byte':
-                        tctx.write(resPtr + ' = zext ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = zext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                     case 'float':
                     case 'sfloat':
-                        tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetType);
+                        tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
                         return resPtr;
                 }
         }
@@ -926,7 +995,7 @@ var NODES = {
             childType = baseType.contentsTypeArr[this.subscript.value];
 
             posPtr = tctx.getRegister();
-            tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 ' + this.subscript.value);
+            tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 ' + this.subscript.value);
             valReg = tctx.getRegister();
             tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr);
             return valReg;
@@ -936,7 +1005,7 @@ var NODES = {
         var child = _node(this.subscript, env, ctx, tctx);
 
         posPtr = tctx.getRegister();
-        tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 1, i64 ' + child);
+        tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 1, i64 ' + child);
         valReg = tctx.getRegister();
         tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr);
 
@@ -947,9 +1016,14 @@ var NODES = {
         var type = this.getType(ctx);
         var typeName = getLLVMType(type);
 
+        var flatTypeName = type.flatTypeName();
+        if (!(flatTypeName in env.__arrayTypes)) {
+            env.__tupleTypes[flatTypeName] = type;
+        }
+
         var size = type.getSize() + 8;
         var reg = tctx.getRegister();
-        tctx.write(reg + ' = call i8* @malloc(i64 ' + size + ')');
+        tctx.write(reg + ' = call i8* @malloc(i32 ' + size + ')');
         var ptrReg = tctx.getRegister();
         tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
@@ -959,7 +1033,7 @@ var NODES = {
             var valueType = getLLVMType(exp.getType(ctx));
 
             var pReg = tctx.getRegister();
-            tctx.write(pReg + ' = getelementptr inbounds ' + typeName + ' ' + ptrReg + ', i32 ' + i);
+            tctx.write(pReg + ' = getelementptr inbounds ' + typeName + ' ' + ptrReg + ', i32 0, i32 ' + i);
             tctx.write('store ' + valueType + ' ' + value + ', ' + valueType + '* ' + pReg);
         });
 

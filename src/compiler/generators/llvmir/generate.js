@@ -16,6 +16,7 @@ function translateArrayTypes(env) {
     return Object.keys(env.__arrayTypes).map(function(arr) {
         var type = env.__arrayTypes[arr];
         var typeName = getLLVMType(type);
+        typeName = typeName.substr(0, typeName.length - 1)
         var innerTypeName = getLLVMType(type.contentsType);
 
         var out = [
@@ -39,6 +40,18 @@ function translateArrayTypes(env) {
     }).join('\n');
 }
 
+function translateTupleTypes(env) {
+    return Object.keys(env.__tupleTypes).map(function(arr) {
+        var type = env.__tupleTypes[arr];
+        var typeName = getLLVMType(type);
+        typeName = typeName.substr(0, typeName.length - 1)
+
+        return typeName + ' = type { ' + type.contentsTypeArr.map(function(x) {
+            return getLLVMType(x);
+        }).join(', ') + ' }';
+    }).join('\n');
+}
+
 function getRuntime(env) {
     if (!argv.runtime) {
         return '';
@@ -59,6 +72,7 @@ function getRuntime(env) {
     return [
         'define i32 @main() nounwind ssp uwtable {',
         'entry:',
+        (!env.inits.length ? '' : '    call void @modInit()'),
         '    call void @' + makeName(funcName) + '()',
         '    ret i32 0',
         '}',
@@ -73,6 +87,7 @@ function makeModule(env, ENV_VARS, body) {
         fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/memory.ll')).toString(),
 
         translateArrayTypes(env),
+        translateTupleTypes(env),
 
         body,
 
@@ -138,7 +153,7 @@ function typeTranslate(type) {
             output += '\n}';
             return output;
 
-        case 'tuple':
+        case 'tuple': // TODO: Remove this? Or remove the tuple generator above?
             output = '%' + makeName(type.flatTypeName()) + ' = type {\n    ';
 
             // Add all of the zeroed members
@@ -160,16 +175,33 @@ module.exports = function generate(env, ENV_VARS) {
     body += fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/funcref.ll')).toString();
 
     // Declare all of the types
+    body += '%string = type { i32, i32, i16* }\n';
     body += env.types.map(typeTranslate, env).join('\n\n') + '\n';
 
+    var generatedContent = env.included.map(llvmTranslate).join('\n\n');
+
+    // Pre-define any string literals
+    body += Object.keys(env.registeredStringLiterals).map(function(strVal) {
+        var str = env.registeredStringLiterals[strVal];
+        return '@string.' + makeName(str) + ' = private unnamed_addr constant [' + (strVal.length + 1) + ' x i16] [' +
+        strVal.split('').map(function(c) {
+            return 'i16 ' + c.charCodeAt(0);
+        }).join(', ') +
+        (strVal.length ? ', ' : '') +
+        'i16 0], align 2';
+    }).join('\n');
+
     // Translate and output each included context
-    body += env.included.map(llvmTranslate).join('\n\n');
+    body += generatedContent;
+
 
     if (env.inits.length) {
         body += '\ndefine void @modInit() nounwind {\n' +
+            'entry:\n' +
             '    ' + env.inits.map(function(init) {
-                return 'call void ' + init.__assignedName + '()';
+                return 'call void @' + makeName(init.__assignedName) + '()';
             }).join('\n    ') + '\n' +
+            '    ret void\n' +
             '}\n';
     }
 
@@ -190,7 +222,7 @@ module.exports = function generate(env, ENV_VARS) {
         out += 'define @funcRef' + madeName + 'Inst %' + madeName + '* (' +
             funcSignature + ', i8*) nounwind alwaysinline {\n' +
             // TODO: Make 64-bit configurable?
-            '    %allocatedSpace = call i8* @malloc(i64 16)\n' + // 16 = sizeof(function*) + sizeof(funcctx*)
+            '    %allocatedSpace = call i8* @malloc(i32 16)\n' + // 16 = sizeof(function*) + sizeof(funcctx*)
             '    %allocatedSpaceAsFR = bitcast i8* %allocatedSpace to %' + madeName + '*\n' +
             '    %refInst = alloca %' + madeName + '*, align 8\n' +
             '    store %' + madeName + '* %allocatedSpaceAsFR, %' + madeName + '** %refInst, align 8\n' +

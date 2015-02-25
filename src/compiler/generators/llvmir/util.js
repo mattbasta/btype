@@ -7,9 +7,14 @@ var getLLVMType = exports.getLLVMType = function getLLVMType(type) {
     if (!type) {
         return 'void';
     }
+
+    if (type._type === 'string') {
+        return '%string*';
+    }
+
     if (type._type === 'primitive') {
         switch (type.typeName) {
-            case 'bool': return 'i8'; // TODO: would this be better as i1?
+            case 'bool': return 'i1';
             case 'int': return 'i32';
             case 'float': return 'double';
             case 'sfloat': return 'float';
@@ -22,7 +27,7 @@ var getLLVMType = exports.getLLVMType = function getLLVMType(type) {
     }
 
     if (type._type === 'func') {
-        return '%' + makeName(type.flatTypeName());
+        return '%' + makeName(type.flatTypeName()) + '*';
     }
 
     return '%' + makeName(type.flatTypeName()) + '*';
