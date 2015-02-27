@@ -338,9 +338,34 @@ var NODES = {
 
         var typeRefName = getFunctionSignature(type);
 
+        var params;
+
+        var temp;
+        if (this.callee.type === 'Member' &&
+            (temp = this.callee.base.getType(ctx)).hasMethod &&
+            temp.hasMethod(this.callee.child)) {
+
+            var methodBase = _node(this.callee.base, env, ctx, tctx);
+            var params = this.params.map(function(p) {
+                var type = p.getType(ctx);
+                var typeName = getLLVMType(type);
+                return typeName + ' ' + _node(p, env, ctx, tctx);
+            }).join(', ');
+
+            var outReg = tctx.getRegister();
+            tctx.write(
+                outReg + ' = call ' +
+                getLLVMType(this.getType(ctx)) + ' @' +
+                makeName(temp.getMethod(this.callee.child)) + '(' +
+                getLLVMType(this.callee.base.getType(ctx)) + ' ' +
+                methodBase + (params ? ', ' : '') +
+                params + ')'
+            );
+            return outReg;
+        }
+
         var callee = _node(this.callee, env, ctx, tctx);
 
-        var outputReg = tctx.getRegister();
         var funcPtrReg = tctx.getRegister();
         var funcReg = tctx.getRegister();
         tctx.write(funcPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0, i32 0');
@@ -350,7 +375,7 @@ var NODES = {
         tctx.write(ctxPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0, i32 1');
         tctx.write(ctxReg + ' = load i8* ' + ctxPtrReg);
 
-        var params = this.params.map(function(p) {
+        params = this.params.map(function(p) {
             var type = p.getType(ctx);
             var typeName = getLLVMType(type);
             return typeName + ' ' + _node(p, env, ctx, tctx);
@@ -409,7 +434,7 @@ var NODES = {
         }
 
         var reg = tctx.getRegister();
-        tctx.write(reg + ' = call i8* @malloc(i32 16)'); // 16 is just to be safe for 64 bit
+        tctx.write(reg + ' = call i8* @malloc(i32 16) ; funcref'); // 16 is just to be safe for 64 bit
         var regPtr = tctx.getRegister();
         tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
@@ -537,7 +562,11 @@ var NODES = {
         var typeName = getLLVMType(declType);
 
         if (parent === 'root') {
-            tctx.write('@' + makeName(this.__assignedName) + ' = common global ' + getLLVMType(declType) + ' 0');
+            var globVal = 'null';
+            if (this.value.type === 'Literal' && this.value.litType !== 'str') {
+                globVal = _node(this.value, env, ctx, tctx);
+            }
+            tctx.write('@' + makeName(this.__assignedName) + ' = private global ' + getLLVMType(declType) + ' ' + globVal);
             return;
         }
 
@@ -827,7 +856,7 @@ var NODES = {
 
             var length = _node(this.params[0], env, ctx, tctx);
             var arr = tctx.getRegister();
-            tctx.write(arr + ' = call ' + targetType + ' @btmake_' + targetType.substr(1) + '(i32 ' + length + ')');
+            tctx.write(arr + ' = call ' + targetType + ' @btmake_' + targetType.substr(1, targetType.length - 2) + '(i32 ' + length + ')');
             return arr;
         }
 

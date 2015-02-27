@@ -18,21 +18,24 @@ function translateArrayTypes(env) {
         var typeName = getLLVMType(type);
         typeName = typeName.substr(0, typeName.length - 1)
         var innerTypeName = getLLVMType(type.contentsType);
+        var typeSize = type.contentsType.getSize() || 4
 
         var out = [
-            typeName + ' = type { i32, [0 x ' + innerTypeName + '] }',
+            typeName + ' = type { i32, ' + innerTypeName + '* }',
 
-            // Some of these concepts are borrowed from here:
-            // http://nondot.org/sabre/LLVMNotes/SizeOf-OffsetOf-VariableSizedStructs.txt
-            'define ' + typeName + ' @btmake_' + typeName.substr(1) + '(i32 %length) nounwind {',
-            '    %size = getelementptr ' + typeName + ' null, i32 0, i64 1, i32 %length',
-            '    %sizeU = bitcast ' + innerTypeName + ' %size to i32',
-            '    %ptr = call i8* @malloc(i32 %sizeU)',
-            // TODO: make this use calloc
-            '    %result = bitcast i8* %ptr to ' + typeName,
-            '    %sizePtr = getelementptr ' + typeName + ' %result, i32 0, i64 0',
-            '    store i32 %length, i8* %sizePtr',
-            '    ret ' + typeName + ' %result',
+            'define ' + typeName + '* @btmake_' + typeName.substr(1) + '(i32 %param_length) nounwind {',
+            'entry:',
+            '    %bodyptr = call i8* @calloc(i32 %param_length, i32 ' + typeSize + ')',
+            '    %bodyptrcast = bitcast i8* %bodyptr to ' + innerTypeName + '*',
+
+            '    %ptr = call i8* @malloc(i32 16)',
+            '    %result = bitcast i8* %ptr to ' + typeName + '*',
+            '    %finalbodyptr = getelementptr ' + typeName + '* %result, i32 0, i32 1',
+            '    store ' + innerTypeName + '* %bodyptrcast, ' + innerTypeName + '** %finalbodyptr',
+
+            '    %sizePtr = getelementptr ' + typeName + '* %result, i32 0, i32 0',
+            '    store i32 %param_length, i32* %sizePtr',
+            '    ret ' + typeName + '* %result',
             '}',
         ];
 
@@ -206,33 +209,33 @@ module.exports = function generate(env, ENV_VARS) {
     }
 
     // Compile function reference types
-    body += '\n' + Object.keys(env.funcList).map(function(flist) {
-        if (env.funcList[flist].length === 1) return '';
+    // body += '\n' + Object.keys(env.funcList).map(function(flist) {
+    //     if (env.funcList[flist].length === 1) return '';
 
-        var funcType = env.funcListReverseTypeMap[flist];
+    //     var funcType = env.funcListReverseTypeMap[flist];
 
-        var madeName = makeName(flist);
+    //     var madeName = makeName(flist);
 
-        var funcSignature = getLLVMType(funcType.getReturnType()) + ' (' +
-            funcType.args.map(getLLVMType).join(', ') +
-            ')*';
+    //     var funcSignature = getLLVMType(funcType.getReturnType()) + ' (' +
+    //         funcType.args.map(getLLVMType).join(', ') +
+    //         ')*';
 
-        var out = '%funcRef' + madeName + ' = type {' + funcSignature + ', i8*}\n';
+    //     var out = '%funcRef' + madeName + ' = type {' + funcSignature + ', i8*}\n';
 
-        out += 'define @funcRef' + madeName + 'Inst %' + madeName + '* (' +
-            funcSignature + ', i8*) nounwind alwaysinline {\n' +
-            // TODO: Make 64-bit configurable?
-            '    %allocatedSpace = call i8* @malloc(i32 16)\n' + // 16 = sizeof(function*) + sizeof(funcctx*)
-            '    %allocatedSpaceAsFR = bitcast i8* %allocatedSpace to %' + madeName + '*\n' +
-            '    %refInst = alloca %' + madeName + '*, align 8\n' +
-            '    store %' + madeName + '* %allocatedSpaceAsFR, %' + madeName + '** %refInst, align 8\n' +
-            // TODO: Finish this?
-            '    \n' +
-            '}';
+    //     out += 'define void @funcRef' + madeName + 'Inst(' +
+    //         funcSignature + ', i8*) nounwind alwaysinline {\n' +
+    //         // TODO: Make 64-bit configurable?
+    //         '    %allocatedSpace = call i8* @malloc(i32 16)\n' + // 16 = sizeof(function*) + sizeof(funcctx*)
+    //         '    %allocatedSpaceAsFR = bitcast i8* %allocatedSpace to %' + madeName + '*\n' +
+    //         '    %refInst = alloca %' + madeName + '*, align 8\n' +
+    //         '    store %' + madeName + '* %allocatedSpaceAsFR, %' + madeName + '** %refInst, align 8\n' +
+    //         // TODO: Finish this?
+    //         '    ret void\n' +
+    //         '}';
 
-        return out;
+    //     return out;
 
-    }).filter(function(x) {return !!x;}).join('\n');
+    // }).filter(function(x) {return !!x;}).join('\n');
 
 
     // Replace environment variables

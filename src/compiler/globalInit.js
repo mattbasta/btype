@@ -34,7 +34,7 @@ module.exports = function(ctx, env) {
                 continue;
             }
 
-            if (current.value.type !== 'Literal') {
+            if (current.value.type !== 'Literal' || current.value.litType === 'str') {
                 var value = current.value;
                 current.value = new nodes.Literal({
                     litType: 'null',
