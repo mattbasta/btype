@@ -2,7 +2,7 @@ import foreign;
 
 
 func float:fabs(float:i) {
-    if (i < 0.0) {
+    if i < 0.0 {
         i = i * -1.0;
     }
     return i;

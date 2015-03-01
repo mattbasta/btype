@@ -31,6 +31,15 @@ function upliftExpressionsFromBody(ctx, body) {
 
     function getTempDecl(type) {
         var name = ctx.env.namer();
+
+        var litType = 'null';
+        var value = null;
+
+        if (type._type === 'primitive') {
+            litType = type.typeName === 'float' ? 'float' : (type.typeName === 'sfloat' ? 'sfloat' : 'int');
+            value = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
+        }
+
         return new nodes.Declaration({
             __context: ctx,
 
@@ -43,8 +52,8 @@ function upliftExpressionsFromBody(ctx, body) {
             identifier: name,
             __assignedName: name,
             value: new nodes.Literal({
-                litType: (type.typeName === 'float' ? 'float' : (type.typeName === 'sfloat' ? 'sfloat' : 'int')),
-                value: ((type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0'),
+                litType: litType,
+                value: value,
             }),
         });
     }

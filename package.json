@@ -18,7 +18,6 @@
   "dependencies": {
     "escodegen": "^1.4.2",
     "esprima": "^1.1.1",
-    "minimist": "^1.1.0",
-    "temp": "^0.8.1"
+    "minimist": "^1.1.0"
   }
 }

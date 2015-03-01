@@ -367,13 +367,13 @@ var NODES = {
         var callee = _node(this.callee, env, ctx, tctx);
 
         var funcPtrReg = tctx.getRegister();
+        tctx.write(funcPtrReg + ' = getelementptr inbounds ' + typeName + ' ' + callee + ', i32 0, i32 0');
         var funcReg = tctx.getRegister();
-        tctx.write(funcPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0, i32 0');
-        tctx.write(funcReg + ' = load ' + typeRefName + ' ' + funcPtrReg);
+        tctx.write(funcReg + ' = load ' + typeRefName + '* ' + funcPtrReg);
         var ctxPtrReg = tctx.getRegister();
+        tctx.write(ctxPtrReg + ' = getelementptr inbounds ' + typeName + ' ' + callee + ', i32 0, i32 1');
         var ctxReg = tctx.getRegister();
-        tctx.write(ctxPtrReg + ' = getelementptr inbound ' + typeName + ' ' + callee + ', i32 0, i32 1');
-        tctx.write(ctxReg + ' = load i8* ' + ctxPtrReg);
+        tctx.write(ctxReg + ' = load i8** ' + ctxPtrReg);
 
         params = this.params.map(function(p) {
             var type = p.getType(ctx);
@@ -387,22 +387,24 @@ var NODES = {
         var returnType = getLLVMType(this.getType(ctx));
         var callRetPtr = tctx.getRegister();
         tctx.write(callRetPtr + ' = alloca ' + returnType);
-        var callRet = tctx.getRegister();
 
 
         var nullLabel = tctx.getUniqueLabel('isnull');
         var unnullLabel = tctx.getUniqueLabel('unnull');
         var afternullLabel = tctx.getUniqueLabel('afternull');
 
-        tctx.getRegister(); // waste a register for `br` because it's a terminator instruction
         tctx.write('br i1 ' + isNullCmpReg + ', label %' + nullLabel + ', label %' + unnullLabel);
 
         tctx.writeLabel(nullLabel);
+
+        var selflessFuncType = getFunctionSignature(type, true); // true -> no `self`/`ctx` param
+        var selflessFuncReg = tctx.getRegister();
+        tctx.write(selflessFuncReg + ' = bitcast ' + typeRefName + ' ' + funcReg + ' to ' + selflessFuncType + ' ; callref:selfless_downcast');
+
         var nullRetPtr = tctx.getRegister();
-        tctx.write(nullRetPtr + ' = call ' + returnType + ' ' + funcReg + '(' + params + ')');
+        tctx.write(nullRetPtr + ' = call ' + returnType + ' ' + selflessFuncReg + '(' + params + ')');
         tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr);
 
-        tctx.getRegister(); // waste a register for `br` because it's a terminator instruction
         tctx.write('br label %' + afternullLabel);
 
         tctx.writeLabel(unnullLabel);
@@ -418,6 +420,7 @@ var NODES = {
         tctx.write('store ' + returnType + ' ' + unnullRetPtr + ', ' + returnType + '* ' + callRetPtr);
 
         tctx.writeLabel(afternullLabel);
+        var callRet = tctx.getRegister();
         tctx.write(callRet + ' = load ' + returnType + ' ' + callRetPtr);
         return callRet;
 
@@ -440,7 +443,7 @@ var NODES = {
 
         var funcLocPtr = tctx.getRegister();
         tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
-        tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr);
+        tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr + ' ; funcref:base');
 
         var ctxLocPtr = tctx.getRegister();
         tctx.write(ctxLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
@@ -449,9 +452,9 @@ var NODES = {
             var ctxTypeName = getLLVMType(ctxType);
             var ctxCastLocPtr = tctx.getRegister();
             tctx.write(ctxCastLocPtr + ' = bitcast ' + ctxTypeName + ' ' + _node(this.ctx, env, ctx, tctx) + ' to i8*');
-            tctx.write('store i8* ' + ctxCastLocPtr + ', i8** ' + ctxLocPtr);
+            tctx.write('store i8* ' + ctxCastLocPtr + ', i8** ' + ctxLocPtr + ' ; funcref:ctx');
         } else {
-            tctx.write('store i8* null, i8** ' + ctxLocPtr);
+            tctx.write('store i8* null, i8** ' + ctxLocPtr + ' ; funcref:ctx');
         }
 
         return regPtr;
@@ -504,19 +507,19 @@ var NODES = {
             var reg = tctx.getRegister();
             tctx.write(reg + ' = call i8* @malloc(i32 16)'); // 16 is just to be safe for 64 bit
             var regPtr = tctx.getRegister();
-            tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName + '*');
+            tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
             var funcLocPtr = tctx.getRegister();
             tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
-            tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr);
+            tctx.write('store ' + funcType + ' @' + makeName(baseType.getMethod(this.child)) + ', ' + funcType + '* ' + funcLocPtr + ' ; member:method:func');
 
             var baseLocPtr = tctx.getRegister();
             tctx.write(baseLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
             var baseTypeName = getLLVMType(baseType);
-            var baseCastLocPtr = tctx.getRegister();
             base = _node(this.base, env, ctx, tctx);
+            var baseCastLocPtr = tctx.getRegister();
             tctx.write(baseCastLocPtr + ' = bitcast ' + baseTypeName + ' ' + base + ' to i8*');
-            tctx.write('store i8* ' + baseCastLocPtr + ', i8** ' + baseLocPtr);
+            tctx.write('store i8* ' + baseCastLocPtr + ', i8** ' + baseLocPtr + ' ; member:method:self');
 
             return regPtr;
         }
@@ -555,7 +558,20 @@ var NODES = {
         var value = _node(this.value, env, ctx, tctx);
         var base = _node(this.base, env, ctx, tctx, 'lvalue');
 
-        tctx.write('store ' + typeName + ' ' + value + ', ' + typeName + '* ' + base + ', align ' + getAlignment(type));
+        var annotation = '';
+        if (this.base.type === 'Symbol') {
+            annotation = ' ; ' + this.base.name;
+        } else if (this.base.type === 'Member') {
+            annotation = ' ; ';
+            if (this.base.base.type === 'Symbol') annotation += this.base.base.name;
+            else annotation += '?';
+
+            annotation += '.';
+
+            annotation += this.base.child;
+        }
+
+        tctx.write('store ' + typeName + ' ' + value + ', ' + typeName + '* ' + base + ', align ' + getAlignment(type) + annotation);
     },
     Declaration: function(env, ctx, tctx, parent) {
         var declType = this.getType(ctx);
@@ -570,11 +586,13 @@ var NODES = {
             return;
         }
 
+        var annotation = ' ; ' + this.identifier;
+
         var ptrName = '%' + makeName(this.__assignedName);
         if (this.value) {
-            tctx.write('store ' + getLLVMType(declType) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType));
+            tctx.write('store ' + getLLVMType(declType) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
         } else {
-            tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName);
+            tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName + annotation);
         }
     },
     ConstDeclaration: function() {
@@ -588,7 +606,7 @@ var NODES = {
         }
         var value = _node(this.value, env, ctx, tctx);
         var retType = getLLVMType(this.value.getType(ctx));
-        tctx.write('store ' + retType + ' ' + value + ', ' + retType + '* %retVal');
+        tctx.write('store ' + retType + ' ' + value + ', ' + retType + '* %retVal ; return');
         tctx.write('br label %exitLabel');
         tctx.writeTerminatorLabel();
     },
@@ -714,7 +732,7 @@ var NODES = {
         this.params.forEach(function(p) {
             var type = p.getType(context);
             var typeName = getLLVMType(type);
-            tctx.write('store ' + typeName + ' %param_' + makeName(p.__assignedName) + ', ' + typeName + '* %' + makeName(p.__assignedName))
+            tctx.write('store ' + typeName + ' %param_' + makeName(p.__assignedName) + ', ' + typeName + '* %' + makeName(p.__assignedName) + ' ; param:' + p.name)
         });
 
         this.body.forEach(function(stmt) {
@@ -761,8 +779,6 @@ var NODES = {
         var rightName = makeName(this.right.__assignedName);
         var rightType = this.right.getType(ctx);
         var rightTypeName = getLLVMType(rightType);
-        // tctx.write('%' + leftName + ' = alloca ' + leftTypeName + ', align ' + getAlignment(leftType));
-        // tctx.write('%' + rightName + ' = alloca ' + rightTypeName + ', align ' + getAlignment(rightType));
 
         Object.keys(context.typeMap).forEach(function(v) {
             var type = context.typeMap[v];
@@ -864,7 +880,6 @@ var NODES = {
         var reg = tctx.getRegister();
         tctx.write(reg + ' = call i8* @malloc(i32 ' + size + ')');
         var ptrReg = tctx.getRegister();
-
         tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + targetType);
 
         if (type instanceof types.Struct && type.objConstructor) {

@@ -43,11 +43,17 @@ exports.getAlignment = function getAlignment(type) {
     return 4;
 };
 
-exports.getFunctionSignature = function getFunctionSignature(type) {
+exports.getFunctionSignature = function getFunctionSignature(type, noSelf) {
     var out = type.returnType ? getLLVMType(type.returnType) : 'void';
     out += ' (';
-    if (type.args.length) {
-        out += type.args.map(getLLVMType).join(', ');
+
+    var args = type.args;
+    if (noSelf) {
+        args = args.slice(1);
+    }
+
+    if (args.length) {
+        out += args.map(getLLVMType).join(', ');
     } else {
         out += '...';
     }
