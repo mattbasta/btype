@@ -493,6 +493,7 @@ function upliftContext(rootContext, ctx) {
                 __refType: node.getType(ctxparent),
                 __refName: node.__assignedName + '$$origFunc$',
                 __refIndex: node.__funclistIndex,
+                __isFunc: true,
             });
         }
         return false;

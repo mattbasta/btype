@@ -66,7 +66,7 @@ describe('Parity tests', function() {
     globEach(
         path.resolve(__dirname, 'tests'),
         '.bt',
-        function(btPath) {
+        function globEachReader(btPath) {
             var read = fs.readFileSync(btPath).toString();
             var readExpectation = fs.readFileSync(btPath + '.txt').toString().trim();
 
@@ -80,35 +80,28 @@ describe('Parity tests', function() {
                     run(read, 'asmjs', readExpectation);
                 });
 
-                it('in LLVM IR', function llvmirFunctionalTestBody() {
+                it('in LLVM IR', function llvmirFunctionalTestBody(done) {
+
+                    var compiled;
                     try {
-                        var compiled = compile(read, 'llvmir');
-                    } catch(e) {
-                        // this.skip();
-                        throw e;
+                        compiled = compile(read, 'llvmir');
+                    } catch (e) {
+                        done(e);
+                        return;
                     }
 
-                    // var opt = child_process.spawn('opt');
-
-                    // opt.on('error', function() {
-                    //     done(new Error('Error processing file'));
-                    // });
-                    // opt.on('exit', function(code) {
-                    //     if (code !== 0) {
-                    //         done(new Error('Error processing file'));
-                    //     } else {
-                    //         done();
-                    //     }
-                    // });
-                    // opt.on('close', function(code) {
-                    //     if (code !== 0) {
-                    //         done(new Error('Error processing file'));
-                    //     } else {
-                    //         done();
-                    //     }
-                    // });
-
-                    // opt.stdin.write(compiled);
+                    child_process.exec(
+                        path.resolve(process.cwd(), 'bin', 'btype') + ' ' + btPath + ' --target=llvmir | opt -S -O1',
+                        function(err, stdout, stderr) {
+                            if (err) {
+                                done(err);
+                            } else if (stderr) {
+                                done(new Error(stderr.toString()));
+                            } else {
+                                done();
+                            }
+                        }
+                    );
 
                 });
 
