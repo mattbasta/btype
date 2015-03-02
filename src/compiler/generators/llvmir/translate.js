@@ -804,7 +804,7 @@ var NODES = {
             ' (' +
             getLLVMType(this.left.getType(ctx)) + ' %param_' +  _node(this.left, env, ctx, tctx) + ', ' +
             getLLVMType(this.right.getType(ctx)) + ' %param_' +  _node(this.right, env, ctx, tctx) +
-            ') nounwind ssp uwtable {');
+            ') nounwind ssp uwtable alwaysinline {');
 
         tctx.push();
 

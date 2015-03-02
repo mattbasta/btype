@@ -91,7 +91,7 @@ describe('Parity tests', function() {
                     }
 
                     child_process.exec(
-                        path.resolve(process.cwd(), 'bin', 'btype') + ' ' + btPath + ' --target=llvmir | opt -S -O1',
+                        path.resolve(process.cwd(), 'bin', 'btype') + ' ' + btPath + ' --target=llvmir | opt -S',
                         function(err, stdout, stderr) {
                             if (err) {
                                 done(err);

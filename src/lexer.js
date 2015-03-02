@@ -73,6 +73,7 @@ var tokens = [
     [/^export(?!\w)/, 'export'],
     [/^operator(?!\w)/, 'operator'],
     [/^object(?!\w)/, 'object'],
+    [/^with(?!\w)/, 'with'],
 
     [/^[a-zA-Z_][\w\-_]*/, 'identifier'],
 ];

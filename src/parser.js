@@ -1071,6 +1071,17 @@ module.exports = function Parser(tokenizer) {
         var constructor = null;
         var members = [];
         var methods = [];
+        var attributes = [];
+
+        while (accept('with')) {
+            var attrIdent = assert('identifier').text;
+            if (attributes.indexOf(attrIdent) !== -1) {
+                throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
+            }
+
+            attributes.push(attrIdent);
+            assert(';');
+        }
 
         var peekedType;
         var constructorBase;
@@ -1237,6 +1248,7 @@ module.exports = function Parser(tokenizer) {
                 objConstructor: constructor,
                 members: members,
                 methods: methods,
+                attributes: attributes,
             }
         );
     }

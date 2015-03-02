@@ -1,0 +1,5 @@
+object Foo {
+    with x;
+    with y;
+    with x;
+}

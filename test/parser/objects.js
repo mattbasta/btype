@@ -19,6 +19,27 @@ describe('Object declaration parser', function() {
                     {
                         name: 'foo',
                         members: [],
+                        attributes: [],
+                        methods: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse attributes', function() {
+        compareTree(
+            'object foo {with x; with y;}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    28,
+                    {
+                        name: 'foo',
+                        attributes: ['x', 'y'],
+                        members: [],
                         methods: [],
                         objConstructor: null,
                     }
@@ -37,6 +58,7 @@ describe('Object declaration parser', function() {
                     21,
                     {
                         name: 'foo',
+                        attributes: [],
                         members: [node(
                             'ObjectMember',
                             12,
@@ -65,6 +87,7 @@ describe('Object declaration parser', function() {
                     47,
                     {
                         name: 'foo',
+                        attributes: [],
                         methods: [node(
                             'ObjectMethod',
                             12,
@@ -113,6 +136,7 @@ describe('Object declaration parser', function() {
                     59,
                     {
                         name: 'foo',
+                        attributes: [],
                         methods: [node(
                             'ObjectMethod',
                             12,
@@ -161,6 +185,7 @@ describe('Object declaration parser', function() {
                     32,
                     {
                         name: 'foo',
+                        attributes: [],
                         methods: [],
                         members: [],
                         objConstructor: node(
@@ -201,6 +226,7 @@ describe('Object declaration parser', function() {
                     44,
                     {
                         name: 'foo',
+                        attributes: [],
                         methods: [],
                         members: [],
                         objConstructor: node(
@@ -241,6 +267,7 @@ describe('Object declaration parser', function() {
                     57,
                     {
                         name: 'foo',
+                        attributes: [],
                         methods: [node(
                             'ObjectMethod',
                             12,
