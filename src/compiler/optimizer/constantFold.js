@@ -3,19 +3,46 @@ var traverser = require('../traverser');
 
 
 module.exports = function constantFold(ctx) {
-    traverser.findAndReplace(ctx.scope, function constantFoldFilter(node) {
-        switch (node.type) {
-            case 'Binop':
-            case 'EqualityBinop':
-            case 'RelativeBinop':
-            case 'LogicalBinop':
-                return foldBinop(node, ctx);
+    var ctxStack = [ctx];
 
-            default:
-                return;
+    // We use this to ignore nodes in the AST. There's no clean way to perform
+    // a find and replace while ignoring nodes.
+    var blocked = 0;
+
+    traverser.findAndReplace(
+        ctx.scope,
+        function constantFoldFilter(node) {
+
+            if (blocked) return;
+
+            switch (node.type) {
+                case 'Binop':
+                case 'EqualityBinop':
+                case 'RelativeBinop':
+                case 'LogicalBinop':
+                    return foldBinop(node, ctxStack[0]);
+
+                default:
+                    return;
+            }
+        },
+        true, // true for pretraversal
+        function constantFoldBefore(node) {
+            if (node.type === 'Function') {
+                ctxStack.unshift(node.__context);
+            } else if (node.type === 'ObjectDeclaration' && !node.__isConstructed) {
+                blocked++;
+            }
+        },
+        function constantFoldAfter(node) {
+            if (node.type === 'Function') {
+                ctxStack.shift();
+            } else if (node.type === 'ObjectDeclaration' && !node.__isConstructed) {
+                blocked--;
+            }
         }
-    }, true); // true for pretraversal
-}
+    );
+};
 
 
 var binopTypes = ['Binop', 'EqualityBinop', 'LogicalBinop', 'RelativeBinop'];

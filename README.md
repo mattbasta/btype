@@ -28,4 +28,5 @@ At the time of writing, BType is still in an extremely early phase of developmen
 - First-class functions
 - Compiles directly to asm.js, vanilla JavaScript, and LLVM IR
 - Operator overloading
+- Generics
 - Type safety

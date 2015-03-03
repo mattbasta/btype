@@ -21,6 +21,7 @@ module.exports.traverseWithSelf = function traverseWithSelf(tree, callback, afte
 module.exports.findAll = function(tree, filter) {
     var output = [];
     traverse(tree, function findAllFilter(node) {
+        if (!node) return;
         if (filter && !filter(node)) return;
         output.push(node);
     });
@@ -38,10 +39,11 @@ module.exports.iterateBodies = function iterateBodies(tree, cb, filter) {
     });
 };
 
-var findAndReplace = module.exports.findAndReplace = function findAndReplace(tree, filter, preTraverse) {
+var findAndReplace = module.exports.findAndReplace = function findAndReplace(tree, filter, preTraverse, beforeCallback, afterCallback) {
     tree.traverse.call(tree, function findAndReplaceIterator(node, member) {
         if (!node) return;
-        if (preTraverse) findAndReplace(node, filter, preTraverse);
+        if (beforeCallback) beforeCallback(node, member);
+        if (preTraverse) findAndReplace(node, filter, preTraverse, beforeCallback, afterCallback);
         var replacer;
         if (filter && (replacer = filter(node, member))) {
             tree.substitute.call(tree, function findAndReplaceFilter(sNode, member) {
@@ -50,6 +52,7 @@ var findAndReplace = module.exports.findAndReplace = function findAndReplace(tre
                 return replacement;
             });
         }
-        if (!preTraverse) findAndReplace(node, filter, preTraverse);
+        if (!preTraverse) findAndReplace(node, filter, preTraverse, beforeCallback, afterCallback);
+        if (afterCallback) afterCallback(node, member);
     });
 };

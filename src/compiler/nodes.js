@@ -85,14 +85,29 @@ function buildNode(proto, name) {
             this.end,
             {}
         );
-        for (var item in this.__base) {
-            if (this.__base[item] && this.__base[item].clone) {
-                out[item] = this.__base[item].clone();
-            } else {
-                out[item] = this.__base[item];
+
+        for (var item in this) {
+            if (!this.hasOwnProperty(item)) continue;
+
+            if (this[item] && this[item].clone) {
+                out[item] = this[item].clone();
+                continue;
             }
-            out.__base[item] = out[item];
+
+            if (this[item] instanceof Array) {
+                out[item] = this[item].map(function(x) {
+                    if (x && x.clone) {
+                        return x.clone();
+                    }
+
+                    return x;
+                });
+                continue;
+            }
+
+            out[item] = this[item];
         }
+
         return out;
     };
     return node;

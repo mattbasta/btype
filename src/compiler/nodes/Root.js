@@ -18,7 +18,7 @@ exports.substitute = function substitute(cb) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
-    this.body.forEach(function(stmt) {
+    this.body.forEach(function validateTypesRootBodyIter(stmt) {
         stmt.validateTypes(ctx);
     });
 };

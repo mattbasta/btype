@@ -107,7 +107,7 @@ function registerAllUsedMethods(env) {
 
     env.included.forEach(function(ctx) {
         traverser.traverse(ctx.scope, function(node) {
-            if (!node) return;
+            if (node.type === 'ObjectDeclaration' && !node.__isConstructed) return false;
             if (node.type !== 'Member') return;
 
             var baseType = node.base.getType(ctx);

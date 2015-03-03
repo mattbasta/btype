@@ -11,5 +11,5 @@ exports.getType = function getType(ctx) {
 exports.validateTypes = function validateTypes() {};
 
 exports.toString = function toString() {
-    return 'TypedId(' + this.name + ': ' + this.idType.toString() + ')';
+    return 'TypedId(' + this.name + (this.__assignedName ? ':' + this.__assignedName : '') + ': ' + this.idType.toString() + ')';
 };

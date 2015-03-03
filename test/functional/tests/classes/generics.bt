@@ -1,0 +1,25 @@
+object Adder {
+    with X;
+
+    X:base;
+
+    new(X:init) {
+        self.base = init;
+    }
+
+    X:add(X:toAdd) {
+        self.base = self.base + toAdd;
+        return self.base;
+    }
+}
+
+func int:main() {
+    var x = new Adder<int>(25);
+    var x1 = x.add(30); # 55
+
+    var y = new Adder<float>(12.0);
+    var y1 = y.add(13.0); # 25
+
+    return (y1 as int) + x1;
+}
+export main;

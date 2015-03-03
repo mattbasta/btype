@@ -5,10 +5,15 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse(cb) {
-    if (this.returnType)
+    if (this.returnType) {
         cb(this.returnType, 'return');
+    }
 
-    this.body.forEach(function(stmt) {
+    this.params.forEach(function traverseFunctionParams(param) {
+        cb(param, 'params');
+    });
+
+    this.body.forEach(function traverseFunctionBody(stmt) {
         cb(stmt, 'body');
     });
 };
@@ -18,8 +23,11 @@ exports.traverseStatements = function traverseStatements(cb) {
 };
 
 exports.substitute = function substitute(cb) {
+    this.params = this.params.map(function(param) {
+        return cb(param, 'params');
+    }).filter(ident);
     this.body = this.body.map(function(stmt) {
-        return cb(stmt, 'stmt');
+        return cb(stmt, 'body');
     }).filter(ident);
 };
 
@@ -39,7 +47,7 @@ exports.getType = function getType(ctx) {
 
 exports.validateTypes = function validateTypes(ctx) {
     var context = this.__context;
-    this.body.forEach(function(stmt) {
+    this.body.forEach(function validateTypesFunctionBodyIter(stmt) {
         stmt.validateTypes(context);
     });
 };

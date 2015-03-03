@@ -23,11 +23,9 @@ exports.getType = function getType(ctx) {
 
 exports.validateTypes = function validateTypes(ctx) {
 
-    if (this.params.length) {
-        this.params.forEach(function(param) {
-            param.validateTypes(ctx);
-        });
-    }
+    this.params.forEach(function validateTypesNewParamIter(param) {
+        param.validateTypes(ctx);
+    });
 
     var type = this.getType(ctx);
 
@@ -49,7 +47,7 @@ exports.validateTypes = function validateTypes(ctx) {
             throw new Error('Number of parameters passed to constructor does not match object constructor signature');
         }
 
-        this.params.forEach(function(param, i) {
+        this.params.forEach(function validateTypesNewParamIter(param, i) {
             var paramType = param.getType(ctx);
             var argType = constructorFunc.params[i + 1].getType(constructorFunc.__context);
             if (!paramType.equals(argType)) {

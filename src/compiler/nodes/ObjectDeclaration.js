@@ -77,21 +77,39 @@ exports.rewriteAttributes = function rewriteAttributes(attributes) {
         throw new TypeError('Wrong number of attributes passed to object prototype: ' + attributes.length + ' != ' + this.attributes.length);
     }
 
-    var myAttributes = this.attributes;
-    require('../traverser').traverse(function(node) {
+    var me = this;
+    require('../traverser').traverse(this, function(node) {
         if (node.type !== 'Type') return;
 
         var idx;
-        if ((idx = myAttributes.indexOf(node.name)) === -1) return;
+        // Replace attribute identifiers with their actual types.
+        if ((idx = me.attributes.indexOf(node.name)) !== -1) {
+            if (node.attributes.length) {
+                throw new TypeError('Cannot apply attributes to attributes defined in object declaration');
+            }
 
-        if (node.attributes.length) {
-            throw new TypeError('Cannot apply attributes to attributes defined in object declaration');
+            // Don't bother changing the semantics of the code, just define the
+            // magic type.
+            node.__type = attributes[idx];
+            node.name = attributes[idx].toString();
+            return;
         }
 
-        // Don't bother changing the semantics of the code, just define the
-        // magic type.
-        node.__type = attributes[idx];
+        // Replace self-references with versions that include attributes
+        if (node.name === me.name && node.attributes.length === 0) {
+            var nodes = require('../nodes');
+            node.attributes = attributes.map(function(attr) {
+                return new nodes.Type({
+                    __type: attr,
+                    name: attr.toString(),
+                    attributes: [],
+                });
+            });
+        }
 
     });
+
+    this.__origAttributes = this.attributes;
+    this.attributes = [];
 
 };
