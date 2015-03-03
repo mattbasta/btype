@@ -624,6 +624,8 @@ var NODES = {
     },
 
     ObjectDeclaration: function(env, ctx, tctx) {
+        if (!this.__isConstructed) return;
+
         if (this.objConstructor) {
             _node(this.objConstructor, env, ctx, tctx);
         }

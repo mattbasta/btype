@@ -1,3 +1,4 @@
+var nodes = require('./nodes');
 var traverser = require('./traverser');
 var types = require('./types');
 
@@ -21,6 +22,11 @@ function Context(env, scope, parent, privileged) {
     this.functions = [];
     // A mapping of assigned names to function nodes.
     this.functionDeclarations = {};
+
+    // A mapping of user-provided names to object declaration prototypes
+    this.prototypes = {};
+    // A mapping of serialized prototype names of constructed prototypes to the cloned object declaration
+    this.constructedPrototypes = {};
 
     // A mapping of user-provided names to assigned names.
     this.nameMap = {};
@@ -47,8 +53,8 @@ function Context(env, scope, parent, privileged) {
     this.lexicalModifications = {};
     // A mapping of user provided names of exported members to their assigned names.
     this.exports = {};
-    // A mapping of user provided names of exported types to their assigned names.
-    this.exportTypes = {};
+    // A mapping of user provided names of exported types to their prototypes.
+    this.exportPrototypes = {};
     // `null` or a reference to a Function node that is necessary to be run on
     // initialization.
     this.initializer = null;
@@ -83,28 +89,73 @@ Context.prototype.lookupFunctionByName = function(assignedName) {
     return null;
 };
 
+Context.prototype.registerPrototype = function(givenTypeName, type) {
+    this.prototypes[givenTypeName] = type;
+};
+
 Context.prototype.registerType = function(givenTypeName, type, assignedName) {
     assignedName = assignedName || this.env.namer();
-    if (assignedName.toString()[0] === '[') debugger;
     type.__assignedName = assignedName;
     this.typeNameMap[givenTypeName] = assignedName;
-    // this.typeMap[assignedName] = type;
-    // this.nameMap[assignedName] = givenTypeName;
     this.env.registerType(assignedName, type, this);
 };
 
-Context.prototype.resolveType = function(typeName) {
+Context.prototype.serializePrototypeName = function(name, attributes) {
+    return name + '<' + attributes.map(function(a) {
+        // We don't need to recursively use serializePrototypeName because at
+        // this point, the constructor would have already been built if the
+        // type needs to go through the construction process.
+        return a.flatTypeName();
+    }).join(',') + '>';
+};
+
+Context.prototype.resolveType = function(typeName, attributes) {
+
+    if (this.prototypes.hasOwnProperty(typeName)) {
+        var serName = this.serializePrototypeName(typeName, attributes);
+        // If we've already seen the constructed version of this prototype,
+        // return it directly.
+        if (serName in this.constructedPrototypes) {
+            return this.constructedPrototypes[serName].getType(this);
+        }
+
+        // Create a new instance of the object declaration
+        var clonedProto = this.prototypes[typeName].clone();
+        // Rewrite the declaration to use the provided attributes
+        clonedProto.rewriteAttributes(attributes);
+        // Record a copy of the constructed declaration
+        this.constructedPrototypes[serName] = clonedProto;
+
+        clonedProto.__isConstructed = true;
+
+        // Generate contexts for the declaration
+        var fakeRoot = new nodes.Root({
+            body: [clonedProto],
+        });
+        generateContext(this.env, fakeRoot, null, this, false);
+
+        // Finally, get the type of the newly constructed declaration and
+        // register it for use.
+        var typeToRegister = clonedProto.getType(this);
+        typeToRegister.__assignedName = this.env.namer();
+        this.env.registerType(typeToRegister.__assignedName, typeToRegister, this);
+        this.scope.body.push(clonedProto);
+
+        return typeToRegister;
+    }
+
     if (typeName in this.typeNameMap) {
         return this.env.typeMap[this.typeNameMap[typeName]];
     }
     if (this.parent) {
-        return this.parent.resolveType(typeName);
+        return this.parent.resolveType(typeName, attributes);
     }
 
+    // There are no primitives that use attributes.
     return types.resolve(typeName, this.privileged);
 };
 
-module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
+var generateContext = module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
     if (!rootContext) {
         rootContext = new Context(env, tree, null, privileged);
         if (filename) {
@@ -231,10 +282,18 @@ module.exports = function generateContext(env, tree, filename, rootContext, priv
                 return;
 
             case 'ObjectDeclaration':
-                var objType = node.getType(contexts[0]);
-                contexts[0].registerType(node.name, objType);
-                node.__assignedName = objType.__assignedName;
-                return;
+                // Ignore nodes that have already been constructed.
+                if (node.__isConstructed) return;
+                // Register the prototype
+                contexts[0].registerPrototype(node.name, node);
+                // We don't want to create contexts for the contents of an
+                // un-constructed object declaration.
+                return false;
+
+                // var objType = node.getType(contexts[0]);
+                // contexts[0].registerType(node.name, objType);
+                // node.__assignedName = objType.__assignedName;
+                // return;
 
         }
     }
@@ -295,25 +354,25 @@ module.exports = function generateContext(env, tree, filename, rootContext, priv
                     refName = ctx.nameMap[node.value];
                     node.__assignedName = rootContext.exports[node.value] = refName;
                 } catch(e) {
-                    refName = contexts[0].typeNameMap[node.value];
-                    if (!refName) {
-                        throw new ReferenceError('Undefined function or type "' + refName + '" being exported');
+                    var protoObj = contexts[0].prototypes[node.value];
+                    if (!protoObj) {
+                        throw new ReferenceError('Undefined function or type "' + node.value + '" being exported');
                     }
-                    node.__assignedName = rootContext.exportTypes[node.value] = refName;
+                    node.__assignedName = rootContext.exportPrototypes[node.value] = refName;
                 }
 
                 return;
 
             case 'ObjectDeclaration':
+                if (!node.__isConstructed) return;
+
                 var objType = node.getType(contexts[0]);
                 if (node.objConstructor) {
                     objType.objConstructor = node.objConstructor.base.__assignedName;
                 }
-                if (node.methods.length) {
-                    node.methods.forEach(function(method) {
-                        objType.methods[method.name] = method.base.__assignedName;
-                    });
-                }
+                node.methods.forEach(function(method) {
+                    objType.methods[method.name] = method.base.__assignedName;
+                });
                 return;
         }
     }

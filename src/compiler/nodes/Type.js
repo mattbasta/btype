@@ -9,7 +9,9 @@ exports.traverse = function traverse(cb) {
     }
 };
 
-exports.substitute = function substitute() {};
+exports.substitute = function substitute() {
+    // TODO: should this substitute attributes?
+};
 
 exports.getType = function getType(ctx) {
     if (this.__type) {
@@ -29,7 +31,12 @@ exports.getType = function getType(ctx) {
         return this.__type = new types.Tuple(this.attributes.map(function(t) {return t.getType(ctx);}));
     }
 
-    return this.__type = ctx.resolveType(this.name);
+    return this.__type = ctx.resolveType(
+        this.name,
+        this.attributes.map(function(a) {
+            return a.getType(ctx);
+        }
+    ));
 };
 
 exports.validateTypes = function validateTypes() {};

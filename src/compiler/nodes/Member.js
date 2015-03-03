@@ -31,7 +31,6 @@ exports.validateTypes = function validateTypes(ctx) {
 
     if (!baseType.hasMember(this.child) &&
         (!baseType.hasMethod || !baseType.hasMethod(this.child))) {
-        debugger;
         throw new TypeError('Requesting incompatible member (' + this.child + ') from type');
     }
     this.base.validateTypes(ctx);

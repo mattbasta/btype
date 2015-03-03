@@ -395,11 +395,11 @@ function Module(mod) {
     this.hasMethod = function() {return false;};
 
     this.hasType = function(name) {
-        return name in this.mod.exportTypes;
+        return name in this.mod.exportPrototypes;
     };
 
-    this.getTypeOf = function(name) {
-        return this.mod.env.typeMap[this.mod.exportTypes[name]];
+    this.getTypeOf = function(name, attributes) {
+        return this.mod.resolveType(name, attributes || []);
     };
 
     this.isSubscriptable = function() {

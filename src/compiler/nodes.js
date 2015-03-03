@@ -86,13 +86,14 @@ function buildNode(proto, name) {
             {}
         );
         for (var item in this.__base) {
-            if (this.__base[item].clone) {
+            if (this.__base[item] && this.__base[item].clone) {
                 out[item] = this.__base[item].clone();
             } else {
                 out[item] = this.__base[item];
             }
             out.__base[item] = out[item];
         }
+        return out;
     };
     return node;
 }

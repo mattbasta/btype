@@ -47,6 +47,10 @@ exports.getType = function getType(ctx) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
+    if (!this.__isConstructed) return;
+
+    if (this.objConstructor) this.objConstructor.validateTypes(ctx);
+
     this.members.forEach(function(stmt) {
         stmt.validateTypes(ctx);
     });
@@ -65,4 +69,29 @@ exports.toString = function toString() {
         indentEach(this.methods.map(function(method) {
             return method.name + ': ' + method.toString();
         }).join('\n'), 2);
+};
+
+
+exports.rewriteAttributes = function rewriteAttributes(attributes) {
+    if (attributes.length !== this.attributes.length) {
+        throw new TypeError('Wrong number of attributes passed to object prototype: ' + attributes.length + ' != ' + this.attributes.length);
+    }
+
+    var myAttributes = this.attributes;
+    require('../traverser').traverse(function(node) {
+        if (node.type !== 'Type') return;
+
+        var idx;
+        if ((idx = myAttributes.indexOf(node.name)) === -1) return;
+
+        if (node.attributes.length) {
+            throw new TypeError('Cannot apply attributes to attributes defined in object declaration');
+        }
+
+        // Don't bother changing the semantics of the code, just define the
+        // magic type.
+        node.__type = attributes[idx];
+
+    });
+
 };

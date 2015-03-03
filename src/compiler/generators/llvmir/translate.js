@@ -469,7 +469,7 @@ var NODES = {
 
         var funcLocPtr = tctx.getRegister();
         tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
-        // console.log(this.base.toString());
+
         tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr + ' ; funcref:base');
 
         var ctxLocPtr = tctx.getRegister();
@@ -941,6 +941,7 @@ var NODES = {
     },
 
     ObjectDeclaration: function(env, ctx, tctx) {
+        if (!this.__isConstructed) return;
         if (this.objConstructor) {
             _node(this.objConstructor, env, ctx, tctx) + '\n';
         }

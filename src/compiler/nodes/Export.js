@@ -14,7 +14,7 @@ exports.validateTypes = function validateTypes(ctx) {
             throw new TypeError('Cannot export non-executable objects');
         }
     } catch(e) {
-        if (!ctx.typeNameMap[this.value]) {
+        if (!ctx.prototypes[this.value]) {
             throw new TypeError('Cannot export undefined variable or type: ' + this.value);
         }
     }

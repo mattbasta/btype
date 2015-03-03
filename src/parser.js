@@ -767,12 +767,16 @@ module.exports = function Parser(tokenizer) {
         var type = base || accept('func') || assert('identifier');
         var typeEnd = type;
         var attributes = [];
-        if (type.type !== 'null' && accept('<')) {
-            do {
-                attributes.push(parseType(null, true));
-            } while (accept(','));
-            typeEnd = assert('>');
+
+        function parseAttributes() {
+            if (type.type !== 'null' && accept('<')) {
+                do {
+                    attributes.push(parseType(null, true));
+                } while (accept(','));
+                typeEnd = assert('>');
+            }
         }
+        parseAttributes();
 
         var output;
 
@@ -794,9 +798,13 @@ module.exports = function Parser(tokenizer) {
                     {
                         base: output,
                         child: member.text,
+                        attributes: [],
                     }
                 );
             }
+
+            parseAttributes();
+            output.attributes = attributes;
         } else {
             output = node(
                 'Type',

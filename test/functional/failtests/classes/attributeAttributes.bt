@@ -1,0 +1,7 @@
+object Foo {
+    with x;
+
+    x<abc>:bar; # x cannot have attributes
+}
+
+var bar = new Foo<int>();
