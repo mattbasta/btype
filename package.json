@@ -19,5 +19,8 @@
     "escodegen": "^1.4.2",
     "esprima": "^1.1.1",
     "minimist": "^1.1.0"
+  },
+  "bin": {
+    "btype": "./bin/btype"
   }
 }

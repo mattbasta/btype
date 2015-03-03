@@ -581,7 +581,6 @@ var NODES = {
     },
     New: function(env, ctx, tctx) {
         var type = this.getType(ctx);
-        if (typeof type === 'string') debugger;
         type = this.getType(ctx);
         if (type._type === 'array') {
 

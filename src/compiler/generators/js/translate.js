@@ -179,7 +179,9 @@ var NODES = {
         if (baseType._type === '_stdlib') {
             base = 'stdlib.' + baseType.name;
         } else if (baseType._type === '_foreign') {
-            env.foreigns.push(this.child);
+            if (env.foreigns.indexOf(this.child) === -1) {
+                env.foreigns.push(this.child);
+            }
             return 'foreign.' + this.child;
         } else {
             base = _node(this.base, env, ctx, 1);
