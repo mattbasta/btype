@@ -1,0 +1,5 @@
+object Foo {with X;}
+object Foo {with Y;}
+
+func main() {}
+export main;

@@ -1,0 +1,9 @@
+object Foo {
+    test() {}
+}
+
+func main() {
+    var x = new Foo();
+    x.test = func() {};
+}
+export main;

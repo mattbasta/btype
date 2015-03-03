@@ -90,6 +90,9 @@ Context.prototype.lookupFunctionByName = function(assignedName) {
 };
 
 Context.prototype.registerPrototype = function(givenTypeName, type) {
+    if (this.prototypes.hasOwnProperty(givenTypeName)) {
+        throw new TypeError('Cannot declare object more than once: ' + givenTypeName);
+    }
     this.prototypes[givenTypeName] = type;
 };
 

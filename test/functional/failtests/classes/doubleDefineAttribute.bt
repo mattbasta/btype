@@ -3,3 +3,6 @@ object Foo {
     with y;
     with x;
 }
+
+func main() {}
+export main;

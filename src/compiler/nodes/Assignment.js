@@ -21,6 +21,11 @@ exports.validateTypes = function validateTypes(ctx) {
     if (!baseType.equals(valueType)) {
         throw new TypeError('Mismatched types in assignment: ' + baseType.toString() + ' != ' + valueType.toString() + ' near char ' + this.start);
     }
+
+    if (baseType.__isMethod) {
+      throw new TypeError('Cannot assign value to object method near char ' + this.start);
+    }
+
     this.value.validateTypes(ctx);
 };
 
