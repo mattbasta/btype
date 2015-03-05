@@ -1167,7 +1167,7 @@ module.exports = function Parser(tokenizer) {
 
             peekedType = peek();
             memberType = parseSymbol();
-            if (peek().text === ':') {
+            if (peek().text === ':' || peek().text === '<') {
                 memberType = parseTypedIdentifier(peekedType);
             }
             if (members.some(function(member) {return member.name === memberType.name;}) ||
@@ -1243,7 +1243,7 @@ module.exports = function Parser(tokenizer) {
                 continue;
             }
 
-            throw new SyntaxError('Unknown token in class definition: ' + peek().text);
+            throw new SyntaxError('Unknown token in class definition: ' + peek().text + ' near line ' + peek().line);
 
         }
 

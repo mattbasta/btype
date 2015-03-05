@@ -1,6 +1,12 @@
 var nodes = require('./nodes');
 
 
+function memberSize(type) {
+    if (type._type === 'primitive') return type.getSize();
+    return 4; // pointer size
+}
+
+
 function Primitive(typeName, backing) {
     this._type = 'primitive';
     this.typeName = typeName;
@@ -41,7 +47,7 @@ function Array_(contentsType) {
     this.subscript = function(index) {
         // We have an offset of 8 because primitives that take up eight bytes
         // need to be aligned to a multiple of 8 on the heap.
-        return 8 + index * this.contentType.getSize();
+        return 8 + index * memberSize(this.contentType);
     };
     this.getSize = function() {
         return null; // Must be special-cased.
@@ -123,11 +129,10 @@ function Struct(name, contentsTypeMap) {
     this.objConstructor = null;
     this.methods = {} // Mapping of given names to assigned names
 
-    function memberSize(name) {
-        var type = contentsTypeMap[name];
-        if (type._type === 'primitive') return type.getSize();
-        return 4; // pointer size
-    }
+    // WARNING! This must not do any processing on contentsTypeMap as part of
+    // this constructor. All processing must be done by methods. This is to
+    // facilitate lazily constructed structs, which are necessary for self-
+    // referencing and cyclic type dependencies.
 
     function getLayout() {
         var keys = Object.keys(contentsTypeMap);
@@ -144,10 +149,10 @@ function Struct(name, contentsTypeMap) {
         var offsets = {};
         var i = 0;
         layout.forEach(function(key) {
-            var size = memberSize(key);
+            var size = memberSize(this.contentsTypeMap[key]);
             offsets[key] = i;
             i += size;
-        });
+        }, this);
         return cachedLayout = offsets;
     };
 
@@ -174,16 +179,25 @@ function Struct(name, contentsTypeMap) {
     this.getSize = function() {
         var sum = 0;
         for (var key in this.contentsTypeMap) {
-            sum += this.contentsTypeMap[key].getSize();
+            sum += memberSize(this.contentsTypeMap[key]);
         }
         return sum;
     };
 
     this.equals = function(x) {
+        // Ignore null types.
+        if (!x) return false;
+        // If we have an assigned name, compare that.
+        if (this.__assignedName === x.__assignedName) return true;
+        // If the other one isn't a struct or has a different name, fail.
         if (!(x instanceof Struct && this.typeName === x.typeName)) return false;
+        // If the number of members is not the same, fail.
         if (Object.keys(this.contentsTypeMap).length !== Object.keys(x.contentsTypeMap).length) return false;
+        // Test each member for equality.
         for (var key in this.contentsTypeMap) {
+            // If the member is not in the other struct, fail.
             if (!(key in x.contentsTypeMap)) return false;
+            // If the member is the same type, fail.
             if (!this.contentsTypeMap[key].equals(x.contentsTypeMap[key])) return false;
         }
         return true;
@@ -228,12 +242,6 @@ function Tuple(contentsTypeArr) {
     this._type = 'tuple';
     this.contentsTypeArr = contentsTypeArr;
 
-    function memberSize(index) {
-        var type = contentsTypeArr[index];
-        if (type._type === 'primitive') return type.getSize();
-        return 4; // pointer size
-    }
-
     function getLayout() {
         var keys = contentsTypeArr.map(function(_, i) {return i;});
         keys.sort(function(a, b) {
@@ -269,7 +277,7 @@ function Tuple(contentsTypeArr) {
     this.getSize = function() {
         var sum = 0;
         for (var i = 0; i < this.contentsTypeArr.length; i++) {
-            sum += memberSize(i);
+            sum += memberSize(this.contentsTypeArr[i]);
         }
         return sum;
     };

@@ -81,7 +81,21 @@ function typeTranslate(type, context) {
 
             // Add all of the zeroed members
             output += Object.keys(type.contentsTypeMap).map(function(contentsTypeName) {
-                return 'this.' + contentsTypeName + ' = 0;';
+                var val = 'null';
+                if (type.contentsTypeMap[contentsTypeName]._type === 'primitive') {
+                    switch (type.contentsTypeMap[contentsTypeName].typeName) {
+                        case 'bool':
+                            val = 'false';
+                            break
+                        case 'float':
+                        case 'sfloat':
+                            val = '0.0';
+                            break;
+                        default:
+                            val = '0';
+                    }
+                }
+                return 'this.' + contentsTypeName + ' = ' + val + ';';
             }).join('\n');
 
             // Add the constructor if there is one

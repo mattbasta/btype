@@ -73,8 +73,6 @@ function malloc(bytes) {
                 return 0;
             }
             break;
-
-            continue;
         }
 
         if ((currentSize | 0) == (bytes | 0)) {

@@ -96,21 +96,25 @@ function _binop(env, ctx, tctx) {
 
     var leftType = this.left.getType(ctx);
     var rightType = this.right.getType(ctx);
-    var leftTypeString = leftType.flatTypeName();
-    var rightTypeString = rightType.flatTypeName();
 
-    if (ctx.env.registeredOperators[leftTypeString] &&
-        ctx.env.registeredOperators[leftTypeString][rightTypeString] &&
-        ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator]) {
+    if (leftType && rightType) {
+        var leftTypeString = leftType.flatTypeName();
+        var rightTypeString = rightType.flatTypeName();
 
-        var operatorStmtFunc = ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator];
+        if (ctx.env.registeredOperators[leftTypeString] &&
+            ctx.env.registeredOperators[leftTypeString][rightTypeString] &&
+            ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator]) {
 
-        outReg = tctx.getRegister();
-        tctx.write(outReg + ' = call ' + getLLVMType(outType) + ' @' + makeName(operatorStmtFunc) + '(' +
-            getLLVMType(leftType) + ' ' + left + ', ' +
-            getLLVMType(rightType) + ' ' + right +
-            ')');
-        return outReg;
+            var operatorStmtFunc = ctx.env.registeredOperators[leftTypeString][rightTypeString][this.operator];
+
+            outReg = tctx.getRegister();
+            tctx.write(outReg + ' = call ' + getLLVMType(outType) + ' @' + makeName(operatorStmtFunc) + '(' +
+                getLLVMType(leftType) + ' ' + left + ', ' +
+                getLLVMType(rightType) + ' ' + right +
+                ')');
+            return outReg;
+        }
+
     }
 
     switch (this.operator) {
@@ -341,6 +345,8 @@ var NODES = {
 
         var params;
 
+        var callBody;
+
         var temp;
         if (this.callee.type === 'Member' &&
             (temp = this.callee.base.getType(ctx)).hasMethod &&
@@ -353,15 +359,20 @@ var NODES = {
                 return typeName + ' ' + _node(p, env, ctx, tctx);
             }).join(', ');
 
-            var outReg = tctx.getRegister();
-            tctx.write(
-                outReg + ' = call ' +
+            callBody = 'call ' +
                 getLLVMType(this.getType(ctx)) + ' @' +
                 makeName(temp.getMethod(this.callee.child)) + '(' +
                 getLLVMType(this.callee.base.getType(ctx)) + ' ' +
                 methodBase + (params ? ', ' : '') +
-                params + ')'
-            );
+                params + ')';
+
+            if (extra === 'stmt') {
+                tctx.write(callBody);
+                return;
+            }
+
+            var outReg = tctx.getRegister();
+            tctx.write(outReg + ' = ' + callBody);
             return outReg;
         }
 
@@ -405,15 +416,20 @@ var NODES = {
             var selflessFuncReg = tctx.getRegister();
             tctx.write(selflessFuncReg + ' = bitcast ' + typeRefName + ' ' + funcReg + ' to ' + selflessFuncType + ' ; callref:selfless_downcast');
 
-            nullRetPtr = tctx.getRegister();
-            tctx.write(nullRetPtr + ' = call ' + returnType + ' ' + selflessFuncReg + '(' + params + ')');
+            callBody = 'call ' + returnType + ' ' + selflessFuncReg + '(' + params + ')';
 
         } else {
-            nullRetPtr = tctx.getRegister();
-            tctx.write(nullRetPtr + ' = call ' + returnType + ' ' + funcReg + '(' + params + ')');
+            callBody = 'call ' + returnType + ' ' + funcReg + '(' + params + ')';
 
         }
-        tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+
+        if (extra === 'stmt') {
+            tctx.write(callBody);
+        } else {
+            var nullRetPtr = tctx.getRegister();
+            tctx.write(nullRetPtr + ' = ' + callBody);
+            tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+        }
 
         tctx.write('br label %' + afternullLabel);
 
@@ -430,22 +446,31 @@ var NODES = {
             var ctxRegType = getLLVMType(type.args[0]);
             tctx.write(castCtxReg + ' = bitcast i8* ' + ctxReg + ' to ' + ctxRegType);
 
-            var unnullRetPtr = tctx.getRegister();
-            tctx.write(
-                unnullRetPtr + ' = call ' + returnType + ' ' + funcReg +
+            callBody = 'call ' + returnType + ' ' + funcReg +
                 '(' +
                 ctxRegType + ' ' + castCtxReg +
                 (this.params.length ? ', ' : '') +
                 params +
-                ')'
-            );
-            tctx.write('store ' + returnType + ' ' + unnullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+                ')';
+
+            if (extra === 'stmt') {
+                tctx.write(callBody);
+            } else {
+                var unnullRetPtr = tctx.getRegister();
+                tctx.write(unnullRetPtr + ' = ' + callBody);
+                tctx.write('store ' + returnType + ' ' + unnullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+            }
 
         }
 
         tctx.write('br label %' + afternullLabel);
 
         tctx.writeLabel(afternullLabel);
+
+        if (extra === 'stmt') {
+            return;
+        }
+
         var callRet = tctx.getRegister();
         tctx.write(callRet + ' = load ' + returnType + '* ' + callRetPtr);
         return callRet;

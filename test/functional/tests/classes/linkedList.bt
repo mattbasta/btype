@@ -1,0 +1,64 @@
+object LinkedList {
+    with T;
+
+    LinkedListNode<T>:first;
+    LinkedListNode<T>:last;
+    int:length;
+
+    append(T:value) {
+        var node = new LinkedListNode<T>(self, value);
+        self.length = self.length + 1;
+
+        if self.first == null {
+            self.first = node;
+            self.last = node;
+            node.next = node;
+            node.previous = node;
+            return;
+        }
+
+        self.last.next = node;
+        node.previous = self.last;
+        self.last = node;
+        node.next = self.first;
+    }
+
+    T:shift() {
+        var val = self.first.value;
+        self.first = self.first.next;
+        self.last.next = self.first;
+        return val;
+    }
+
+}
+
+
+object LinkedListNode {
+    with T;
+
+    LinkedList<T>:parent;
+    LinkedListNode<T>:next;
+    LinkedListNode<T>:previous;
+    T:value;
+
+    new(LinkedList<T>:parent, T:value) {
+        self.parent = parent;
+        self.value = value;
+    }
+
+}
+
+func int:main() {
+    var ll = new LinkedList<int>();
+    ll.append(1);
+    ll.append(2);
+    ll.append(3);
+
+    var acc = ll.shift();
+    acc = acc + ll.shift();
+    acc = acc + ll.shift();
+
+    return acc;
+
+}
+export main;

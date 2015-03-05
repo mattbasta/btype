@@ -27,6 +27,8 @@ function Context(env, scope, parent, privileged) {
     this.prototypes = {};
     // A mapping of serialized prototype names of constructed prototypes to the cloned object declaration
     this.constructedPrototypes = {};
+    // A mapping of serialized prototype names of constructed prototypes to their respective types
+    this.constructedPrototypeTypes = {};
 
     // A mapping of user-provided names to assigned names.
     this.nameMap = {};
@@ -119,15 +121,18 @@ Context.prototype.resolveType = function(typeName, attributes) {
         // If we've already seen the constructed version of this prototype,
         // return it directly.
         if (serName in this.constructedPrototypes) {
-            return this.constructedPrototypes[serName].getType(this);
+            return this.constructedPrototypeTypes[serName];
         }
 
         // Create a new instance of the object declaration
         var clonedProto = this.prototypes[typeName].clone();
+        clonedProto.__assignedName = this.env.namer();
         // Rewrite the declaration to use the provided attributes
         clonedProto.rewriteAttributes(attributes);
         // Record a copy of the constructed declaration
         this.constructedPrototypes[serName] = clonedProto;
+        // Record the incomplete type, which will get fully populated below.
+        this.constructedPrototypeTypes[serName] = clonedProto.getIncompleteType(this);
 
         clonedProto.__isConstructed = true;
 
@@ -140,7 +145,7 @@ Context.prototype.resolveType = function(typeName, attributes) {
         // Finally, get the type of the newly constructed declaration and
         // register it for use.
         var typeToRegister = clonedProto.getType(this);
-        typeToRegister.__assignedName = this.env.namer();
+        typeToRegister.__assignedName = clonedProto.__assignedName;
         this.env.registerType(typeToRegister.__assignedName, typeToRegister, this);
         this.scope.body.push(clonedProto);
 
@@ -224,7 +229,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
                 newContext = new Context(env, node.base, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
-                node.base.params.forEach(function(param) {
+                node.base.params.forEach(function contextPreTraverseParamIter(param) {
                     param.__assignedName = newContext.addVar(param.name, param.getType(newContext));
                 });
 

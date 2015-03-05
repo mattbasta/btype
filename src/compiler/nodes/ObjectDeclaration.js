@@ -4,10 +4,10 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse(cb) {
-    this.members.forEach(function(stmt) {
+    this.members.forEach(function traverseObjectDeclMembers(stmt) {
         cb(stmt, 'members');
     });
-    this.methods.forEach(function(stmt) {
+    this.methods.forEach(function traverseObjectDeclMethods(stmt) {
         cb(stmt, 'methods');
     });
     if (this.objConstructor) cb(this.objConstructor, 'objConstructor');
@@ -23,22 +23,34 @@ exports.substitute = function substitute(cb) {
     this.objConstructor = cb(this.objConstructor, 'objConstructor') || this.objConstructor;
 };
 
+exports.getIncompleteType = function getIncompleteType(ctx) {
+    if (this.__type) return this.__type;
+    if (this.__incompleteType) return this.__incompleteType;
+
+    var mapping = this.__typeMapping = this.__typeMapping || {};
+    return this.__incompleteType = new types.Struct(this.name, mapping);
+};
+
 exports.getType = function getType(ctx) {
     if (this.__type) return this.__type;
 
-    var mapping = {};
-    this.members.forEach(function(member) {
+    var output = this.getIncompleteType(ctx);
+    var mapping = this.__typeMapping;
+
+    // NOTE: There's some serious knife-throwing going on here. To support
+    // recursive and self-referencing types, an empty mapping is passed and
+    // populated after the fact.
+
+    this.members.forEach(function getTypeObjectDeclMemberIter(member) {
         mapping[member.name] = member.getType(ctx);
     });
-
-    var output = new types.Struct(this.name, mapping);
 
     if (this.objConstructor) {
         output.objConstructor = this.objConstructor.base.__assignedName;
     }
 
     if (this.methods.length) {
-        this.methods.forEach(function(method) {
+        this.methods.forEach(function getTypeObjectDeclMethodIter(method) {
             output.methods[method.name] = method.base.__assignedName;
         });
     }

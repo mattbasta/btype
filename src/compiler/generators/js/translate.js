@@ -41,14 +41,22 @@ function _binop(env, ctx, prec) {
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
-    var leftType = this.left.getType(ctx).flatTypeName();
-    var rightType = this.right.getType(ctx).flatTypeName();
-    if (ctx.env.registeredOperators[leftType] &&
-        ctx.env.registeredOperators[leftType][rightType] &&
-        ctx.env.registeredOperators[leftType][rightType][this.operator]) {
 
-        var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
-        return operatorStmtFunc + '(' + left + ',' + right + ')';
+
+    var leftTypeRaw = this.left.getType(ctx);
+    var rightTypeRaw = this.right.getType(ctx);
+
+
+    if (leftTypeRaw && rightTypeRaw) {
+        var leftType = leftTypeRaw.flatTypeName();
+        var rightType = rightTypeRaw.flatTypeName();
+        if (ctx.env.registeredOperators[leftType] &&
+            ctx.env.registeredOperators[leftType][rightType] &&
+            ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+
+            var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
+            return operatorStmtFunc + '(' + left + ',' + right + ')';
+        }
     }
 
     var oPrec = OP_PREC[this.operator] || 13;
@@ -148,7 +156,7 @@ var NODES = {
             temp.hasMethod(this.callee.child)) {
 
             return temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, 18) + ', ' + paramList + ')';
+                _node(this.callee.base, env, ctx, 18) + (paramList ? ', ' : '') + paramList + ')';
         }
 
         return _node(this.callee, env, ctx, 1) +

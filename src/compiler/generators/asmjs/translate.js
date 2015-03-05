@@ -62,15 +62,20 @@ function _binop(env, ctx, tctx) {
     var left = typeAnnotation(_node(this.left, env, ctx, tctx), this.left.getType(ctx));
     var right = typeAnnotation(_node(this.right, env, ctx, tctx), this.right.getType(ctx));
 
-    var leftType = this.left.getType(ctx).flatTypeName();
-    var rightType = this.right.getType(ctx).flatTypeName();
-    if (ctx.env.registeredOperators[leftType] &&
-        ctx.env.registeredOperators[leftType][rightType] &&
-        ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+    var leftTypeRaw = this.left.getType(ctx);
+    var rightTypeRaw = this.right.getType(ctx);
 
-        var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
-        out = operatorStmtFunc + '(' + left + ',' + right + ')';
-        return typeAnnotation(out, ctx.env.registeredOperatorReturns[operatorStmtFunc]);
+    if (leftTypeRaw && rightTypeRaw) {
+        var leftType = leftTypeRaw.flatTypeName();
+        var rightType = rightTypeRaw.flatTypeName();
+        if (ctx.env.registeredOperators[leftType] &&
+            ctx.env.registeredOperators[leftType][rightType] &&
+            ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+
+            var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
+            out = operatorStmtFunc + '(' + left + ',' + right + ')';
+            return typeAnnotation(out, ctx.env.registeredOperatorReturns[operatorStmtFunc]);
+        }
     }
 
     switch (this.operator) {
@@ -78,15 +83,15 @@ function _binop(env, ctx, tctx) {
         case 'or':
             throw new Error('Unconverted logical binop!');
         case '*':
-            if (this.left.getType(ctx) === types.publicTypes.int &&
-                this.right.getType(ctx) === types.publicTypes.int) {
+            if (leftTypeRaw === types.publicTypes.int &&
+                rightTypeRaw === types.publicTypes.int) {
 
                 out = '(imul(' + left + ', ' + right + ')|0)';
                 break;
             }
         default:
-            if (this.left.type !== 'Literal') left = '(' + typeAnnotation(left, this.left.getType(ctx)) + ')';
-            if (this.right.type !== 'Literal') right = '(' + typeAnnotation(right, this.right.getType(ctx)) + ')';
+            if (this.left.type !== 'Literal') left = '(' + typeAnnotation(left, leftTypeRaw) + ')';
+            if (this.right.type !== 'Literal') right = '(' + typeAnnotation(right, rightTypeRaw) + ')';
             out = left + ' ' + this.operator + ' ' + right;
     }
 
