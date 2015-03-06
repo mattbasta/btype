@@ -1,0 +1,318 @@
+#@ Data Structures
+#@
+#@ This file contains many generic data structures that can be used in your
+#@ applications. They are optimized for general-purpose efficiency and
+#@ performance.
+
+
+object Deque {
+    #@ This is a vanilla implementation of the `deque` type from the SGI STL
+    #@ module. "Deque" is a portmanteau of "double-ended queue".
+
+    with T;
+
+    GenericDLLNode<Deque<T>, T>:front; # Reference to the front node
+    GenericDLLNode<Deque<T>, T>:back; # Reference to the back node
+
+    int:length; # The length of the deque
+
+    pushBack(T:value) {
+        #@ Pushes an element `value` to the back of the queue.
+
+        var node = new GenericDLLNode<Deque<T>, T>(self, value);
+        self.length = self.length + 1;
+
+        if self.front == null {
+            self.front = node;
+            self.back = node;
+            node.next = node;
+            node.previous = node;
+            return;
+        }
+
+        self.back.next = node;
+        node.previous = self.back;
+        self.back = node;
+        node.next = self.front;
+    }
+
+    pushFront(T:value) {
+        #@ Pushes an element `value` to the front of the queue.
+
+        var node = new GenericDLLNode<Deque<T>, T>(self, value);
+        self.length = self.length + 1;
+
+        if self.front == null {
+            self.front = node;
+            self.back = node;
+            node.next = node;
+            node.previous = node;
+            return;
+        }
+
+        self.front.previous = node;
+        node.next = self.front;
+        self.front = node;
+    }
+
+    T:popFront() {
+        #@ Pops and returns an element from the front of the queue.
+
+        if self.front == null {
+            return null; #@ TODO: Type assertion here
+        }
+        self.length = self.length - 1;
+
+        var out = self.front.value;
+        self.front = self.front.next;
+        return out;
+    }
+
+    T:popBack() {
+        #@ Pops and returns an element from the back of the queue.
+
+        if self.back == null {
+            return null; # TODO: Type assertion here
+        }
+        self.length = self.length - 1;
+
+        var out = self.back.value;
+        self.back = self.back.previous;
+        return out;
+    }
+
+    T:peekFront() {
+        #@ Returns the value at the front of the queue.
+
+        if self.front == null {
+            return null; # TODO: Type assertion here
+        }
+
+        return self.front.value;
+    }
+
+    T:peekBack() {
+        #@ Returns the value at the back of the queue.
+
+        if self.back == null {
+            return null; # TODO: Type assertion here
+        }
+
+        return self.back.value;
+    }
+
+    swap(Deque<T>:other) {
+        #@ Swaps the contents of this queue with the contents of another queue
+        #@ `other`.
+
+        var otherB = other.back;
+        var otherF = other.front;
+        other.back = self.back;
+        other.front = self.front;
+        self.back = otherB;
+        self.front = otherF;
+    }
+
+    clear() {
+        #@ Clears the contents of this queue.
+
+        self.back = null;
+        self.front = null;
+    }
+
+    bool:erase(int:i) {
+        #@ Removes a specific element at index `i` from this queue. Returns
+        #@ `true` if successful and `false` if a problem is encountered.
+
+        if i < self.length {
+            return false;
+        }
+
+        int:x = 0;
+        GenericDLLNode<Deque<T>, T>:ptr = self.front;
+        while x < i {
+            x = x + 1;
+            ptr = ptr.next;
+        }
+
+        if ptr.previous != null {
+            ptr.previous.next = ptr.next;
+        }
+        if ptr.next != null {
+            ptr.next.previous = ptr.previous;
+        }
+
+        return true;
+    }
+
+    bool:remove(T:item) {
+        #@ Removes the first occurrance of `item` from the queue. Returns
+        #@ `true` if the item was removed and `false` if it could not be found.
+
+        GenericDLLNode<Deque<T>, T>:ptr = self.front;
+        while ptr != item {
+            ptr = ptr.next;
+            if ptr == null {
+                return false;
+            }
+        }
+
+        if ptr.previous != null {
+            ptr.previous.next = ptr.next;
+        }
+        if ptr.next != null {
+            ptr.next.previous = ptr.previous;
+        }
+
+        return true;
+    }
+
+    int:indexOf(T:item) {
+        #@ Returns the index of `item` in the queue if it exists. If it does
+        #@ exist in the queue, returns `-1`.
+
+        int:x;
+        GenericDLLNode<Deque<T>, T>:ptr = self.front;
+        while ptr != item {
+            x = x + 1;
+            ptr = ptr.next;
+            if ptr == null {
+                return -1;
+            }
+        }
+        return x;
+    }
+
+}
+export Deque;
+
+
+object Vector {
+    #@ This is a vanilla implementation of a vector. It does not inherently
+    #@ perform any special CPU vectorization optimizations (SIMD, etc.), but it
+    #@ does provide a means of creating a growable array.
+    #@
+    #@ Vectors can contain `null` values for non-primitive types, but they
+    #@ cannot holes. That is, there cannot be an "undefined" value in a vector.
+
+    with T;
+
+    int:growthFactor;
+    array<T>:body;
+    int:capacity;
+    int:length;
+
+    new(int:growthFactor) {
+        #@ `growthFactor` is an integer describing the increments by which the
+        #@ vector's internal array will be grown. The initial capacity of the
+        #@ vector is the growth factor.
+        #@
+        #@ If you expect to add a large number of items to the vector, you
+        #@ should use a large growth factor (say, 1024 or higher) to reduce the
+        #@ number of times the array will need to be copied for expansion. If
+        #@ you expect the vector to contain relatively few items or is added to
+        #@ or removed from very infrequently, you should use a low growth
+        #@ factor (say, 16).
+
+        self.growthFactor = growthFactor;
+        self.capacity = growthFactor;
+        self.body = new array<T>(growthFactor);
+
+        self.length = 0;
+    }
+
+    _grow() {
+        #@ Private method to grow the array by the growth factor.
+
+        var newBody = new array<T>(self.capacity + self.growthFactor);
+        var oldBody = self.body;
+
+        #@ TODO: Consider optimizing with a proper memory copy function
+        var i = 0;
+        for i = 0; i < self.length; i = i + 1; {
+            newBody[i] = oldBody[i];
+        }
+
+        self.body = newBody;
+        self.capacity = newBody.length;
+    }
+
+    bool:insert(T:value, int:index) {
+        #@ Insert a new value `value` at the index `index`. If the operation
+        #@ is unsuccessful, this method will return `false`. The operation can
+        #@ fail if the index is greater than the length of the vector.
+
+        if index > self.length {
+            #@ TODO: Throw an exception
+            return false;
+        }
+        if index >= self.capacity {
+            self._grow();
+        }
+
+        #@ TODO: Consider optimizing with a proper memory copy function
+        var i = 0;
+        var body = self.body;
+        for i = self.length; i > index; i = i - 1; {
+            body[i] = body[i - 1];
+        }
+        body[index] = value;
+
+        self.length = self.length + 1;
+
+        return true;
+    }
+
+    swap(Vector<T>:other) {
+        #@ Swaps the contents of this vector with the contents of another
+        #@ vector `other`.
+
+        var otherLen = other.length;
+        var otherGrowthFactor = other.growthFactor;
+        var otherCap = other.capacity;
+        var otherBody = other.body;
+
+        other.length = self.length;
+        other.growthFactor = self.growthFactor;
+        other.capacity = self.capacity;
+        other.body = self.body;
+
+        self.length = otherLen;
+        self.growthFactor = otherGrowthFactor;
+        self.capacity = otherCap;
+        self.body = otherBody;
+    }
+
+    clear() {
+        #@ Clears the contents of this vector. Resizes the vector to its
+        #@ initial capacity.
+
+        self.length = 0;
+        self.capacity = self.growthFactor;
+        self.body = new array<T>(self.growthFactor);
+    }
+
+    #@ TODO: erase()
+    #@ TODO: remove()
+    #@ TODO: indexOf()
+
+}
+
+
+object GenericDLLNode {
+    #@ This is a generic linked list node. It supports doubly-linked lists.
+
+    with Parent;
+    with T;
+
+    Parent:parent;
+    GenericDLLNode<Parent, T>:next;
+    GenericDLLNode<Parent, T>:previous;
+    T:value;
+
+    new(Parent:parent, T:value) {
+        self.parent = parent;
+        self.value = value;
+    }
+
+}
