@@ -124,7 +124,7 @@ object Deque {
         #@ Removes a specific element at index `i` from this queue. Returns
         #@ `true` if successful and `false` if a problem is encountered.
 
-        if i < self.length {
+        if i < self.length or i < 0 {
             return false;
         }
 
@@ -237,6 +237,27 @@ object Vector {
         self.capacity = newBody.length;
     }
 
+    _shrink() {
+        #@ Private method to shrink the array by the growth factor.
+
+        # Don't allow the body to be shrunk to zero
+        if self.capacity == self.growthFactor {
+            return;
+        }
+
+        var newBody = new array<T>(self.capacity - self.growthFactor);
+        var oldBody = self.body;
+
+        #@ TODO: Consider optimizing with a proper memory copy function
+        var i = 0;
+        for i = 0; i < self.length; i = i + 1; {
+            newBody[i] = oldBody[i];
+        }
+
+        self.body = newBody;
+        self.capacity = newBody.length;
+    }
+
     bool:insert(T:value, int:index) {
         #@ Insert a new value `value` at the index `index`. If the operation
         #@ is unsuccessful, this method will return `false`. The operation can
@@ -261,6 +282,11 @@ object Vector {
         self.length = self.length + 1;
 
         return true;
+    }
+
+    append(T:value) {
+        #@ Inserts a new value `value` at the end of the vector.
+        self.insert(value, self.length);
     }
 
     swap(Vector<T>:other) {
@@ -292,9 +318,79 @@ object Vector {
         self.body = new array<T>(self.growthFactor);
     }
 
-    #@ TODO: erase()
-    #@ TODO: remove()
-    #@ TODO: indexOf()
+    bool:remove(T:item) {
+        #@ Removes the first occurrance of `item` from the vector. Returns
+        #@ `true` if the item was removed and `false` if it could not be found.
+
+        var x = 0;
+        var found = false;
+        var lengthMinOne = self.length - 1;
+        for x = 0; x < lengthMinOne; x = x + 1; {
+
+            if !found and self.body[x] == item {
+                found = true;
+            }
+            if found {
+                self.body[x] = self.body[x + 1];
+            }
+
+        }
+
+        if !found {
+            return false;
+        }
+
+        self.length = self.length - 1;
+        self.body[self.length] = null; #@ TODO: type assertion
+
+        #@ TODO: Should this be less than or equal to?
+        if self.capacity - self.growthFactor > self.length {
+            self._shrink();
+        }
+        return true;
+    }
+
+    bool:erase(int:i) {
+        #@ Removes the element at index `i` from the vector. Returns `true` if
+        #@ the element was successfully removed.
+
+        if i >= self.length or i < 0 {
+            return false;
+        }
+
+        var x = 0;
+        var lengthMinOne = self.length - 1;
+        for x = i; x < lengthMinOne; x = x + 1; {
+            self.body[x] = self.body[x + 1];
+        }
+
+        self.length = self.length - 1;
+        self.body[self.length] = null; #@ TODO: type assertion
+
+        #@ TODO: Should this be less than or equal to?
+        if self.capacity - self.growthFactor > self.length {
+            self._shrink();
+        }
+        return true;
+    }
+
+    int:indexOf(T:item) {
+        #@ Returns the index of `item` in the vector if it exists. If it does
+        #@ exist in the vector, returns `-1`.
+
+        int:x = 0;
+        for x = 0; x < self.length; x = x + 1; {
+            if self.body[x] == item {
+                return x;
+            }
+        }
+        return -1;
+    }
+
+    #@ TODO: popBack
+    #@ TODO: popFront
+    #@ TODO: pushBack
+    #@ TODO: pushFront
 
 }
 
