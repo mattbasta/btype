@@ -397,11 +397,11 @@ var NODES = {
         tctx.write(
             'for (' +
             _node(this.assignment, env, ctx, tctx) +
-            _node(this.condition, env, ctx, tctx) + ';' +
-            trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, tctx) : '') +
+            _node(this.condition, env, ctx, tctx) + ';;' +
             ') {'
         );
         tctx.push();
+        _node(this.iteration, env, ctx, tctx);
         this.body.forEach(function(x) {
             _node(x, env, ctx, tctx);
         });
