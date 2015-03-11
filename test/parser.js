@@ -155,37 +155,6 @@ describe('Parser', function() {
                 ])
             );
         });
-        it('should parse `while` loops without braces', function() {
-            compareTree(
-                'while(x) foo();',
-                _root([
-                    node(
-                        'While',
-                        0,
-                        15,
-                        {
-                            condition: _i('x'),
-                            body: [node(
-                                'CallStatement',
-                                8,
-                                15,
-                                {
-                                    base: node(
-                                        'CallRaw',
-                                        8,
-                                        14,
-                                        {
-                                            callee: _i('foo'),
-                                            params: []
-                                        }
-                                    ),
-                                }
-                            )],
-                        }
-                    )
-                ])
-            );
-        });
     });
 
     describe('`do`/`while` loops', function() {
@@ -328,56 +297,6 @@ describe('Parser', function() {
                                         'CallRaw',
                                         20,
                                         25,
-                                        {
-                                            callee: _i('foo'),
-                                            params: []
-                                        }
-                                    ),
-                                }
-                            )],
-                        }
-                    )
-                ])
-            );
-        });
-        it('should parse for loops without braces', function() {
-            compareTree(
-                'for (x = 0; x < 10;) foo();',
-                _root([
-                    node(
-                        'For',
-                        0,
-                        27,
-                        {
-                            assignment: node(
-                                'Assignment',
-                                5,
-                                11,
-                                {
-                                    base: _i('x'),
-                                    value: _int(0)
-                                }
-                            ),
-                            condition: node(
-                                'RelativeBinop',
-                                11,
-                                18,
-                                {
-                                    operator: '<',
-                                    left: _i('x'),
-                                    right: _int(10)
-                                }
-                            ),
-                            iteration: null,
-                            body: [node(
-                                'CallStatement',
-                                20,
-                                27,
-                                {
-                                    base: node(
-                                        'CallRaw',
-                                        20,
-                                        26,
                                         {
                                             callee: _i('foo'),
                                             params: []

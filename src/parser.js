@@ -132,37 +132,21 @@ module.exports = function Parser(tokenizer) {
     function parseIf() {
         var head;
         if (!(head = accept('if'))) return;
-        var hasParen = !!accept('(');
-        var hasBraces;
         var condition = parseExpression();
-        if (hasParen) {
-            assert(')');
-            hasBraces = !!accept('{');
-        } else {
-            assert('{')
-            hasBraces = true;
-        }
+        assert('{')
         var body;
         var end;
-        if (hasBraces) {
-            body = parseStatements('}');
-            end = assert('}');
-        } else {
-            body = [end = parseStatement()];
-        }
+        body = parseStatements('}');
+        end = assert('}');
 
         var alternate = null;
         if (accept('else')) {
             if (peek().type === 'if') {
                 alternate = [end = parseIf()];
             } else {
-                hasBraces = !!accept('{');
-                if (hasBraces) {
-                    alternate = parseStatements('}');
-                    end = assert('}');
-                } else {
-                    alternate = [end = parseStatement()];
-                }
+                assert('{');
+                alternate = parseStatements('}');
+                end = assert('}');
             }
         }
         return node(
@@ -298,29 +282,14 @@ module.exports = function Parser(tokenizer) {
     function parseWhile() {
         var head;
         if (!(head = accept('while'))) return;
-        var hasParen = !!accept('(');
-        var hasBraces;
         var condition = parseExpression();
-        if (hasParen) {
-            assert(')');
-            hasBraces = !!accept('{');;
-        } else {
-            assert('{');
-            hasBraces = true;
-        }
+        assert('{');
         var body;
         var end;
-        if (hasBraces) {
-            loopDepth++;
-            body = parseStatements('}');
-            loopDepth--;
-            end = assert('}');
-        } else {
-            loopDepth++;
-            body = [parseStatement()];
-            loopDepth--;
-            end = body[0];
-        }
+        loopDepth++;
+        body = parseStatements('}');
+        loopDepth--;
+        end = assert('}');
         return node(
             'While',
             head.start,
@@ -349,35 +318,20 @@ module.exports = function Parser(tokenizer) {
     function parseFor() {
         var head;
         if (!(head = accept('for'))) return;
-        var hasParen = !!accept('(');
         var assignment = parseAssignment();
         var condition = parseExpression();
         assert(';');
         var iteration;
-        if (hasParen ? peek().type !== ')' : peek().type !== '{') {
+        if (peek().type !== '{') {
             iteration = parseAssignment();
         }
-        var hasBraces;
-        if (!hasParen) {
-            assert('{');
-            hasBraces = true;
-        } else {
-            assert(')');
-            hasBraces = !!accept('{');
-        }
+        assert('{');
         var end;
         var body;
-        if (hasBraces) {
-            loopDepth++;
-            body = parseStatements('}');
-            loopDepth--;
-            end = assert('}');
-        } else {
-            loopDepth++;
-            body = [parseStatement()];
-            loopDepth--;
-            end = body[0];
-        }
+        loopDepth++;
+        body = parseStatements('}');
+        loopDepth--;
+        end = assert('}');
         return node(
             'For',
             head.start,

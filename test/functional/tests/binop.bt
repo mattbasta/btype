@@ -2,34 +2,67 @@ func int:main() {
 
     # Equality
 
-    if (1 == 2) return 1;
-    if (1 > 2) return 2;
-    if (1 >= 2) return 3;
-    if (2 < 1) return 4;
-    if (2 <= 1) return 5;
-    if (!(2 > 1)) return 6;
-    if (!(2 >= 1)) return 7;
-    if (!(1 < 2)) return 8;
-    if (!(1 <= 2)) return 9;
+    if 1 == 2 {
+        return 1;
+    }
+    if 1 > 2 {
+        return 2;
+    }
+    if 1 >= 2 {
+        return 3;
+    }
+    if 2 < 1 {
+        return 4;
+    }
+    if 2 <= 1 {
+        return 5;
+    }
+    if !(2 > 1) {
+        return 6;
+    }
+    if !(2 >= 1) {
+        return 7;
+    }
+    if !(1 < 2) {
+        return 8;
+    }
+    if !(1 <= 2) {
+        return 9;
+    }
 
-    if (!(2 <= 2)) return 10;
-    if (!(2 >= 2)) return 11;
+    if !(2 <= 2) {
+        return 10;
+    }
+    if !(2 >= 2) {
+        return 11;
+    }
 
-    if (2 != 2) return 12;
-    if (!(2 == 2)) return 13;
+    if 2 != 2 {
+        return 12;
+    }
+    if !(2 == 2) {
+        return 13;
+    }
 
 
     # Logial
 
-    if (true and false) return 14;
-    if (false or false) return 15;
+    if true and false {
+        return 14;
+    }
+    if false or false {
+        return 15;
+    }
 
     bool:test = true and false;
-    if (test) return 16;
+    if test {
+        return 16;
+    }
 
     test = false or true;
-    if (!test) return 17;
-
+    if !test {
+        return 17;
+    }
 
     return 0;
 }
