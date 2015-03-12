@@ -32,6 +32,8 @@ function addPrintf(env) {
     env.__globalPrefix += [
         '@.str.percd = private unnamed_addr constant [3 x i8] c"%d\\00", align 1',
         '@.str.percf = private unnamed_addr constant [3 x i8] c"%f\\00", align 1',
+        '@.str.true = private unnamed_addr constant [5 x i8] c"true\\00", align 1',
+        '@.str.false = private unnamed_addr constant [6 x i8] c"false\\00", align 1',
         'declare i32 @printf(i8*, ...)',
     ].join('\n') + '\n';
 
@@ -53,6 +55,24 @@ exports.Consolelogfloat = function(env) {
     return [
         'define void @foreign_Consolelogfloat(double %inp) {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percf, i32 0, i32 0), double %inp)',
+        '    ret void',
+        '}',
+    ].join('\n');
+};
+
+exports.Consolelogbool = function(env) {
+    addPrintf(env);
+    return [
+        'define void @foreign_Consolelogbool(i1 %inp) {',
+        'entry:',
+        '    br i1 %inp, label %t, label %f',
+        't:',
+        '    %ignoret = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([5 x i8]* @.str.true, i32 0, i32 0))',
+        '    br label %a',
+        'f:',
+        '    %ignoref = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([6 x i8]* @.str.false, i32 0, i32 0))',
+        '   br label %a',
+        'a:',
         '    ret void',
         '}',
     ].join('\n');

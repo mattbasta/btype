@@ -10,3 +10,8 @@ func printfloat(float:i) {
     foreign.external.Consolelogfloat._null.float(i);
 }
 export printfloat;
+
+func printbool(bool:i) {
+    foreign.external.Consolelogbool._null.bool(i);
+}
+export printbool;

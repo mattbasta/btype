@@ -1,7 +1,7 @@
 var environment = require('./environment');
 
 
-module.exports = function compiler(filename, tree, format) {
+function buildEnv(filename, tree) {
     var env = new environment.Environment();
     var ctx = env.loadFile(filename, tree);
     env.markRequested(ctx);
@@ -11,6 +11,14 @@ module.exports = function compiler(filename, tree, format) {
         return '';
     }
 
+    return env;
+}
+
+module.exports = function compiler(filename, tree, format) {
+    var env = buildEnv(filename, tree);
+
     var output = env.make(format || 'asmjs');
     return output;
 };
+
+module.exports.buildEnv = buildEnv;

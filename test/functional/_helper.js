@@ -63,6 +63,9 @@ describe('Parity tests', function() {
         assert.equal(result, expectation);
     }
 
+    var succeededLLI = 0;
+    var failedLLI = 0;
+
     globEach(
         path.resolve(__dirname, 'tests'),
         '.bt',
@@ -81,10 +84,13 @@ describe('Parity tests', function() {
                 });
 
                 it('in LLVM IR', function llvmirFunctionalTestBody(done) {
+                    this.slow(500);
 
+                    var parsed;
                     var compiled;
                     try {
-                        compiled = compile(read, 'llvmir');
+                        parsed = parser(lexer(read));
+                        compiled = compiler('test', parsed, 'llvmir');
                     } catch (e) {
                         done(e);
                         return;
@@ -98,17 +104,66 @@ describe('Parity tests', function() {
                             } else if (stderr) {
                                 done(new Error(stderr.toString()));
                             } else {
-                                done();
+                                runLLI();
+
                             }
                         }
                     );
+
+                    function runLLI() {
+                        var cp = child_process.exec(
+                            path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S | lli',
+                            function(err, stdout, stderr) {
+                                if (err) {
+                                    console.log(btPath, err);
+                                    failedLLI++;
+                                } else if (stderr) {
+                                    console.log(btPath, stderr);
+                                    failedLLI++;
+                                } else {
+                                    succeededLLI++;
+                                }
+                                done();
+                            }
+                        );
+
+
+                        var parsed = parser(lexer(read));
+                        var env = compiler.buildEnv('test', parsed);
+                        var mainFunc = env.requested.exports.main;
+                        var mainFuncDef = env.requested.functionDeclarations[mainFunc];
+
+                        var raw = 'import debug;\n';
+                        raw += read + '\n';
+                        switch (mainFuncDef.getType(env.requested).getReturnType().typeName) {
+                            case 'int':
+                                raw += 'func testmain() {\n    debug.printint(main());\n}\nexport testmain;';
+                                break;
+                            case 'float':
+                                raw += 'func testmain() {\n    debug.printfloat(main());\n}\nexport testmain;';
+                                break;
+                            case 'bool':
+                                raw += 'func testmain() {\n    debug.printbool(main());\n}\nexport testmain;';
+                                break;
+                        }
+
+                        cp.stdin.write(raw);
+                        cp.stdin.end();
+
+                    }
 
                 });
 
             });
 
         }
+
     );
+
+    // after(function() {
+    //     console.log('Succeeded LLI tests: ' + succeededLLI);
+    //     console.log('Failed LLI tests: ' + failedLLI);
+    // });
 
 });
 

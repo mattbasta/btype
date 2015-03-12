@@ -5,21 +5,18 @@
 #@ performance.
 
 
-object Deque {
-    #@ This is a vanilla implementation of the `deque` type from the SGI STL
-    #@ module. "Deque" is a portmanteau of "double-ended queue".
-
+object LinkedList {
     with T;
 
-    GenericDLLNode<Deque<T>, T>:front; # Reference to the front node
-    GenericDLLNode<Deque<T>, T>:back; # Reference to the back node
+    GenericDLLNode<LinkedList<T>, T>:front; # Reference to the front node
+    GenericDLLNode<LinkedList<T>, T>:back; # Reference to the back node
 
-    int:length; # The length of the deque
+    int:length; # The length of the LinkedList
 
     pushBack(T:value) {
-        #@ Pushes an element `value` to the back of the queue.
+        #@ Pushes an element `value` to the back of the list.
 
-        var node = new GenericDLLNode<Deque<T>, T>(self, value);
+        var node = new GenericDLLNode<LinkedList<T>, T>(self, value);
         self.length = self.length + 1;
 
         if self.front == null {
@@ -37,9 +34,9 @@ object Deque {
     }
 
     pushFront(T:value) {
-        #@ Pushes an element `value` to the front of the queue.
+        #@ Pushes an element `value` to the front of the list.
 
-        var node = new GenericDLLNode<Deque<T>, T>(self, value);
+        var node = new GenericDLLNode<LinkedList<T>, T>(self, value);
         self.length = self.length + 1;
 
         if self.front == null {
@@ -56,7 +53,7 @@ object Deque {
     }
 
     T:popFront() {
-        #@ Pops and returns an element from the front of the queue.
+        #@ Pops and returns an element from the front of the list.
 
         if self.front == null {
             return null; #@ TODO: Type assertion here
@@ -69,7 +66,7 @@ object Deque {
     }
 
     T:popBack() {
-        #@ Pops and returns an element from the back of the queue.
+        #@ Pops and returns an element from the back of the list.
 
         if self.back == null {
             return null; # TODO: Type assertion here
@@ -82,7 +79,7 @@ object Deque {
     }
 
     T:peekFront() {
-        #@ Returns the value at the front of the queue.
+        #@ Returns the value at the front of the list.
 
         if self.front == null {
             return null; # TODO: Type assertion here
@@ -92,7 +89,7 @@ object Deque {
     }
 
     T:peekBack() {
-        #@ Returns the value at the back of the queue.
+        #@ Returns the value at the back of the list.
 
         if self.back == null {
             return null; # TODO: Type assertion here
@@ -101,8 +98,8 @@ object Deque {
         return self.back.value;
     }
 
-    swap(Deque<T>:other) {
-        #@ Swaps the contents of this queue with the contents of another queue
+    swap(LinkedList<T>:other) {
+        #@ Swaps the contents of this list with the contents of another list
         #@ `other`.
 
         var otherB = other.back;
@@ -114,14 +111,14 @@ object Deque {
     }
 
     clear() {
-        #@ Clears the contents of this queue.
+        #@ Clears the contents of this list.
 
         self.back = null;
         self.front = null;
     }
 
     bool:erase(int:i) {
-        #@ Removes a specific element at index `i` from this queue. Returns
+        #@ Removes a specific element at index `i` from this list. Returns
         #@ `true` if successful and `false` if a problem is encountered.
 
         if i < self.length or i < 0 {
@@ -129,7 +126,7 @@ object Deque {
         }
 
         int:x = 0;
-        GenericDLLNode<Deque<T>, T>:ptr = self.front;
+        GenericDLLNode<LinkedList<T>, T>:ptr = self.front;
         while x < i {
             x = x + 1;
             ptr = ptr.next;
@@ -146,11 +143,11 @@ object Deque {
     }
 
     bool:remove(T:item) {
-        #@ Removes the first occurrance of `item` from the queue. Returns
+        #@ Removes the first occurrance of `item` from the list. Returns
         #@ `true` if the item was removed and `false` if it could not be found.
 
-        GenericDLLNode<Deque<T>, T>:ptr = self.front;
-        while ptr != item {
+        GenericDLLNode<LinkedList<T>, T>:ptr = self.front;
+        while ptr.value != item {
             ptr = ptr.next;
             if ptr == null {
                 return false;
@@ -168,12 +165,12 @@ object Deque {
     }
 
     int:indexOf(T:item) {
-        #@ Returns the index of `item` in the queue if it exists. If it does
-        #@ exist in the queue, returns `-1`.
+        #@ Returns the index of `item` in the list if it exists. If it does
+        #@ exist in the list, returns `-1`.
 
         int:x;
-        GenericDLLNode<Deque<T>, T>:ptr = self.front;
-        while ptr != item {
+        GenericDLLNode<LinkedList<T>, T>:ptr = self.front;
+        while ptr.value != item {
             x = x + 1;
             ptr = ptr.next;
             if ptr == null {
@@ -183,8 +180,26 @@ object Deque {
         return x;
     }
 
+    T:at(int:index) {
+        #@ Returns the element at index `index`. If `index` is greater than or
+        #@ equal to the length of the linked list, the function will return the
+        #@ zero-value version of the type.
+
+        if index >= self.length {
+            return null; #@ TODO: type assertion
+        }
+
+        int:x = 0;
+        GenericDLLNode<LinkedList<T>, T>:ptr = self.front;
+        while x < index {
+            x = x + 1;
+            ptr = ptr.next;
+        }
+        return ptr.value;
+    }
+
 }
-export Deque;
+export LinkedList;
 
 
 object Vector {
@@ -387,10 +402,55 @@ object Vector {
         return -1;
     }
 
+    T:at(int:index) {
+        #@ Return the value at index `index`. If the index is greater than or
+        #@ equal to the length of the vector, a zeo-value will be returned.
+
+        if index >= self.length {
+            return null; #@ TODO: type assertion
+        }
+
+        return self.body[index];
+    }
+
     #@ TODO: popBack
     #@ TODO: popFront
     #@ TODO: pushBack
     #@ TODO: pushFront
+
+}
+
+object SplayTree {
+    with T;
+
+    GenericBinTreeNode<SplayTree<T>, T>:root;
+    int:size;
+
+
+    _leftRotate(GenericBinTreeNode<SplayTree<T>, T>:node) {
+        var right = node.right;
+        if right != null {
+            node.right = right.left;
+            if right.left != null {
+                right.left.parent = node;
+            }
+            right.parent = node.parent;
+        }
+
+        if node.parent == null {
+            self.root = right;
+        } else if node == node.parent.left {
+            node.parent.left = right;
+        } else {
+            node.parent.right = right;
+        }
+        if right != null {
+            right.left = node;
+        }
+        node.parent = right;
+    }
+
+    _rightRotate
 
 }
 
@@ -408,6 +468,27 @@ object GenericDLLNode {
 
     new(Parent:parent, T:value) {
         self.parent = parent;
+        self.value = value;
+    }
+
+}
+
+
+object GenericBinTreeNode {
+    #@ This is a generic binary tree node. It supports most kinds of binary
+    #@ data structures, such as binary trees, splay trees, etc.
+
+    with Host;
+    with T;
+
+    Host:host;
+    GenericDLLNode<Host, T>:parent;
+    GenericDLLNode<Host, T>:left;
+    GenericDLLNode<Host, T>:right;
+    T:value;
+
+    new(Host:host, T:value) {
+        self.host = host;
         self.value = value;
     }
 

@@ -10,7 +10,9 @@ function help() {
     ].join('\n'));
 }
 
-if (process.argv.length < 3) {
+var incomingStdin = !('isTTY' in process.stdin);
+
+if (process.argv.length < 3 && !incomingStdin) {
     help();
     process.exit(1);
 }
@@ -23,15 +25,30 @@ var compiler = require('../src/compiler/compiler');
 var lexer = require('../src/lexer');
 var parser = require('../src/parser');
 
-fs.readFile(argv._[0], function(err, data) {
-    if (err) {
-        console.error('Could not read file.');
-        console.error(err);
-        help();
-        process.exit(1);
-    }
+if (argv._[0]) {
+    fs.readFile(argv._[0], function(err, data) {
+        if (err) {
+            console.error('Could not read file.');
+            console.error(err);
+            help();
+            process.exit(1);
+        }
 
-    var parsed = parser(lexer(data + ''));
+        processData(data);
+
+    });
+} else {
+    var incomingData = '';
+    process.stdin.on('data', function(data) {
+        incomingData += data;
+    });
+    process.stdin.on('end', function() {
+        processData(incomingData);
+    });
+}
+
+function processData(data) {
+    var parsed = parser(lexer(data.toString()));
     var compiled = compiler(
         argv._[0],
         parsed,
@@ -39,5 +56,4 @@ fs.readFile(argv._[0], function(err, data) {
     );
 
     console.log(compiled);
-
-});
+}

@@ -3,7 +3,7 @@ var nodes = require('./nodes');
 
 function memberSize(type) {
     if (type._type === 'primitive') return type.getSize();
-    return 4; // pointer size
+    return 8; // pointer size
 }
 
 
