@@ -767,7 +767,7 @@ var NODES = {
 
         var annotation = ' ; func:' + (this.name || 'anon');
 
-        tctx.write('define ' +
+        tctx.write('define private ' +
             (returnType ? returnTypeName : 'void') +
             ' @' + makeName(this.__assignedName) +
             '(' +
@@ -823,7 +823,7 @@ var NODES = {
         var returnType = funcType.getReturnType();
         var returnTypeName = getLLVMType(returnType);
 
-        tctx.write('define ' +
+        tctx.write('define private ' +
             getLLVMType(this.returnType.getType(ctx)) +
             ' @' + makeName(this.__assignedName) +
             ' (' +
