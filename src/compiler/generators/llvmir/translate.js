@@ -885,10 +885,10 @@ var NODES = {
             tctx.write(castStrPtr + ' = bitcast i8* ' + strPtr + ' to %string*');
             var lenPtr = tctx.getRegister();
             tctx.write(lenPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 0');
-            tctx.write('store i32 ' + (this.value.length + 1) + ', i32* ' + lenPtr);
+            tctx.write('store i32 ' + this.value.length + ', i32* ' + lenPtr);
             var capacityPtr = tctx.getRegister();
             tctx.write(capacityPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 1');
-            tctx.write('store i32 ' + (this.value.length + 1) + ', i32* ' + capacityPtr);
+            tctx.write('store i32 ' + this.value.length + ', i32* ' + capacityPtr);
 
             var strBodyPtr = tctx.getRegister();
             tctx.write(strBodyPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 2');

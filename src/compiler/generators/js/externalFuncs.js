@@ -23,5 +23,5 @@ exports.Consolelogfloat = function() {
     return 'console.log.bind(console)'
 };
 exports.Consolelogbool = function() {
-    return 'console.log.bind(console)'
+    return 'function(x) {console.log(x ? \'true\' : \'false\')}'
 };

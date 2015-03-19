@@ -30,7 +30,7 @@ function addPrintf(env) {
 
     env.__globalPrefix += [
         '@.str.percd = private unnamed_addr constant [3 x i8] c"%d\\00", align 1',
-        '@.str.percf = private unnamed_addr constant [3 x i8] c"%f\\00", align 1',
+        '@.str.percf = private unnamed_addr constant [4 x i8] c"%#g\\00", align 1',
         '@.str.true = private unnamed_addr constant [5 x i8] c"true\\00", align 1',
         '@.str.false = private unnamed_addr constant [6 x i8] c"false\\00", align 1',
         'declare i32 @printf(i8*, ...)',
@@ -53,7 +53,7 @@ exports.Consolelogfloat = function(env) {
     addPrintf(env);
     return [
         'define private void @foreign_Consolelogfloat(double %inp) alwaysinline {',
-        '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percf, i32 0, i32 0), double %inp)',
+        '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str.percf, i32 0, i32 0), double %inp)',
         '    ret void',
         '}',
     ].join('\n');

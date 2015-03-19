@@ -105,7 +105,6 @@ describe('Parity tests', function() {
                                 done(new Error(stderr.toString()));
                             } else {
                                 runLLI();
-
                             }
                         }
                     );
@@ -115,15 +114,16 @@ describe('Parity tests', function() {
                             path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S | lli',
                             function(err, stdout, stderr) {
                                 if (err) {
-                                    console.log(btPath, err);
                                     failedLLI++;
+                                    done(err);
                                 } else if (stderr) {
-                                    console.log(btPath, stderr);
                                     failedLLI++;
+                                    done(stderr);
                                 } else {
                                     succeededLLI++;
+                                    assert.ok(JSON.parse(stdout) == JSON.parse(readExpectation), stdout + ' != ' + readExpectation);
+                                    done();
                                 }
-                                done();
                             }
                         );
 
@@ -159,11 +159,6 @@ describe('Parity tests', function() {
         }
 
     );
-
-    // after(function() {
-    //     console.log('Succeeded LLI tests: ' + succeededLLI);
-    //     console.log('Failed LLI tests: ' + failedLLI);
-    // });
 
 });
 
