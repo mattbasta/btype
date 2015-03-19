@@ -1,11 +1,6 @@
 import foreign;
 
 
-func float:sinceinit() {
-    return foreign.external.Performancenow.float();
-}
-export sinceinit;
-
 func int:unix() {
     return foreign.external.Datenowunix.int();
 }
