@@ -40,7 +40,7 @@ exports.getAlignment = function getAlignment(type) {
     if (type._type === 'func') {
         return 8;
     }
-    return 4;
+    return 8;
 };
 
 exports.getFunctionSignature = function getFunctionSignature(type, noSelf) {

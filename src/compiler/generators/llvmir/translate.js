@@ -381,7 +381,7 @@ var NODES = {
         var funcPtrReg = tctx.getRegister();
         tctx.write(funcPtrReg + ' = getelementptr inbounds ' + typeName + ' ' + callee + ', i32 0, i32 0');
         var funcReg = tctx.getRegister();
-        tctx.write(funcReg + ' = load ' + typeRefName + '* ' + funcPtrReg);
+        tctx.write(funcReg + ' = load ' + typeRefName + '* ' + funcPtrReg + ', align ' + getAlignment(type));
         var ctxPtrReg = tctx.getRegister();
         tctx.write(ctxPtrReg + ' = getelementptr inbounds ' + typeName + ' ' + callee + ', i32 0, i32 1');
         var ctxReg = tctx.getRegister();
@@ -396,7 +396,8 @@ var NODES = {
         var isNullCmpReg = tctx.getRegister();
         tctx.write(isNullCmpReg + ' = icmp eq i8* ' + ctxReg + ', null');
 
-        var returnType = getLLVMType(this.getType(ctx));
+        var returnTypeRaw = this.getType(ctx);
+        var returnType = getLLVMType(returnTypeRaw);
         var callRetPtr = tctx.getRegister();
         tctx.write(callRetPtr + ' = alloca ' + returnType);
 
@@ -428,7 +429,7 @@ var NODES = {
         } else {
             var nullRetPtr = tctx.getRegister();
             tctx.write(nullRetPtr + ' = ' + callBody);
-            tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+            tctx.write('store ' + returnType + ' ' + nullRetPtr + ', ' + returnType + '* ' + callRetPtr + ', align 8');
         }
 
         tctx.write('br label %' + afternullLabel);
@@ -458,7 +459,7 @@ var NODES = {
             } else {
                 var unnullRetPtr = tctx.getRegister();
                 tctx.write(unnullRetPtr + ' = ' + callBody);
-                tctx.write('store ' + returnType + ' ' + unnullRetPtr + ', ' + returnType + '* ' + callRetPtr);
+                tctx.write('store ' + returnType + ' ' + unnullRetPtr + ', ' + returnType + '* ' + callRetPtr + ', align 8');
             }
 
         }
@@ -472,7 +473,7 @@ var NODES = {
         }
 
         var callRet = tctx.getRegister();
-        tctx.write(callRet + ' = load ' + returnType + '* ' + callRetPtr);
+        tctx.write(callRet + ' = load ' + returnType + '* ' + callRetPtr + ', align ' + getAlignment(returnTypeRaw));
         return callRet;
 
     },
@@ -493,20 +494,20 @@ var NODES = {
         tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
         var funcLocPtr = tctx.getRegister();
-        tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
+        tctx.write(funcLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
 
-        tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr + ' ; funcref:base');
+        tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr + ', align ' + getAlignment(type) + ' ; funcref:base');
 
         var ctxLocPtr = tctx.getRegister();
-        tctx.write(ctxLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
+        tctx.write(ctxLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
         if (this.ctx && !(this.ctx.type === 'Literal' && this.ctx.value === null)) {
             var ctxType = this.ctx.getType(ctx);
             var ctxTypeName = getLLVMType(ctxType);
             var ctxCastLocPtr = tctx.getRegister();
             tctx.write(ctxCastLocPtr + ' = bitcast ' + ctxTypeName + ' ' + _node(this.ctx, env, ctx, tctx) + ' to i8*');
-            tctx.write('store i8* ' + ctxCastLocPtr + ', i8** ' + ctxLocPtr + ' ; funcref:ctx');
+            tctx.write('store i8* ' + ctxCastLocPtr + ', i8** ' + ctxLocPtr + ', align 8 ; funcref:ctx');
         } else {
-            tctx.write('store i8* null, i8** ' + ctxLocPtr + ' ; funcref:ctx');
+            tctx.write('store i8* null, i8** ' + ctxLocPtr + ', align 8 ; funcref:ctx');
         }
 
         return regPtr;
@@ -562,11 +563,11 @@ var NODES = {
             tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
             var funcLocPtr = tctx.getRegister();
-            tctx.write(funcLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
+            tctx.write(funcLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
             tctx.write('store ' + funcType + ' @' + makeName(baseType.getMethod(this.child)) + ', ' + funcType + '* ' + funcLocPtr + ' ; member:method:func');
 
             var baseLocPtr = tctx.getRegister();
-            tctx.write(baseLocPtr + ' = getelementptr ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
+            tctx.write(baseLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
             var baseTypeName = getLLVMType(baseType);
             base = _node(this.base, env, ctx, tctx);
             var baseCastLocPtr = tctx.getRegister();
@@ -579,9 +580,9 @@ var NODES = {
         if ((baseType._type === 'array' || baseType._type === 'string') && this.child === 'length') {
             base = _node(this.base, env, ctx, tctx);
             var lenRegPtr = tctx.getRegister();
-            tctx.write(lenRegPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 0');
+            tctx.write(lenRegPtr + ' = getelementptr inbounds ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 0');
             var lenReg = tctx.getRegister();
-            tctx.write(lenReg + ' = load i32* ' + lenRegPtr);
+            tctx.write(lenReg + ' = load i32* ' + lenRegPtr + ', align 4');
 
             return lenReg;
         }
@@ -591,7 +592,7 @@ var NODES = {
         base = _node(this.base, env, ctx, tctx);
 
         var outRegPtr = tctx.getRegister();
-        tctx.write(outRegPtr + ' = getelementptr ' +
+        tctx.write(outRegPtr + ' = getelementptr inbounds ' +
             getLLVMType(baseType) + ' ' +
             base + ', i32 0, i32 ' + layoutIndex);
 
@@ -600,7 +601,8 @@ var NODES = {
         }
 
         var outReg = tctx.getRegister();
-        tctx.write(outReg + ' = load ' + getLLVMType(this.getType(ctx)) + '* ' + outRegPtr);
+        var outType = this.getType(ctx);
+        tctx.write(outReg + ' = load ' + getLLVMType(outType) + '* ' + outRegPtr + ', align ' + getAlignment(outType));
         return outReg;
     },
     Assignment: function(env, ctx, tctx) {
@@ -644,7 +646,7 @@ var NODES = {
         if (this.value) {
             tctx.write('store ' + getLLVMType(declType) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
         } else {
-            tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName + annotation);
+            tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
         }
     },
     ConstDeclaration: function() {
@@ -657,8 +659,9 @@ var NODES = {
             return;
         }
         var value = _node(this.value, env, ctx, tctx);
-        var retType = getLLVMType(this.value.getType(ctx));
-        tctx.write('store ' + retType + ' ' + value + ', ' + retType + '* %retVal ; return');
+        var retTypeRaw = this.value.getType(ctx);
+        var retType = getLLVMType(retTypeRaw);
+        tctx.write('store ' + retType + ' ' + value + ', ' + retType + '* %retVal, align ' + getAlignment(retTypeRaw) + ' ; return');
         tctx.write('br label %exitLabel');
         tctx.writeTerminatorLabel();
     },
@@ -807,7 +810,7 @@ var NODES = {
 
         if (returnType) {
             var outReg = tctx.getRegister();
-            tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal');
+            tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal, align ' + getAlignment(returnType));
             tctx.write('ret ' + returnTypeName + ' ' + outReg);
         } else {
             tctx.write('ret void');
@@ -862,7 +865,7 @@ var NODES = {
         tctx.writeLabel('exitLabel');
 
         var outReg = tctx.getRegister();
-        tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal');
+        tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal, align ' + getAlignment(returnType));
         tctx.write('ret ' + returnTypeName + ' ' + outReg);
 
         tctx.pop();
@@ -915,10 +918,12 @@ var NODES = {
         var reg = tctx.getRegister();
         var type = this.getType(ctx);
 
+        var alignment = ', align ' + getAlignment(type);
+
         if (this.__refContext === rootContext) {
-            tctx.write(reg + ' = load ' + getLLVMType(type) + '* @' + makeName(this.__refName));
+            tctx.write(reg + ' = load ' + getLLVMType(type) + '* @' + makeName(this.__refName) + alignment);
         } else {
-            tctx.write(reg + ' = load ' + getLLVMType(type) + '* %' + makeName(this.__refName));
+            tctx.write(reg + ' = load ' + getLLVMType(type) + '* %' + makeName(this.__refName) + alignment);
         }
         return reg;
     },
@@ -944,6 +949,8 @@ var NODES = {
         tctx.write(reg + ' = call i8* @malloc(i32 ' + size + ')');
         var ptrReg = tctx.getRegister();
         tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + targetType);
+
+        tctx.write('call void @btinit_' + targetType.substr(1, targetType.length - 2) + '(' + targetType + ' ' + ptrReg + ')');
 
         if (type instanceof types.Struct && type.objConstructor) {
             var params = [
@@ -1103,9 +1110,9 @@ var NODES = {
             childType = baseType.contentsTypeArr[this.subscript.value];
 
             posPtr = tctx.getRegister();
-            tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 ' + this.subscript.value);
+            tctx.write(posPtr + ' = getelementptr inbounds ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 ' + this.subscript.value);
             valReg = tctx.getRegister();
-            tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr);
+            tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr + ', align ' + getAlignment(childType));
             return valReg;
         }
 
@@ -1113,9 +1120,9 @@ var NODES = {
         var child = _node(this.subscript, env, ctx, tctx);
 
         posPtr = tctx.getRegister();
-        tctx.write(posPtr + ' = getelementptr ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 1, i64 ' + child);
+        tctx.write(posPtr + ' = getelementptr inbounds ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 1, i64 ' + child);
         valReg = tctx.getRegister();
-        tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr);
+        tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr + ', align ' + getAlignment(childType));
 
         return valReg;
     },

@@ -139,34 +139,58 @@ function registerAllUsedMethods(env) {
 }
 
 function typeTranslate(type) {
-    var output = '';
-    switch (type._type) {
-        case 'struct':
-            output = '%' + makeName(type.flatTypeName()) + ' = type {\n    ';
+    if (type._type !== 'struct') return '';
 
-            // Add all of the zeroed members
-            var layout = type.getOrderedLayout();
-            output += layout.map(function(member, i) {
-                var out = getLLVMType(member);
-                if (i !== layout.length - 1) {
-                    out += ',';
-                }
-                out += '  ; ' + member;
-                return out;
-            }).join('\n    ');
+    var typeName = makeName(type.flatTypeName());
+    var typeNameCat = '%' + typeName;
+    var typeNamePtr = typeNameCat + '*';
 
-            output += '\n}';
-            return output;
+    var output = typeNameCat + ' = type {\n    ';
 
-        case 'tuple': // TODO: Remove this? Or remove the tuple generator above?
-            output = '%' + makeName(type.flatTypeName()) + ' = type {\n    ';
+    // Add all of the zeroed members
+    var layout = type.getOrderedLayout();
+    output += layout.map(function(member, i) {
+        var out = getLLVMType(member);
+        if (i !== layout.length - 1) {
+            out += ',';
+        }
+        out += '  ; ' + member;
+        return out;
+    }).join('\n    ');
 
-            // Add all of the zeroed members
-            output += type.contentsTypeArr.map(getLLVMType).join(',\n    ');
+    output += '\n}\n';
 
-            output += '\n}';
-            return output;
-    }
+
+    output += 'define private void @btinit_' + typeName + '(' + typeNamePtr + ' %inst) nounwind ssp uwtable {\n';
+    output += 'entry:\n';
+
+    output += layout.map(function(member, i) {
+        var output = '  %ptr' + i + ' = getelementptr inbounds ' + typeNamePtr + ' %inst, i32 0, i32 ' + i + '\n';
+        var memberType = getLLVMType(member);
+        if (member._type === 'primitive') {
+            switch (member.typeName) {
+                case 'float':
+                    output += '  store ' + memberType + ' 0.0, ' + memberType + '* %ptr' + i;
+                    break;
+                case 'int':
+                case 'uint':
+                    output += '  store ' + memberType + ' 0, ' + memberType + '* %ptr' + i;
+                    break;
+                case 'bool':
+                    output += '  store ' + memberType + ' false, ' + memberType + '* %ptr' + i;
+                    break;
+            }
+        } else {
+            output += '  store ' + memberType + ' null, ' + memberType + '* %ptr' + i;
+        }
+        return output;
+    }).filter(function(x) {return x;}).join('\n') + '\n';
+
+
+    output += '  ret void\n';
+    output += '}\n';
+
+    return output;
 }
 
 

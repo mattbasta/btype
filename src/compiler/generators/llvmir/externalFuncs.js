@@ -6,7 +6,7 @@ exports.error = function() {
 exports.Datenowunix = function() {
     return [
         'declare i64 @time(i64*)',
-        'define private i32 @foreign_Datenowunix() {',
+        'define private i32 @foreign_Datenowunix() alwaysinline {',
         '    %out = call i64 @time(i64* null)',
         '    %conv = trunc i64 %out to i32',
         '    ret i32 %conv',
@@ -15,12 +15,11 @@ exports.Datenowunix = function() {
 };
 
 exports.Datenowfloat = function() {
-    return 'function() {return (new Date()).getTime() / 1000;}';
+    throw new Error('Not implemented');
 };
 
 exports.Performancenow = function() {
-    // TODO: Support this better.
-    return 'define private double @foreign_Performancenow() {\n    ret double 0\n}';
+    throw new Error('Not implemented');
 };
 
 
@@ -43,7 +42,7 @@ function addPrintf(env) {
 exports.Consolelogint = function(env) {
     addPrintf(env);
     return [
-        'define private void @foreign_Consolelogint(i32 %inp) {',
+        'define private void @foreign_Consolelogint(i32 %inp) alwaysinline {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percd, i32 0, i32 0), i32 %inp)',
         '    ret void',
         '}',
@@ -53,7 +52,7 @@ exports.Consolelogint = function(env) {
 exports.Consolelogfloat = function(env) {
     addPrintf(env);
     return [
-        'define private void @foreign_Consolelogfloat(double %inp) {',
+        'define private void @foreign_Consolelogfloat(double %inp) alwaysinline {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percf, i32 0, i32 0), double %inp)',
         '    ret void',
         '}',
@@ -63,7 +62,7 @@ exports.Consolelogfloat = function(env) {
 exports.Consolelogbool = function(env) {
     addPrintf(env);
     return [
-        'define private void @foreign_Consolelogbool(i1 %inp) {',
+        'define private void @foreign_Consolelogbool(i1 %inp) alwaysinline {',
         'entry:',
         '    br i1 %inp, label %t, label %f',
         't:',
@@ -81,7 +80,7 @@ exports.Consolelogbool = function(env) {
 exports.Consolelogsfloat = function(env) {
     addPrintf(env);
     return [
-        'define private void @foreign_Consolelogfloat(float %inp) {',
+        'define private void @foreign_Consolelogfloat(float %inp) alwaysinline {',
         '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([3 x i8]* @.str.percf, i32 0, i32 0), float %inp)',
         '    ret void',
         '}',
