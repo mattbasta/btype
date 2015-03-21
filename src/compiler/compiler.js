@@ -1,24 +1,22 @@
 var environment = require('./environment');
 
 
-function buildEnv(filename, tree) {
-    var env = new environment.Environment();
-    var ctx = env.loadFile(filename, tree);
+function buildEnv(options) {
+    var env = new environment.Environment(options.filename, options.config);
+    var ctx = env.loadFile(options.filename, options.tree);
     env.markRequested(ctx);
 
     if (!Object.keys(ctx.exports).length) {
-        console.error('Nothing exported from ' + filename);
+        console.error('Nothing exported from ' + options.filename);
         return '';
     }
 
     return env;
 }
 
-module.exports = function compiler(filename, tree, format) {
-    var env = buildEnv(filename, tree);
-
-    var output = env.make(format || 'asmjs');
-    return output;
+module.exports = function compiler(options) {
+    var env = buildEnv(options);
+    return env.make(options.format || 'asmjs');
 };
 
 module.exports.buildEnv = buildEnv;

@@ -9,8 +9,6 @@ var traverser = require('../../traverser');
 var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
 
-var argv = require('minimist')(process.argv.slice(2));
-
 
 function translateArrayTypes(env) {
     return Object.keys(env.__arrayTypes).map(function(arr) {
@@ -56,11 +54,11 @@ function translateTupleTypes(env) {
 }
 
 function getRuntime(env) {
-    if (!argv.runtime) {
+    if (!env.getConfig('runtime')) {
         return '';
     }
 
-    var entry = argv['runtime-entry'];
+    var entry = env.getConfig('runtimeEntry');
     if (!(entry in env.requested.exports)) {
         throw new TypeError('Cannot find requested runtime entry point in exported functions: ' + entry);
     }

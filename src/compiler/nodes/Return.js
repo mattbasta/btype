@@ -11,6 +11,10 @@ exports.substitute = function substitute(cb) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
+    if (!ctx.parent) {
+        throw new TypeError('Return statements must be within functions');
+    }
+
     if (this.value) this.value.validateTypes(ctx);
 
     var valueType = this.value ? this.value.getType(ctx) : null;

@@ -23,8 +23,10 @@ var ENV_VARS = {
     LOWEST_ORDER: LOWEST_ORDER,
 };
 
-function Environment(name) {
+function Environment(name, config) {
     this.name = name ? name.trim() : '';
+    this.config = config || {};
+
     this.namer = require('./namer')();
     this.foreigns = [];
     this.included = [];
@@ -60,6 +62,15 @@ function Environment(name) {
     this.registeredStringLiterals = {};
 
 }
+
+Environment.prototype.setConfig = function(name, value) {
+    this.config[name] = value;
+};
+
+Environment.prototype.getConfig = function(name) {
+    return this.config[name];
+};
+
 
 Environment.prototype.loadFile = function(filename, tree, privileged) {
     if (filename in this.moduleCache) return this.moduleCache[filename];

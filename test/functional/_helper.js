@@ -38,7 +38,11 @@ describe('Parity tests', function() {
 
     function compile(code, format) {
         var parsed = parser(lexer(code));
-        var compiled = compiler('test', parsed, format);
+        var compiled = compiler({
+            filename: 'test',
+            tree: parsed,
+            format: format,
+        });
 
         return compiled;
     }
@@ -90,7 +94,11 @@ describe('Parity tests', function() {
                     var compiled;
                     try {
                         parsed = parser(lexer(read));
-                        compiled = compiler('test', parsed, 'llvmir');
+                        compiled = compiler({
+                            filename: 'test',
+                            tree: parsed,
+                            format: 'llvmir'
+                        });
                     } catch (e) {
                         done(e);
                         return;
@@ -129,7 +137,7 @@ describe('Parity tests', function() {
 
 
                         var parsed = parser(lexer(read));
-                        var env = compiler.buildEnv('test', parsed);
+                        var env = compiler.buildEnv({filename: 'test', tree: parsed});
                         var mainFunc = env.requested.exports.main;
                         var mainFuncDef = env.requested.functionDeclarations[mainFunc];
 
@@ -174,17 +182,29 @@ describe('Compile tests', function() {
             describe(btPath, function() {
                 it('compiles to JS', function compileTestBody() {
                     var parsed = parser(lexer(read));
-                    var compiled = compiler('test', parsed, 'js');
+                    var compiled = compiler({
+                        filename: 'test',
+                        tree: parsed,
+                        format: 'js'
+                    });
                     assert.ok(compiled);
                 });
                 it('compiles to Asm.js', function compileTestBody() {
                     var parsed = parser(lexer(read));
-                    var compiled = compiler('test', parsed, 'asmjs');
+                    var compiled = compiler({
+                        filename: 'test',
+                        tree: parsed,
+                        format: 'asmjs'
+                    });
                     assert.ok(compiled);
                 });
                 it('compiles to LLVM IR', function compileTestBody() {
                     var parsed = parser(lexer(read));
-                    var compiled = compiler('test', parsed, 'llvmir');
+                    var compiled = compiler({
+                        filename: 'test',
+                        tree: parsed,
+                        format: 'llvmir'
+                    });
                     assert.ok(compiled);
                 });
 
@@ -204,7 +224,11 @@ describe('Failure tests', function() {
 
             it(btPath, function failTestBody() {
                 assert.throws(function() {
-                    compiler('test', parser(lexer(read)));
+                    compiler({
+                        filename: 'test',
+                        tree: parser(lexer(read)),
+                        format: 'debug-tree',
+                    });
                 });
 
             });
@@ -218,7 +242,11 @@ describe('String tests', function() {
 
     function run(code, format, expectation) {
         var parsed = parser(lexer(code));
-        var compiled = compiler('test', parsed, format);
+        var compiled = compiler({
+            filename: 'test',
+            tree: parsed,
+            format: format
+        });
 
         var mod;
         try {

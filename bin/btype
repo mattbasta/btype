@@ -49,11 +49,15 @@ if (argv._[0]) {
 
 function processData(data) {
     var parsed = parser(lexer(data.toString()));
-    var compiled = compiler(
-        argv._[0],
-        parsed,
-        argv.target
-    );
+    var compiled = compiler({
+        filename: argv._[0],
+        tree: parsed,
+        format: argv.target,
+        config: {
+            runtime: 'runtime' in argv,
+            runtimeEntry: argv['runtime-entry'],
+        }
+    });
 
     console.log(compiled);
 }
