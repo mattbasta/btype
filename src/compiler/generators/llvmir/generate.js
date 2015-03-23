@@ -232,35 +232,6 @@ module.exports = function generate(env, ENV_VARS) {
             '}\n';
     }
 
-    // Compile function reference types
-    // body += '\n' + Object.keys(env.funcList).map(function(flist) {
-    //     if (env.funcList[flist].length === 1) return '';
-
-    //     var funcType = env.funcListReverseTypeMap[flist];
-
-    //     var madeName = makeName(flist);
-
-    //     var funcSignature = getLLVMType(funcType.getReturnType()) + ' (' +
-    //         funcType.args.map(getLLVMType).join(', ') +
-    //         ')*';
-
-    //     var out = '%funcRef' + madeName + ' = type {' + funcSignature + ', i8*}\n';
-
-    //     out += 'define void @funcRef' + madeName + 'Inst(' +
-    //         funcSignature + ', i8*) nounwind alwaysinline {\n' +
-    //         // TODO: Make 64-bit configurable?
-    //         '    %allocatedSpace = call i8* @malloc(i32 16)\n' + // 16 = sizeof(function*) + sizeof(funcctx*)
-    //         '    %allocatedSpaceAsFR = bitcast i8* %allocatedSpace to %' + madeName + '*\n' +
-    //         '    %refInst = alloca %' + madeName + '*, align 8\n' +
-    //         '    store %' + madeName + '* %allocatedSpaceAsFR, %' + madeName + '** %refInst, align 8\n' +
-    //         // TODO: Finish this?
-    //         '    ret void\n' +
-    //         '}';
-
-    //     return out;
-
-    // }).filter(function(x) {return !!x;}).join('\n');
-
 
     // Replace environment variables
     Object.keys(ENV_VARS).forEach(function(var_) {

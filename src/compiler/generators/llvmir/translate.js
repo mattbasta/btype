@@ -258,7 +258,10 @@ function _node(node, env, ctx, tctx, extra) {
     if (!(node.type in NODES)) {
         throw new Error(node.type + ' is not a supported node');
     }
-    return NODES[node.type].call(node, env, ctx, tctx, extra);
+    //
+    var output = NODES[node.type].call(node, env, ctx, tctx, extra);
+    //
+    return output;
 }
 
 var NODES = {
