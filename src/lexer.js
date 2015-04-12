@@ -92,7 +92,6 @@ var tokens = [
     [/^module(?!\w)/, 'reserved'],
     [/^static(?!\w)/, 'reserved'],
     [/^interface(?!\w)/, 'reserved'],
-    [/^implements(?!\w)/, 'reserved'],
     [/^super(?!\w)/, 'reserved'],
     [/^final(?!\w)/, 'reserved'],
     [/^switchtype(?!\w)/, 'reserved'],
