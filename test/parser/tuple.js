@@ -25,7 +25,7 @@ describe('Tuple literal parsing', function() {
                         base: _i('x'),
                         value: node(
                             'TupleLiteral',
-                            3,
+                            4,
                             11,
                             {
                                 content: [

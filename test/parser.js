@@ -203,7 +203,7 @@ describe('Parser', function() {
                         {
                             assignment: node(
                                 'Assignment',
-                                3,
+                                4,
                                 10,
                                 {
                                     base: _i('x'),
@@ -212,7 +212,7 @@ describe('Parser', function() {
                             ),
                             condition: node(
                                 'RelativeBinop',
-                                10,
+                                11,
                                 17,
                                 {
                                     operator: '<',
@@ -222,13 +222,13 @@ describe('Parser', function() {
                             ),
                             iteration: node(
                                 'Assignment',
-                                18,
+                                19,
                                 29,
                                 {
                                     base: _i('x'),
                                     value: node(
                                         'Binop',
-                                        22,
+                                        23,
                                         28,
                                         {
                                             operator: '+',
@@ -270,7 +270,7 @@ describe('Parser', function() {
                         {
                             assignment: node(
                                 'Assignment',
-                                3,
+                                4,
                                 10,
                                 {
                                     base: _i('x'),
@@ -279,7 +279,7 @@ describe('Parser', function() {
                             ),
                             condition: node(
                                 'RelativeBinop',
-                                10,
+                                11,
                                 17,
                                 {
                                     operator: '<',
@@ -330,7 +330,7 @@ describe('Parser', function() {
                                     value: _i('a'),
                                     body: [node(
                                         'Return',
-                                        19,
+                                        20,
                                         29,
                                         {
                                             value: _int(1)
@@ -339,13 +339,13 @@ describe('Parser', function() {
                                 }
                             ), node(
                                 'Case',
-                                29,
+                                30,
                                 47,
                                 {
                                     value: _i('b'),
                                     body: [node(
                                         'Return',
-                                        37,
+                                        38,
                                         47,
                                         {
                                             value: _int(2)
@@ -378,13 +378,13 @@ describe('Parser', function() {
                                 }
                             ), node(
                                 'Case',
-                                19,
+                                20,
                                 37,
                                 {
                                     value: _i('b'),
                                     body: [node(
                                         'Return',
-                                        27,
+                                        28,
                                         37,
                                         {
                                             value: _int(2)
@@ -412,7 +412,7 @@ describe('Parser', function() {
                             base: _i('x'),
                             value: node(
                                 'Unary',
-                                3,
+                                4,
                                 6,
                                 {
                                     base: _i('y'),
@@ -436,7 +436,7 @@ describe('Parser', function() {
                             base: _i('x'),
                             value: node(
                                 'Unary',
-                                3,
+                                4,
                                 7,
                                 {
                                     base: node(

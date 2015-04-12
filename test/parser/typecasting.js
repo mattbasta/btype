@@ -22,7 +22,7 @@ describe('Typecast parser', function() {
                         declType: _type('int'),
                         value: node(
                             'TypeCast',
-                            7,
+                            8,
                             18,
                             {
                                 left: _float('2.5'),
@@ -48,12 +48,12 @@ describe('Typecast parser', function() {
                         declType: _type('int'),
                         value: node(
                             'Binop',
-                            7,
+                            8,
                             22,
                             {
                                 left: node(
                                     'TypeCast',
-                                    7,
+                                    8,
                                     18,
                                     {
                                         left: _float('2.5'),

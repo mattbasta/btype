@@ -127,7 +127,7 @@ describe('Function parser', function() {
                         identifier: 'x',
                         value: node(
                             'Literal',
-                            14,
+                            15,
                             18,
                             {
                                 litType: 'null',
@@ -238,7 +238,7 @@ describe('Function parser', function() {
                         identifier: 'foo',
                         value: node(
                             'Function',
-                            9,
+                            10,
                             32,
                             {
                                 returnType: _type('int'),
@@ -272,7 +272,7 @@ describe('Function parser', function() {
                         identifier: 'foo',
                         value: node(
                             'Function',
-                            9,
+                            10,
                             30,
                             {
                                 returnType: _type('int'),
@@ -306,7 +306,7 @@ describe('Function parser', function() {
                         identifier: 'foo',
                         value: node(
                             'Function',
-                            9,
+                            10,
                             26,
                             {
                                 returnType: null,
@@ -340,7 +340,7 @@ describe('Function parser', function() {
                         identifier: 'foo',
                         value: node(
                             'Function',
-                            9,
+                            10,
                             24,
                             {
                                 returnType: null,

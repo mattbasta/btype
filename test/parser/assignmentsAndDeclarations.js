@@ -37,7 +37,7 @@ describe('Assignments and declaration parser', function() {
                         base: _i('x'),
                         value: node(
                             'Assignment',
-                            3,
+                            4,
                             9,
                             {
                                 base: _i('y'),

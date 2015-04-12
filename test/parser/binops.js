@@ -21,7 +21,7 @@ describe('Binary operator parser', function() {
                         base: _i('x'),
                         value: node(
                             'Binop',
-                            3,
+                            4,
                             9,
                             {
                                 left: _int(3),
@@ -47,12 +47,12 @@ describe('Binary operator parser', function() {
                         base: _i('x'),
                         value: node(
                             'Binop',
-                            3,
+                            4,
                             13,
                             {
                                 left: node(
                                     'Binop',
-                                    3,
+                                    4,
                                     9,
                                     {
                                         left: _int(3),
@@ -81,12 +81,12 @@ describe('Binary operator parser', function() {
                         base: _i('x'),
                         value: node(
                             'Binop',
-                            3,
+                            4,
                             13,
                             {
                                 left: node(
                                     'Binop',
-                                    3,
+                                    4,
                                     9,
                                     {
                                         left: _int(3),
@@ -115,17 +115,17 @@ describe('Binary operator parser', function() {
                         base: _i('x'),
                         value: node(
                             'LogicalBinop',
-                            3,
+                            4,
                             42,
                             {
                                 left: node(
                                     'RelativeBinop',
-                                    3,
+                                    4,
                                     15,
                                     {
                                         left: node(
                                             'Binop',
-                                            3,
+                                            4,
                                             9,
                                             {
                                                 left: _int(3),
@@ -139,22 +139,22 @@ describe('Binary operator parser', function() {
                                 ),
                                 right: node(
                                     'LogicalBinop',
-                                    18,
+                                    19,
                                     42,
                                     {
                                         left: node(
                                             'EqualityBinop',
-                                            18,
+                                            19,
                                             33,
                                             {
                                                 left: node(
                                                     'Binop',
-                                                    18,
+                                                    19,
                                                     28,
                                                     {
                                                         left: node(
                                                             'Binop',
-                                                            18,
+                                                            19,
                                                             24,
                                                             {
                                                                 left: _int(5),

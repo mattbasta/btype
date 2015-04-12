@@ -61,7 +61,7 @@ describe('Object declaration parser', function() {
                         attributes: [],
                         members: [node(
                             'ObjectMember',
-                            12,
+                            13,
                             18,
                             {
                                 memberType: _typed('x', _type('int')),
@@ -90,13 +90,13 @@ describe('Object declaration parser', function() {
                         attributes: [],
                         methods: [node(
                             'ObjectMethod',
-                            12,
+                            13,
                             45,
                             {
                                 name: 'foo',
                                 base: node(
                                     'Function',
-                                    12,
+                                    13,
                                     45,
                                     {
                                         returnType: _type('int'),
@@ -139,13 +139,13 @@ describe('Object declaration parser', function() {
                         attributes: [],
                         methods: [node(
                             'ObjectMethod',
-                            12,
+                            13,
                             57,
                             {
                                 name: 'foo',
                                 base: node(
                                     'Function',
-                                    12,
+                                    13,
                                     57,
                                     {
                                         returnType: _type('int'),
@@ -190,12 +190,12 @@ describe('Object declaration parser', function() {
                         members: [],
                         objConstructor: node(
                             'ObjectConstructor',
-                            12,
+                            13,
                             30,
                             {
                                 base: node(
                                     'Function',
-                                    12,
+                                    13,
                                     30,
                                     {
                                         returnType: null,
@@ -231,12 +231,12 @@ describe('Object declaration parser', function() {
                         members: [],
                         objConstructor: node(
                             'ObjectConstructor',
-                            12,
+                            13,
                             42,
                             {
                                 base: node(
                                     'Function',
-                                    12,
+                                    13,
                                     42,
                                     {
                                         returnType: null,
@@ -270,13 +270,13 @@ describe('Object declaration parser', function() {
                         attributes: [],
                         methods: [node(
                             'ObjectMethod',
-                            12,
+                            13,
                             45,
                             {
                                 name: 'foo',
                                 base: node(
                                     'Function',
-                                    12,
+                                    13,
                                     45,
                                     {
                                         returnType: _type('int'),
@@ -300,7 +300,7 @@ describe('Object declaration parser', function() {
                         )],
                         members: [node(
                             'ObjectMember',
-                            45,
+                            46,
                             54,
                             {
                                 value: null,

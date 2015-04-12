@@ -23,7 +23,7 @@ describe('`continue` parser', function() {
                     {
                         assignment: node(
                             'Assignment',
-                            3,
+                            4,
                             10,
                             {
                                 base: _i('x'),
@@ -32,7 +32,7 @@ describe('`continue` parser', function() {
                         ),
                         condition: node(
                             'RelativeBinop',
-                            10,
+                            11,
                             17,
                             {
                                 operator: '<',
@@ -42,13 +42,13 @@ describe('`continue` parser', function() {
                         ),
                         iteration: node(
                             'Assignment',
-                            18,
+                            19,
                             29,
                             {
                                 base: _i('x'),
                                 value: node(
                                     'Binop',
-                                    22,
+                                    23,
                                     28,
                                     {
                                         operator: '+',

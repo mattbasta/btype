@@ -28,7 +28,7 @@ describe('operator overload declarations', function() {
                             {
                                 value: node(
                                     'Binop',
-                                    36,
+                                    37,
                                     42,
                                     {
                                         left: _i('x'),
@@ -63,7 +63,7 @@ describe('operator overload declarations', function() {
                             {
                                 value: node(
                                     'Binop',
-                                    37,
+                                    38,
                                     43,
                                     {
                                         left: _i('x'),

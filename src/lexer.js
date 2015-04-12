@@ -74,7 +74,7 @@ var tokens = [
     [/^operator(?!\w)/, 'operator'],
     [/^object(?!\w)/, 'object'],
     [/^with(?!\w)/, 'with'],
-    
+
     // Reserved Words
     [/^module(?!\w)/, 'reserved'],
     [/^class(?!\w)/, 'reserved'],
@@ -131,6 +131,7 @@ module.exports = function Lexer(data) {
             pointer += match[0].length;
             if (!tokens[i][1] || tokens[i][1] === 'comment') {
                 i = -1;
+                startPointer = pointer;
                 continue;
             }
             return new Token(match[0], tokens[i][1], startPointer, pointer, currentLine);
