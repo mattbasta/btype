@@ -43,6 +43,9 @@ exports.getType = function getType(ctx) {
 
     this.members.forEach(function getTypeObjectDeclMemberIter(member) {
         mapping[member.name] = member.getType(ctx);
+        if (member.isFinal) {
+            output.finalMembers[member.__assignedName] = true;
+        }
     });
 
     if (this.objConstructor) {
@@ -52,6 +55,9 @@ exports.getType = function getType(ctx) {
     if (this.methods.length) {
         this.methods.forEach(function getTypeObjectDeclMethodIter(method) {
             output.methods[method.name] = method.base.__assignedName;
+            if (method.isFinal) {
+                output.finalMembers[method.__assignedName] = true;
+            }
         });
     }
 

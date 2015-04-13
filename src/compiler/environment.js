@@ -7,6 +7,7 @@ var constantFold = require('./optimizer/constantFold');
 var context = require('./context');
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
+var namer = require('./namer');
 var nodes = require('./nodes');
 var specialModules = require('./specialModules/__directory');
 var transformer = require('./transformer');
@@ -27,7 +28,7 @@ function Environment(name, config) {
     this.name = name ? name.trim() : '';
     this.config = config || {};
 
-    this.namer = require('./namer')();
+    this.namer = namer();
     this.foreigns = [];
     this.included = [];
     this.requested = null;

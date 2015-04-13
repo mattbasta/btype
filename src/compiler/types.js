@@ -129,6 +129,8 @@ function Struct(name, contentsTypeMap) {
     this.objConstructor = null;
     this.methods = {} // Mapping of given names to assigned names
 
+    this.finalMembers = {}; // Set of assigned names that are marked as final
+
     // WARNING! This must not do any processing on contentsTypeMap as part of
     // this constructor. All processing must be done by methods. This is to
     // facilitate lazily constructed structs, which are necessary for self-

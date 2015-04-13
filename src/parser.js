@@ -1053,6 +1053,7 @@ module.exports = function Parser(tokenizer) {
         var methodEndBrace;
         var endBrace;
         var methodSelfParam;
+        var isFinal;
         while (!(endBrace = accept('}'))) {
             methodSelfParam = null;
 
@@ -1119,6 +1120,8 @@ module.exports = function Parser(tokenizer) {
                 continue;
             }
 
+            isFinal = accept('final');
+
             peekedType = peek();
             memberType = parseSymbol();
             if (peek().text === ':' || peek().text === '<') {
@@ -1132,12 +1135,13 @@ module.exports = function Parser(tokenizer) {
             if (memberType.type === 'TypedIdentifier' && accept(';')) {
                 members.push(node(
                     'ObjectMember',
-                    memberType.start,
+                    isFinal ? isFinal.start : memberType.start,
                     memberType.end,
                     {
                         memberType: memberType,
                         name: memberType.name,
                         value: null,
+                        isFinal: !!isFinal,
                     }
                 ));
                 continue;
@@ -1176,7 +1180,7 @@ module.exports = function Parser(tokenizer) {
 
                 methods.push(node(
                     'ObjectMethod',
-                    memberType.start,
+                    isFinal ? isFinal.start : memberType.start,
                     methodEndBrace.end,
                     {
                         name: memberType.name,
@@ -1192,6 +1196,7 @@ module.exports = function Parser(tokenizer) {
                                 __objectSpecial: 'method',
                             }
                         ),
+                        isFinal: !!isFinal,
                     }
                 ));
                 continue;

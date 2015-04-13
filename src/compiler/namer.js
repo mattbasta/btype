@@ -1,9 +1,9 @@
 const CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const NUMCHARS = CHARS.length;
 
-module.exports = function() {
+module.exports = function NamerFactory() {
     var count = 0;
-    return function() {
+    return function Namer() {
         var name = CHARS[count % NUMCHARS];
         var tmp = (count - count % NUMCHARS) / NUMCHARS;
         while (tmp) {

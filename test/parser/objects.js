@@ -67,6 +67,37 @@ describe('Object declaration parser', function() {
                                 memberType: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
+                                isFinal: false,
+                            }
+                        )],
+                        methods: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse when final members are present', function() {
+        compareTree(
+            'object foo {\nfinal int:x;\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    27,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        members: [node(
+                            'ObjectMember',
+                            13,
+                            24,
+                            {
+                                memberType: _typed('x', _type('int')),
+                                name: 'x',
+                                value: null,
+                                isFinal: true,
                             }
                         )],
                         methods: [],
@@ -116,6 +147,57 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isFinal: false,
+                            }
+                        )],
+                        members: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse when final methods are present', function() {
+        compareTree(
+            'object foo {\nfinal int:foo(float:bar) {return 123;}\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    53,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        methods: [node(
+                            'ObjectMethod',
+                            13,
+                            51,
+                            {
+                                name: 'foo',
+                                base: node(
+                                    'Function',
+                                    19,
+                                    51,
+                                    {
+                                        returnType: _type('int'),
+                                        name: 'foo',
+                                        params: [
+                                            _typed('self', _type('foo')),
+                                            _typed('bar', _type('float')),
+                                        ],
+                                        body: [node(
+                                            'Return',
+                                            39,
+                                            50,
+                                            {
+                                                value: _int(123),
+                                            }
+                                        )],
+                                        __objectSpecial: 'method',
+                                    }
+                                ),
+                                isFinal: true,
                             }
                         )],
                         members: [],
@@ -165,6 +247,7 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isFinal: false,
                             }
                         )],
                         members: [],
@@ -296,6 +379,7 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isFinal: false,
                             }
                         )],
                         members: [node(
@@ -306,6 +390,7 @@ describe('Object declaration parser', function() {
                                 value: null,
                                 name: 'zap',
                                 memberType: _typed('x', _type('int')),
+                                isFinal: false,
                             }
                         )],
                         objConstructor: null,
