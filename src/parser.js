@@ -1053,6 +1053,7 @@ module.exports = function Parser(tokenizer) {
         var methodEndBrace;
         var endBrace;
         var methodSelfParam;
+        var isPrivate;
         var isFinal;
         while (!(endBrace = accept('}'))) {
             methodSelfParam = null;
@@ -1120,6 +1121,7 @@ module.exports = function Parser(tokenizer) {
                 continue;
             }
 
+            isPrivate = accept('private');
             isFinal = accept('final');
 
             peekedType = peek();
@@ -1135,13 +1137,18 @@ module.exports = function Parser(tokenizer) {
             if (memberType.type === 'TypedIdentifier' && accept(';')) {
                 members.push(node(
                     'ObjectMember',
-                    isFinal ? isFinal.start : memberType.start,
+                    isPrivate ?
+                        isPrivate.start :
+                        isFinal ?
+                            isFinal.start :
+                            memberType.start,
                     memberType.end,
                     {
                         memberType: memberType,
                         name: memberType.name,
                         value: null,
                         isFinal: !!isFinal,
+                        isPrivate: !!isPrivate,
                     }
                 ));
                 continue;
@@ -1180,7 +1187,11 @@ module.exports = function Parser(tokenizer) {
 
                 methods.push(node(
                     'ObjectMethod',
-                    isFinal ? isFinal.start : memberType.start,
+                    isPrivate ?
+                        isPrivate.start :
+                        isFinal ?
+                            isFinal.start :
+                            memberType.start,
                     methodEndBrace.end,
                     {
                         name: memberType.name,
@@ -1197,6 +1208,7 @@ module.exports = function Parser(tokenizer) {
                             }
                         ),
                         isFinal: !!isFinal,
+                        isPrivate: !!isPrivate,
                     }
                 ));
                 continue;

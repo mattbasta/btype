@@ -1,0 +1,16 @@
+object Point {
+    float:x;
+    float:y;
+    float:z;
+
+    private float:getXHidden() {
+        return self.x;
+    }
+
+}
+
+func main() {
+    var foo = new Point();
+    foo.getXHidden();
+}
+export main;

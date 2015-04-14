@@ -67,6 +67,38 @@ describe('Object declaration parser', function() {
                                 memberType: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
+                                isPrivate: false,
+                                isFinal: false,
+                            }
+                        )],
+                        methods: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse when private members are present', function() {
+        compareTree(
+            'object foo {\nprivate int:x;\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    29,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        members: [node(
+                            'ObjectMember',
+                            13,
+                            26,
+                            {
+                                memberType: _typed('x', _type('int')),
+                                name: 'x',
+                                value: null,
+                                isPrivate: true,
                                 isFinal: false,
                             }
                         )],
@@ -97,6 +129,38 @@ describe('Object declaration parser', function() {
                                 memberType: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
+                                isPrivate: false,
+                                isFinal: true,
+                            }
+                        )],
+                        methods: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse when private final members are present', function() {
+        compareTree(
+            'object foo {\nprivate final int:x;\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    35,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        members: [node(
+                            'ObjectMember',
+                            13,
+                            32,
+                            {
+                                memberType: _typed('x', _type('int')),
+                                name: 'x',
+                                value: null,
+                                isPrivate: true,
                                 isFinal: true,
                             }
                         )],
@@ -147,6 +211,58 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isPrivate: false,
+                                isFinal: false,
+                            }
+                        )],
+                        members: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse when private methods are present', function() {
+        compareTree(
+            'object foo {\nprivate int:foo(float:bar) {return 123;}\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    55,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        methods: [node(
+                            'ObjectMethod',
+                            13,
+                            53,
+                            {
+                                name: 'foo',
+                                base: node(
+                                    'Function',
+                                    21,
+                                    53,
+                                    {
+                                        returnType: _type('int'),
+                                        name: 'foo',
+                                        params: [
+                                            _typed('self', _type('foo')),
+                                            _typed('bar', _type('float')),
+                                        ],
+                                        body: [node(
+                                            'Return',
+                                            41,
+                                            52,
+                                            {
+                                                value: _int(123),
+                                            }
+                                        )],
+                                        __objectSpecial: 'method',
+                                    }
+                                ),
+                                isPrivate: true,
                                 isFinal: false,
                             }
                         )],
@@ -197,6 +313,58 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isPrivate: false,
+                                isFinal: true,
+                            }
+                        )],
+                        members: [],
+                        objConstructor: null,
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse when private final methods are present', function() {
+        compareTree(
+            'object foo {\nprivate final int:foo(float:bar) {return 123;}\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    61,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        methods: [node(
+                            'ObjectMethod',
+                            13,
+                            59,
+                            {
+                                name: 'foo',
+                                base: node(
+                                    'Function',
+                                    27,
+                                    59,
+                                    {
+                                        returnType: _type('int'),
+                                        name: 'foo',
+                                        params: [
+                                            _typed('self', _type('foo')),
+                                            _typed('bar', _type('float')),
+                                        ],
+                                        body: [node(
+                                            'Return',
+                                            47,
+                                            58,
+                                            {
+                                                value: _int(123),
+                                            }
+                                        )],
+                                        __objectSpecial: 'method',
+                                    }
+                                ),
+                                isPrivate: true,
                                 isFinal: true,
                             }
                         )],
@@ -247,6 +415,7 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isPrivate: false,
                                 isFinal: false,
                             }
                         )],
@@ -379,6 +548,7 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'method',
                                     }
                                 ),
+                                isPrivate: false,
                                 isFinal: false,
                             }
                         )],
@@ -390,6 +560,7 @@ describe('Object declaration parser', function() {
                                 value: null,
                                 name: 'zap',
                                 memberType: _typed('x', _type('int')),
+                                isPrivate: false,
                                 isFinal: false,
                             }
                         )],

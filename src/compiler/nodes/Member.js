@@ -1,5 +1,7 @@
 var indentEach = require('./_utils').indentEach;
 
+var types = require('../types');
+
 
 exports.traverse = function traverse(cb) {
     cb(this.base, 'base');
@@ -33,6 +35,25 @@ exports.validateTypes = function validateTypes(ctx) {
         (!baseType.hasMethod || !baseType.hasMethod(this.child))) {
         throw new TypeError('Requesting incompatible member (' + this.child + ') from type');
     }
+
+    if (baseType instanceof types.Struct && baseType.privateMembers[this.child]) {
+        var insideObjectScope = false;
+        var tmp = ctx;
+        while (tmp) {
+            if (tmp.__basePrototype) {
+                if (tmp.__basePrototype.getType(ctx).equals(baseType)) {
+                    insideObjectScope = true;
+                }
+                break;
+            }
+            tmp = tmp.parent;
+        }
+
+        if (!insideObjectScope) {
+            throw new TypeError('Accessing private member "' + this.child + '" from outside object declaration');
+        }
+    }
+
     this.base.validateTypes(ctx);
 };
 

@@ -142,6 +142,12 @@ Context.prototype.resolveType = function(typeName, attributes) {
         });
         generateContext(this.env, fakeRoot, null, this, false);
 
+        // Mark each methods as having come from the cloned prototype.
+        // This is used for visibility testing.
+        clonedProto.methods.forEach(function(mem) {
+            mem.base.__context.__basePrototype = clonedProto;
+        });
+
         // Finally, get the type of the newly constructed declaration and
         // register it for use.
         var typeToRegister = clonedProto.getType(this);

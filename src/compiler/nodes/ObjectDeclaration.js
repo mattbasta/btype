@@ -43,8 +43,11 @@ exports.getType = function getType(ctx) {
 
     this.members.forEach(function getTypeObjectDeclMemberIter(member) {
         mapping[member.name] = member.getType(ctx);
+        if (member.isPrivate) {
+            output.privateMembers[member.name] = true;
+        }
         if (member.isFinal) {
-            output.finalMembers[member.__assignedName] = true;
+            output.finalMembers[member.name] = true;
         }
     });
 
@@ -55,8 +58,11 @@ exports.getType = function getType(ctx) {
     if (this.methods.length) {
         this.methods.forEach(function getTypeObjectDeclMethodIter(method) {
             output.methods[method.name] = method.base.__assignedName;
+            if (method.isPrivate) {
+                output.privateMembers[method.name] = true;
+            }
             if (method.isFinal) {
-                output.finalMembers[method.__assignedName] = true;
+                output.finalMembers[method.name] = true;
             }
         });
     }
