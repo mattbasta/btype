@@ -64,8 +64,6 @@ function nodeBase(start, end, base) {
 }
 
 function buildNode(proto, name) {
-    name = name || 'node';
-
     // We do this so that in stack traces, the method names look like:
     //   FunctionReference.getType()
     // instead of:
@@ -75,7 +73,7 @@ function buildNode(proto, name) {
         nodeBase.toString() + '.apply(this, arguments))})'
     );
 
-    for(var protoMem in proto) {
+    for (var protoMem in proto) {
         node.prototype[protoMem] = proto[protoMem];
     }
     node.prototype.type = name;
@@ -113,7 +111,7 @@ function buildNode(proto, name) {
     return node;
 }
 
-var preparedNodes = module.exports = {};
-for(var node in NODES) {
-    preparedNodes[node] = buildNode(NODES[node], node);
+module.exports = {};
+for (var node in NODES) {
+    module.exports[node] = buildNode(NODES[node], node);
 }
