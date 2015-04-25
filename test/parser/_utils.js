@@ -6,8 +6,12 @@ var parser = require('../../src/parser');
 var node = parser.node;
 
 
+var parse = exports.parse = function parse(script) {
+    return parser(lexer(script));
+};
+
 exports.compareTree = function compareTree(script, tree) {
-    var parsed = parser(lexer(script));
+    var parsed = parse(script);
     function compare(left, right, base, key) {
         if (left instanceof lexer.token) {
             assert.equal(left.text, right.text, 'Expected token "' + key + '" text to be equal in both trees at ' + base + ': "' + left.text + '" != "' + right.text + '"');

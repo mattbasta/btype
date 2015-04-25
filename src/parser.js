@@ -1058,7 +1058,14 @@ module.exports = function Parser(tokenizer) {
         while (!(endBrace = accept('}'))) {
             methodSelfParam = null;
 
+            isPrivate = accept('private');
+            isFinal = accept('final');
+
             if (constructorBase = accept('new')) {
+
+                if (isPrivate) {
+                    throw new SyntaxError('Private constructors are not allowed');
+                }
 
                 if (constructor) {
                     throw new SyntaxError('Cannot have multiple constructors in the same object declaration');
@@ -1100,7 +1107,7 @@ module.exports = function Parser(tokenizer) {
 
                 constructor = node(
                     'ObjectConstructor',
-                    constructorBase.start,
+                    isFinal ? isFinal.start : constructorBase.start,
                     endBrace.end,
                     {
                         base: node(
@@ -1115,14 +1122,12 @@ module.exports = function Parser(tokenizer) {
                                 __objectSpecial: 'constructor',
                             }
                         ),
+                        isFinal: !!isFinal,
                     }
                 );
 
                 continue;
             }
-
-            isPrivate = accept('private');
-            isFinal = accept('final');
 
             peekedType = peek();
             memberType = parseSymbol();

@@ -1,3 +1,5 @@
+var assert = require('assert');
+
 var node = require('../../src/parser').node;
 
 var compareTree = require('./_utils').compareTree;
@@ -5,6 +7,7 @@ var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
 var _typed = require('./_utils')._typed;
+var parse = require('./_utils').parse;
 
 
 describe('Object declaration parser', function() {
@@ -460,6 +463,49 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'constructor',
                                     }
                                 ),
+                                isFinal: false,
+                            }
+                        ),
+                    }
+                )
+            ])
+        );
+    });
+
+    it('should parse final constructors', function() {
+        compareTree(
+            'object foo {\nfinal new(float:bar) {}\n}',
+            _root([
+                node(
+                    'ObjectDeclaration',
+                    0,
+                    38,
+                    {
+                        name: 'foo',
+                        attributes: [],
+                        methods: [],
+                        members: [],
+                        objConstructor: node(
+                            'ObjectConstructor',
+                            13,
+                            36,
+                            {
+                                base: node(
+                                    'Function',
+                                    19,
+                                    36,
+                                    {
+                                        returnType: null,
+                                        name: 'new',
+                                        params: [
+                                            _typed('self', _type('foo')),
+                                            _typed('bar', _type('float')),
+                                        ],
+                                        body: [],
+                                        __objectSpecial: 'constructor',
+                                    }
+                                ),
+                                isFinal: true,
                             }
                         ),
                     }
@@ -501,6 +547,7 @@ describe('Object declaration parser', function() {
                                         __objectSpecial: 'constructor',
                                     }
                                 ),
+                                isFinal: false,
                             }
                         ),
                     }
@@ -569,6 +616,18 @@ describe('Object declaration parser', function() {
                 )
             ])
         );
+    });
+
+    it('should disallow private constructors', function() {
+
+        assert.doesNotThrow(function() {
+            parse('object Foo {new() {}}');
+        });
+
+        assert.throws(function() {
+            parse('object Foo {private new() {}}');
+        });
+
     });
 
 });

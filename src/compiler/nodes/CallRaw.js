@@ -1,6 +1,8 @@
 var ident = require('./_utils').ident;
 var indentEach = require('./_utils').indentEach;
 
+var types = require('../types');
+
 
 exports.traverse = function traverse(cb) {
     cb(this.callee, 'callee');
@@ -35,6 +37,11 @@ exports.validateTypes = function validateTypes(ctx) {
         throw new Error('Call to non-executable type: ' + base.toString());
     }
 
+    // Validate final methods
+    if (this.callee.type === 'Member') {
+        this.validateBaseFinality(ctx);
+    }
+
     var paramTypes = base.getArgs();
     var signatureLength = paramTypes.length + signatureOffset;
     // Ignore the `self` parameter on object methods
@@ -44,7 +51,9 @@ exports.validateTypes = function validateTypes(ctx) {
 
     if (this.params.length < signatureLength) {
         throw new TypeError('Too few arguments passed to function call: ' + this.params.length + ' != ' + signatureLength);
-    } else if (this.params.length > signatureLength) {
+    }
+
+    if (this.params.length > signatureLength) {
         throw new TypeError('Too many arguments passed to function call: ' + this.params.length + ' != ' + signatureLength);
     }
 
@@ -59,6 +68,52 @@ exports.validateTypes = function validateTypes(ctx) {
         }
     }
 };
+
+exports.validateBaseFinality = function validateBaseFinality(ctx) {
+    var calleeBase = this.callee.base;
+    var calleeBaseType = calleeBase.getType(ctx);
+
+    // Ignore methods on non-Structs.
+    if (!(calleeBaseType instanceof types.Struct)) {
+        return;
+    }
+
+    var insideObjectScope = false;
+    var tmp = ctx;
+    var callerFuncName = ctx.scope.name;
+    while (tmp) {
+        if (tmp.__basePrototype) {
+            if (tmp.__basePrototype.getType(ctx).equals(calleeBaseType)) {
+                insideObjectScope = true;
+            }
+            break;
+        }
+        tmp = tmp.parent;
+    }
+
+    // If the caller isn't an object method, it's fine to call any method on
+    // the target.
+    if (!insideObjectScope) {
+        return;
+    }
+
+    // If the caller isn't final, there are no restrictions on method calls.
+    if (!calleeBaseType.finalMembers[callerFuncName]) {
+        return;
+    }
+
+    // At this point, we know the caller is final.
+
+    // Final methods cannot call non-final methods.
+    if (!calleeBaseType.finalMembers[callerBase.child]) {
+        throw new TypeError(
+            'Final methods cannot call non-final methods.\n' +
+            callerFuncName + ' cannot call ' + callerBase.child + ' on ' + calleeBaseType.typeName
+        );
+    }
+
+};
+
 
 exports.__getName = function __getName() {
     return 'CallRaw';
