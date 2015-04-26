@@ -1,0 +1,22 @@
+object Point {
+    final float:x;
+    final float:y;
+    final float:z;
+
+    final new(float:x, float:y, float:z) {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+    }
+
+    foo() {
+        self.x = 123456;
+    }
+
+}
+
+func main() {
+    var test = new Point(1.0, 2.0, 3.0);
+    test.foo();
+}
+export main;

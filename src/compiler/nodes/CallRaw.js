@@ -78,9 +78,11 @@ exports.validateBaseFinality = function validateBaseFinality(ctx) {
         return;
     }
 
+
     var insideObjectScope = false;
     var tmp = ctx;
     var callerFuncName = ctx.scope.name;
+    debugger;
     while (tmp) {
         if (tmp.__basePrototype) {
             if (tmp.__basePrototype.getType(ctx).equals(calleeBaseType)) {
@@ -105,10 +107,10 @@ exports.validateBaseFinality = function validateBaseFinality(ctx) {
     // At this point, we know the caller is final.
 
     // Final methods cannot call non-final methods.
-    if (!calleeBaseType.finalMembers[callerBase.child]) {
+    if (!calleeBaseType.finalMembers[this.callee.child]) {
         throw new TypeError(
             'Final methods cannot call non-final methods.\n' +
-            callerFuncName + ' cannot call ' + callerBase.child + ' on ' + calleeBaseType.typeName
+            '"' + callerFuncName + '" cannot call "' + this.callee.child + '" on ' + calleeBaseType.typeName
         );
     }
 

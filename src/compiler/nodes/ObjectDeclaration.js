@@ -53,6 +53,9 @@ exports.getType = function getType(ctx) {
 
     if (this.objConstructor) {
         output.objConstructor = this.objConstructor.base.__assignedName;
+        if (this.objConstructor.isFinal) {
+            output.finalMembers['new'] = true;
+        }
     }
 
     if (this.methods.length) {

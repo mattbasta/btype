@@ -144,6 +144,9 @@ Context.prototype.resolveType = function(typeName, attributes) {
 
         // Mark each methods as having come from the cloned prototype.
         // This is used for visibility testing.
+        if (clonedProto.objConstructor) {
+            clonedProto.objConstructor.base.__context.__basePrototype = clonedProto;
+        }
         clonedProto.methods.forEach(function(mem) {
             mem.base.__context.__basePrototype = clonedProto;
         });
