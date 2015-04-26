@@ -1,0 +1,1 @@
+TypeError: Accessing private member "getXHidden" from outside object declaration

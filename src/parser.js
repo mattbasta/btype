@@ -1136,7 +1136,7 @@ module.exports = function Parser(tokenizer) {
             }
             if (members.some(function(member) {return member.name === memberType.name;}) ||
                 methods.some(function(method) {return method.name === memberType.name;})) {
-                throw new SyntaxError('Class "' + name + '" cannot declare "' + memberType.name + '" more than once.');
+                throw new SyntaxError('Class "' + name.text + '" cannot declare "' + memberType.name + '" more than once.');
             }
 
             if (memberType.type === 'TypedIdentifier' && accept(';')) {

@@ -1,0 +1,1 @@
+SyntaxError: Cannot have multiple constructors in the same object declaration

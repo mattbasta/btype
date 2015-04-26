@@ -10,7 +10,7 @@ object Point {
     }
 
     foo() {
-        self.x = 123456;
+        self.x = 123456.0;
     }
 
 }

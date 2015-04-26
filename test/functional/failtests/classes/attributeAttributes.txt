@@ -1,0 +1,1 @@
+TypeError: Cannot apply attributes to attributes defined in object declaration

@@ -82,7 +82,6 @@ exports.validateBaseFinality = function validateBaseFinality(ctx) {
     var insideObjectScope = false;
     var tmp = ctx;
     var callerFuncName = ctx.scope.name;
-    debugger;
     while (tmp) {
         if (tmp.__basePrototype) {
             if (tmp.__basePrototype.getType(ctx).equals(calleeBaseType)) {

@@ -1,0 +1,1 @@
+TypeError: Mismatched types in assignment: func<null,Foo> != func<null> near char 71

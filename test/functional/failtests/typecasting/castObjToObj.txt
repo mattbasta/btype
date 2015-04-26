@@ -1,0 +1,1 @@
+TypeError: Cannot typecast non-primitive: foo as bar

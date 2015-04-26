@@ -1,0 +1,1 @@
+TypeError: Cannot typecast to non-primitive: int as foo

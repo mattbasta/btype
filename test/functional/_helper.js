@@ -222,14 +222,29 @@ describe('Failure tests', function() {
         function(btPath) {
             var read = fs.readFileSync(btPath).toString();
 
+            var expectedExceptionPath = path.dirname(btPath);
+            expectedExceptionPath += path.sep;
+            expectedExceptionPath += path.basename(btPath, '.bt') + '.txt';
+
             it(btPath, function failTestBody() {
-                assert.throws(function() {
-                    compiler({
-                        filename: 'test',
-                        tree: parser(lexer(read)),
-                        format: 'debug-tree',
-                    });
-                });
+                assert.throws(
+                    function() {
+                        compiler({
+                            filename: 'test',
+                            tree: parser(lexer(read)),
+                            format: 'debug-tree',
+                        });
+                    },
+                    function(err) {
+                        if (fs.existsSync(expectedExceptionPath)) {
+                            var exceptionText = fs.readFileSync(expectedExceptionPath).toString();
+                            return exceptionText === err.toString();
+                        } else {
+                            fs.writeFileSync(expectedExceptionPath, err.toString());
+                            return true;
+                        }
+                    }
+                );
 
             });
 
