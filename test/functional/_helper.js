@@ -31,21 +31,21 @@ function globEach(path_, ext, callback, doneCallback) {
             if (!--pending) doneCallback(null);
         }
     });
-};
+}
+
+function compile(code, format) {
+    var parsed = parser(lexer(code));
+    var compiled = compiler({
+        filename: 'test',
+        tree: parsed,
+        format: format,
+    });
+
+    return compiled;
+}
 
 
 describe('Parity tests', function() {
-
-    function compile(code, format) {
-        var parsed = parser(lexer(code));
-        var compiled = compiler({
-            filename: 'test',
-            tree: parsed,
-            format: format,
-        });
-
-        return compiled;
-    }
 
     function run(code, format, expectation) {
         var compiled = compile(code, format);
@@ -78,6 +78,11 @@ describe('Parity tests', function() {
             var readExpectation = fs.readFileSync(btPath + '.txt').toString().trim();
 
             describe(btPath, function() {
+
+                it('formats with debug-tree', function jsFunctionalTestBody() {
+                    var output = compile(read, 'debug-tree');
+                    assert.ok(output);
+                });
 
                 it('in JS', function jsFunctionalTestBody() {
                     run(read, 'js', readExpectation);
@@ -207,6 +212,15 @@ describe('Compile tests', function() {
                     });
                     assert.ok(compiled);
                 });
+                it('formats with debug-tree', function compileTestBody() {
+                    var parsed = parser(lexer(read));
+                    var compiled = compiler({
+                        filename: 'test',
+                        tree: parsed,
+                        format: 'debug-tree'
+                    });
+                    assert.ok(compiled);
+                });
 
             });
         }
@@ -256,12 +270,7 @@ describe('Failure tests', function() {
 describe('String tests', function() {
 
     function run(code, format, expectation) {
-        var parsed = parser(lexer(code));
-        var compiled = compiler({
-            filename: 'test',
-            tree: parsed,
-            format: format
-        });
+        var compiled = compile(code, format);
 
         var mod;
         try {
@@ -291,12 +300,16 @@ describe('String tests', function() {
 
             describe(btPath, function() {
 
-                it('in JS', function jsStringTestBody() {
+                it('runs in JS', function jsStringTestBody() {
                     run(read, 'js', readExpectation);
                 });
 
-                it('in Asm.js', function asmjsStringTestBody() {
+                it('runs in Asm.js', function asmjsStringTestBody() {
                     run(read, 'asmjs', readExpectation);
+                });
+
+                it('formats in debug-tree', function debugTreeStringTestBody() {
+                    assert.ok(compile(read, 'debug-tree'));
                 });
 
             });
