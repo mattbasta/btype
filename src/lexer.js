@@ -95,7 +95,7 @@ var tokens = [
     [/^while(?!\w)/, 'while'],
     [/^with(?!\w)/, 'with'],
 
-    [/^[a-zA-Z_][\w\-_]*/, 'identifier'],
+    [/^[a-zA-Z_][\w_]*/, 'identifier'],
 ];
 
 function Token(text, type, start, end, line) {
