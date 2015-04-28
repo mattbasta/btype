@@ -8,27 +8,19 @@ var parser = require('../../src/parser');
 var lexer = require('../../src/lexer');
 
 
-function globEach(path_, ext, callback, doneCallback) {
-    var wildcard = ext === '*';
-    if (!doneCallback) {
-        doneCallback = function() {};
-    }
-
-    var list = fs.readdirSync(path_);
-    var pending = list.length;
-    if (!pending) return doneCallback(null);
-    list.forEach(function(file) {
-        file = path_ + '/' + file;
+function globEach(path_, ext, callback) {
+    ext = '.' + ext; // for path.extname
+    
+    fs.readdirSync(path_).forEach(function(file) {
+        file = path.resolve(path_, file);
         var stat = fs.statSync(file);
         if (stat && stat.isDirectory()) {
-            globEach(file, ext, callback, function(err) {
-                if (!--pending) doneCallback(err);
-            });
+            globEach(file, ext, callback);
         } else {
             // If it's got the right extension, add it to the list.
-            if(wildcard || file.substr(file.length - ext.length) === ext)
+            if (path.extname(file) === ext) {
                 callback(path.normalize(file));
-            if (!--pending) doneCallback(null);
+            }
         }
     });
 }
