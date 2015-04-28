@@ -9,8 +9,6 @@ var lexer = require('../../src/lexer');
 
 
 function globEach(path_, ext, callback) {
-    ext = '.' + ext; // for path.extname
-    
     fs.readdirSync(path_).forEach(function(file) {
         file = path.resolve(path_, file);
         var stat = fs.statSync(file);
