@@ -128,40 +128,6 @@ module.exports = function Parser(lex) {
             }
         );
     }
-    function parseSwitch() {
-        var head;
-        if (!(head = lex.accept('switch'))) return;
-        var condition = parseExpression();
-        lex.assert('{');
-
-        var cases = [];
-        var case_head;
-        var case_value;
-        var case_body;
-        var case_col;
-        while (case_head = lex.accept('case')) {
-            case_value = parseExpression();
-            case_col = lex.assert(':');
-            case_body = parseStatements(['case', '}']);
-            cases.push(node(
-                'Case',
-                case_head.start,
-                case_body.length ? case_body[case_body.length - 1].end : case_col.end,
-                {
-                    value: case_value,
-                    body: case_body,
-                }
-            ));
-        }
-
-        var end = lex.assert('}');
-        return node(
-            'Switch',
-            head.start,
-            end.end,
-            {condition: condition, cases: cases}
-        );
-    }
     function parseReturn() {
         var head = lex.accept('return');
         if (!head) return;
@@ -1210,7 +1176,6 @@ module.exports = function Parser(lex) {
                isRoot && parseOperatorStatement() ||
                isRoot && parseObjectDeclaration() ||
                parseIf() ||
-               parseSwitch() ||
                parseReturn() ||
                isRoot && parseExport() ||
                isRoot && parseImport() ||

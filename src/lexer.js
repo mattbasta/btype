@@ -42,12 +42,14 @@ var TOKENS = [
     [/^=/, '='],
     [/^</, '<'],
     [/^>/, '>'],
-    [/^:/, ':'],  // For `case` and types
+    [/^:/, ':'],  // For types
     [/^!/, '!'],
     [/^~/, '~'],
 
     // Reserved Words
+    [/^case(?!\w)/, 'reserved'],
     [/^catch(?!\w)/, 'reserved'],
+    [/^default(?!\w)/, 'reserved'],
     [/^enum(?!\w)/, 'reserved'],
     [/^extends(?!\w)/, 'reserved'],
     [/^finally(?!\w)/, 'reserved'],
@@ -58,6 +60,7 @@ var TOKENS = [
     [/^raise(?!\w)/, 'reserved'],
     [/^static(?!\w)/, 'reserved'],
     [/^super(?!\w)/, 'reserved'],
+    [/^switch(?!\w)/, 'switch'],
     [/^switchtype(?!\w)/, 'reserved'],
     [/^try(?!\w)/, 'reserved'],
     [/^typedef(?!\w)/, 'reserved'],
@@ -68,10 +71,8 @@ var TOKENS = [
     [/^and(?!\w)/, 'and'], // binary and
     [/^as(?!\w)/, 'as'], // typecasting
     [/^break(?!\w)/, 'break'], // loop break
-    [/^case(?!\w)/, 'case'], // switch/case
     [/^const(?!\w)/, 'const'], // constant variable declarations
     [/^continue(?!\w)/, 'continue'], // loop continue
-    [/^default(?!\w)/, 'default'], // switch/default
     [/^do(?!\w)/, 'do'], // do loop
     [/^else(?!\w)/, 'else'], // if/else
     [/^export(?!\w)/, 'export'], // module export
@@ -89,7 +90,6 @@ var TOKENS = [
     [/^or(?!\w)/, 'or'], // binary or
     [/^private(?!\w)/, 'private'], // member/method visibility
     [/^return(?!\w)/, 'return'],
-    [/^switch(?!\w)/, 'switch'],
     [/^true(?!\w)/, 'true'],
     [/^var(?!\w)/, 'var'], // type inference declaration
     [/^while(?!\w)/, 'while'], // while loop

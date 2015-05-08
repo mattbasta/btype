@@ -83,8 +83,6 @@ describe('Lexer', function() {
     it('should tokenize keywords', function() {
         tokensOfType('var', 'var');
         tokensOfType('return', 'return');
-        tokensOfType('switch', 'switch');
-        tokensOfType('case', 'case');
         tokensOfType('while', 'while');
         tokensOfType('if', 'if');
         tokensOfType('else', 'else');
