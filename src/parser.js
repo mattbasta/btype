@@ -19,45 +19,13 @@ function parseString(input) {
     });
 }
 
-module.exports = function Parser(tokenizer) {
+module.exports = function Parser(lex) {
     var peeked = null;
-    function peek() {
-        return peeked || (peeked = tokenizer());
-    }
-    function _next() {
-        var token;
-        do {
-            token = tokenizer();
-        } while(token.type === 'comment');
-        return token;
-    }
-    function pop() {
-        if (!peeked) {
-            return _next();
-        }
-        var temp = peeked;
-        peeked = null;
-        return temp;
-    }
-
-    var lastSeen;
-    function accept(type) {
-        var temp = peek();
-        if (!temp || !temp.type || temp.type !== type) return;
-        return pop();
-    }
-    function assert(type) {
-        var temp = lastSeen = pop();
-        if (!temp || temp.type !== type) {
-            throw new SyntaxError('Expected "' + type + '", got "' + lastSeen.type + '" on line ' + temp.line);
-        }
-        return temp;
-    }
 
     function parseFunctionDeclaration(func) {
-        if (!func && !(func = accept('func'))) return;
+        if (!func && !(func = lex.accept('func'))) return;
 
-        if (peek().type === '<') {
+        if (lex.peek().type === '<') {
             return parseDeclaration(func);
         }
 
@@ -65,8 +33,8 @@ module.exports = function Parser(tokenizer) {
         var identifier = null;
 
         // If no return type is specified, swap the return type and name
-        if (accept(':')) {
-            identifier = assert('identifier').text;
+        if (lex.accept(':')) {
+            identifier = lex.assert('identifier').text;
         } else {
             identifier = returnType.name;
             returnType = null;
@@ -74,15 +42,15 @@ module.exports = function Parser(tokenizer) {
 
         var parameters = [];
         // Parameter lists are optional.
-        if (accept('(')) {
+        if (lex.accept('(')) {
             // If it's not an empty parameter list, start parsing.
             parameters = parseSignature(true, ')');
-            assert(')');
+            lex.assert(')');
         }
-        assert('{');
+        lex.assert('{');
 
         var body = parseStatements('}');
-        var end = assert('}');
+        var end = lex.assert('}');
 
         return node(
             'Function',
@@ -100,21 +68,21 @@ module.exports = function Parser(tokenizer) {
     function parseFunctionExpression(func) {
         var returnType = null;
 
-        if (peek().type === 'identifier') {
+        if (lex.peek().type === 'identifier') {
             returnType = parseType();
         }
 
         var parameters = [];
         // Parameter lists are optional.
-        if (accept('(')) {
+        if (lex.accept('(')) {
             // If it's not an empty parameter list, start parsing.
             parameters = parseSignature(true, ')');
-            assert(')');
+            lex.assert(')');
         }
-        assert('{');
+        lex.assert('{');
 
         var body = parseStatements('}');
-        var end = assert('}');
+        var end = lex.assert('}');
 
         return node(
             'Function',
@@ -131,22 +99,22 @@ module.exports = function Parser(tokenizer) {
 
     function parseIf() {
         var head;
-        if (!(head = accept('if'))) return;
+        if (!(head = lex.accept('if'))) return;
         var condition = parseExpression();
-        assert('{')
+        lex.assert('{')
         var body;
         var end;
         body = parseStatements('}');
-        end = assert('}');
+        end = lex.assert('}');
 
         var alternate = null;
-        if (accept('else')) {
-            if (peek().type === 'if') {
+        if (lex.accept('else')) {
+            if (lex.peek().type === 'if') {
                 alternate = [end = parseIf()];
             } else {
-                assert('{');
+                lex.assert('{');
                 alternate = parseStatements('}');
-                end = assert('}');
+                end = lex.assert('}');
             }
         }
         return node(
@@ -162,18 +130,18 @@ module.exports = function Parser(tokenizer) {
     }
     function parseSwitch() {
         var head;
-        if (!(head = accept('switch'))) return;
+        if (!(head = lex.accept('switch'))) return;
         var condition = parseExpression();
-        assert('{');
+        lex.assert('{');
 
         var cases = [];
         var case_head;
         var case_value;
         var case_body;
         var case_col;
-        while (case_head = accept('case')) {
+        while (case_head = lex.accept('case')) {
             case_value = parseExpression();
-            case_col = assert(':');
+            case_col = lex.assert(':');
             case_body = parseStatements(['case', '}']);
             cases.push(node(
                 'Case',
@@ -186,7 +154,7 @@ module.exports = function Parser(tokenizer) {
             ));
         }
 
-        var end = assert('}');
+        var end = lex.assert('}');
         return node(
             'Switch',
             head.start,
@@ -195,13 +163,13 @@ module.exports = function Parser(tokenizer) {
         );
     }
     function parseReturn() {
-        var head = accept('return');
+        var head = lex.accept('return');
         if (!head) return;
         var end = head;
         var value = null;
-        if (!(end = accept(';'))) {
+        if (!(end = lex.accept(';'))) {
             value = parseExpression();
-            end = assert(';');
+            end = lex.assert(';');
         }
         return node(
             'Return',
@@ -211,10 +179,10 @@ module.exports = function Parser(tokenizer) {
         );
     }
     function parseExport() {
-        var head = accept('export');
+        var head = lex.accept('export');
         if (!head) return;
-        var value = accept('identifier');
-        var end = assert(';');
+        var value = lex.accept('identifier');
+        var end = lex.assert(';');
         return node(
             'Export',
             head.start,
@@ -224,14 +192,14 @@ module.exports = function Parser(tokenizer) {
     }
 
     function parseImport() {
-        var head = accept('import');
+        var head = lex.accept('import');
         if (!head) return;
 
         var value = parseSymbol();
         function parseImportBase(base) {
             var child;
-            if (accept('.')) {
-                child = assert('identifier');
+            if (lex.accept('.')) {
+                child = lex.assert('identifier');
                 base = node(
                     'Member',
                     base.start,
@@ -261,11 +229,11 @@ module.exports = function Parser(tokenizer) {
         }
 
         var alias = null;
-        if (accept('as')) {
+        if (lex.accept('as')) {
             alias = parseSymbol();
         }
 
-        var end = assert(';');
+        var end = lex.assert(';');
         return node(
             'Import',
             head.start,
@@ -281,15 +249,15 @@ module.exports = function Parser(tokenizer) {
     var loopDepth = 0;
     function parseWhile() {
         var head;
-        if (!(head = accept('while'))) return;
+        if (!(head = lex.accept('while'))) return;
         var condition = parseExpression();
-        assert('{');
+        lex.assert('{');
         var body;
         var end;
         loopDepth++;
         body = parseStatements('}');
         loopDepth--;
-        end = assert('}');
+        end = lex.assert('}');
         return node(
             'While',
             head.start,
@@ -299,15 +267,15 @@ module.exports = function Parser(tokenizer) {
     }
     function parseDoWhile() {
         var head;
-        if (!(head = accept('do'))) return;
-        assert('{');
+        if (!(head = lex.accept('do'))) return;
+        lex.assert('{');
         loopDepth++;
         var body = parseStatements('}');
         loopDepth--;
-        assert('}');
-        assert('while');
+        lex.assert('}');
+        lex.assert('while');
         var condition = parseExpression();
-        var end = assert(';');
+        var end = lex.assert(';');
         return node(
             'DoWhile',
             head.start,
@@ -317,21 +285,21 @@ module.exports = function Parser(tokenizer) {
     }
     function parseFor() {
         var head;
-        if (!(head = accept('for'))) return;
+        if (!(head = lex.accept('for'))) return;
         var assignment = parseAssignment();
         var condition = parseExpression();
-        assert(';');
+        lex.assert(';');
         var iteration;
-        if (peek().type !== '{') {
+        if (lex.peek().type !== '{') {
             iteration = parseAssignment();
         }
-        assert('{');
+        lex.assert('{');
         var end;
         var body;
         loopDepth++;
         body = parseStatements('}');
         loopDepth--;
-        end = assert('}');
+        end = lex.assert('}');
         return node(
             'For',
             head.start,
@@ -349,14 +317,14 @@ module.exports = function Parser(tokenizer) {
         if (type && (type.type !== 'Type' && type.type !== 'TypeMember')) {
             type = parseType(type);
             if (origType.type === 'func') {
-                assert(':');
+                lex.assert(':');
             }
         }
 
-        var identifier = assert('identifier');
-        assert('=');
+        var identifier = lex.assert('identifier');
+        lex.assert('=');
         var value = parseExpression();
-        var end = assert(';');
+        var end = lex.assert(';');
         return node(
             isConst ? 'ConstDeclaration' : 'Declaration',
             type ? type.start : start,
@@ -375,11 +343,11 @@ module.exports = function Parser(tokenizer) {
 
         if (!isExpression) {
             var expr = parseExpression(base);
-            expr.end = assert(';').end;
+            expr.end = lex.assert(';').end;
             return expr;
         }
 
-        assert('=');
+        lex.assert('=');
         var expression = parseExpression();
         return node(
             'Assignment',
@@ -390,7 +358,7 @@ module.exports = function Parser(tokenizer) {
     }
 
     function parseTypeCast(base) {
-        assert('as');
+        lex.assert('as');
         var type = parseType();
         return node(
             'TypeCast',
@@ -405,24 +373,24 @@ module.exports = function Parser(tokenizer) {
 
     function parseSignature(typed, endToken) {
         var params = [];
-        if (peek().type === endToken) return params;
+        if (lex.peek().type === endToken) return params;
         while (true) {
             if (typed) {
                 params.push(parseTypedIdentifier());
             } else {
                 params.push(parseExpression());
             }
-            if (peek().type === endToken) {
+            if (lex.peek().type === endToken) {
                 break;
             }
-            assert(',');
+            lex.assert(',');
         }
         return params;
     }
     function parseCall(base) {
-        assert('(');
+        lex.assert('(');
         var params = parseSignature(false, ')');
-        var end = assert(')');
+        var end = lex.assert(')');
         return node(
             'CallRaw',
             base.start,
@@ -434,8 +402,8 @@ module.exports = function Parser(tokenizer) {
         );
     }
     function parseMember(base) {
-        assert('.');
-        var child = assert('identifier');
+        lex.assert('.');
+        var child = lex.assert('identifier');
         return node(
             'Member',
             base.start,
@@ -494,7 +462,7 @@ module.exports = function Parser(tokenizer) {
         '>>': 'Binop',
     };
     function parseOperator(left, newPrec) {
-        var operator = pop();
+        var operator = lex.next();
         var precedence = newPrec;
         var right = parseExpression(null, precedence);
         return node(
@@ -510,9 +478,9 @@ module.exports = function Parser(tokenizer) {
     }
 
     function parseSubscript(base) {
-        assert('[');
+        lex.assert('[');
         var subscript = parseExpression();
-        var end = assert(']');
+        var end = lex.assert(']');
         return node(
             'Subscript',
             base.start,
@@ -529,9 +497,9 @@ module.exports = function Parser(tokenizer) {
         var content = [];
         do {
             content.push(parseExpression());
-        } while (accept(','));
+        } while (lex.accept(','));
 
-        endBracket = assert(']');
+        endBracket = lex.assert(']');
 
         return node(
             'TupleLiteral',
@@ -544,7 +512,7 @@ module.exports = function Parser(tokenizer) {
 
     function parseExpressionModifier(base, precedence) {
         var part;
-        var peeked = peek();
+        var peeked = lex.peek();
 
         switch (peeked.type) {
             case '=':
@@ -590,7 +558,7 @@ module.exports = function Parser(tokenizer) {
         return parseExpressionModifier(part, precedence);
     }
     function parseSymbol(base) {
-        base = base || assert('identifier');
+        base = base || lex.assert('identifier');
         return node(
             'Symbol',
             base.start,
@@ -607,7 +575,7 @@ module.exports = function Parser(tokenizer) {
             switch (base.type) {
                 case '(':
                     parsed = parseExpression();
-                    assert(')');
+                    lex.assert(')');
                     return parsed;
                 case '[:':
                     return parseTuple(base);
@@ -666,7 +634,7 @@ module.exports = function Parser(tokenizer) {
                 // Unary operators
                 case '!':
                 case '~':
-                    parsed = parseNext(pop(), 4);
+                    parsed = parseNext(lex.next(), 4);
                     return node(
                         'Unary',
                         base.start,
@@ -678,9 +646,9 @@ module.exports = function Parser(tokenizer) {
                     );
                 case 'new':
                     parsed = parseType();
-                    assert('(');
+                    lex.assert('(');
                     var params = parseSignature(false, ')');
-                    var closingParen = assert(')');
+                    var closingParen = lex.assert(')');
                     return node(
                         'New',
                         parsed.start,
@@ -704,7 +672,7 @@ module.exports = function Parser(tokenizer) {
             }
         }
         precedence = precedence || 0;
-        var next = parseNext(base || pop(), precedence);
+        var next = parseNext(base || lex.next(), precedence);
         var prev;
         do {
             prev = next;
@@ -714,27 +682,27 @@ module.exports = function Parser(tokenizer) {
     }
 
     function parseType(base, isAttribute) {
-        if (isAttribute && accept('null')) {
+        if (isAttribute && lex.accept('null')) {
             return null;
         }
 
-        var type = base || accept('func') || assert('identifier');
+        var type = base || lex.accept('func') || lex.assert('identifier');
         var typeEnd = type;
         var attributes = [];
 
         function parseAttributes() {
-            if (type.type !== 'null' && accept('<')) {
+            if (type.type !== 'null' && lex.accept('<')) {
                 do {
                     attributes.push(parseType(null, true));
-                } while (accept(','));
-                typeEnd = assert('>');
+                } while (lex.accept(','));
+                typeEnd = lex.assert('>');
             }
         }
         parseAttributes();
 
         var output;
 
-        if (!attributes.length && peek().type === '.') {
+        if (!attributes.length && lex.peek().type === '.') {
             output = node(
                 'Symbol',
                 type.start,
@@ -743,8 +711,8 @@ module.exports = function Parser(tokenizer) {
             );
 
             var member;
-            while (accept('.')) {
-                member = assert('identifier');
+            while (lex.accept('.')) {
+                member = lex.assert('identifier');
                 output = node(
                     'TypeMember',
                     output.start,
@@ -776,8 +744,8 @@ module.exports = function Parser(tokenizer) {
 
     function parseTypedIdentifier(base) {
         var type = parseType(base);
-        assert(':');
-        var ident = assert('identifier');
+        lex.assert(':');
+        var ident = lex.assert('identifier');
         return node(
             'TypedIdentifier',
             type.start,
@@ -792,7 +760,7 @@ module.exports = function Parser(tokenizer) {
 
         var peeked;
         var temp;
-        var base = accept('func');
+        var base = lex.accept('func');
         // If the first token is `func`, we've got two options:
         // - Variable declaration: func<foo>:bar = ...
         // - Function declaration: func foo:bar()...
@@ -801,7 +769,7 @@ module.exports = function Parser(tokenizer) {
             return parseFunctionDeclaration(base);
         }
 
-        peeked = peek();
+        peeked = lex.peek();
 
         // Another option is a paren, which allows its contents to be any valid
         // expression:
@@ -815,12 +783,12 @@ module.exports = function Parser(tokenizer) {
         // `var` and `const` are giveaways for a Declaration node.
         if (peeked.type === 'var' ||
             peeked.type === 'const') {
-            temp = pop();
+            temp = lex.next();
             return parseDeclaration(null, temp.start, temp.type === 'const');
         }
 
         // At this point, the only valid token is an identifier.
-        base = assert('identifier');
+        base = lex.assert('identifier');
 
         function convertStackToTypeMember(stack) {
             var bottomToken = stack.shift();
@@ -873,13 +841,13 @@ module.exports = function Parser(tokenizer) {
         }
 
         function accumulate(base) {
-            if (accept('.')) {
+            if (lex.accept('.')) {
                 // We're still accumulating a chain of identifiers into either
                 // a Member node or a TypeMember node for a TypedIdentifier.
-                base.push(assert('identifier'));
+                base.push(lex.assert('identifier'));
                 return accumulate(base);
             }
-            var peeked = peek();
+            var peeked = lex.peek();
             var temp;
             var semicolon;
             if (peeked.type === ':') {
@@ -889,7 +857,7 @@ module.exports = function Parser(tokenizer) {
                 } else {
                     temp = convertStackToTypeMember(base);
                 }
-                assert(':'); // for sanity and to pop
+                lex.assert(':'); // for sanity and to pop
                 return parseDeclaration(temp);
             } else if (peeked.type === '<') {
                 // We've encountered the attributes chunk of a typed identifier.
@@ -898,7 +866,7 @@ module.exports = function Parser(tokenizer) {
                 } else {
                     temp = parseType(convertStackToTypeMember(base));
                 }
-                assert(':'); // for sanity and to pop
+                lex.assert(':'); // for sanity and to pop
                 return parseDeclaration(temp);
             }
             if (peeked.type === '(' ||
@@ -910,7 +878,7 @@ module.exports = function Parser(tokenizer) {
                 //   foo[bar] = ...
                 temp = convertStackToMember(base);
                 temp = parseExpression(temp, 0);
-                semicolon = assert(';');
+                semicolon = lex.assert(';');
                 if (temp.type === 'CallRaw') {
                     temp = node(
                         'CallStatement',
@@ -926,22 +894,22 @@ module.exports = function Parser(tokenizer) {
                 //   foo.bar.zap = ...
                 temp = convertStackToMember(base);
                 temp = parseAssignment(true, temp);
-                semicolon = assert(';');
+                semicolon = lex.assert(';');
                 temp.end = semicolon.end;
                 return temp;
             }
-            throw new SyntaxError('Unexpected token "' + peek().text + '" near line ' + tokenizer.currentLine);
+            throw new SyntaxError('Unexpected token "' + lex.peek().text + '" near line ' + tokenizer.currentLine);
         }
         return accumulate([base]);
     }
 
     function parseBreak() {
         var stmt;
-        if (stmt = accept('break')) {
+        if (stmt = lex.accept('break')) {
             if (!loopDepth) {
                 throw new Error('Cannot use `break` when not within a loop');
             }
-            assert(';');
+            lex.assert(';');
             return node(
                 'Break',
                 stmt.start,
@@ -952,11 +920,11 @@ module.exports = function Parser(tokenizer) {
     }
     function parseContinue() {
         var stmt;
-        if (stmt = accept('continue')) {
+        if (stmt = lex.accept('continue')) {
             if (!loopDepth) {
                 throw new Error('Cannot use `continue` when not within a loop');
             }
-            assert(';');
+            lex.assert(';');
             return node(
                 'Continue',
                 stmt.start,
@@ -967,13 +935,13 @@ module.exports = function Parser(tokenizer) {
     }
 
     function parseOperatorStatement() {
-        var operator = accept('operator');
+        var operator = lex.accept('operator');
         if (!operator) return;
 
-        assert('(');
+        lex.assert('(');
         var left = parseTypedIdentifier();
         var binOp;
-        switch (peek().type) {
+        switch (lex.peek().type) {
             case '+':
             case '-':
             case '*':
@@ -992,21 +960,21 @@ module.exports = function Parser(tokenizer) {
             case '>=':
             case '==':
             case '!=':
-                binOp = pop().type;
+                binOp = lex.next().type;
                 break;
 
             default:
-                throw new Error('Overriding invalid operator: ' + peek().text);
+                throw new Error('Overriding invalid operator: ' + lex.peek().text);
         }
         var right = parseTypedIdentifier();
 
-        assert(')');
+        lex.assert(')');
 
         var returnType = parseType();
 
-        assert('{');
+        lex.assert('{');
         var body = parseStatements('}');
-        var endBrace = assert('}');
+        var endBrace = lex.assert('}');
 
         return node(
             'OperatorStatement',
@@ -1023,26 +991,26 @@ module.exports = function Parser(tokenizer) {
     }
 
     function parseObjectDeclaration() {
-        var obj = accept('object');
+        var obj = lex.accept('object');
         if (!obj) return;
 
-        var name = assert('identifier');
+        var name = lex.assert('identifier');
 
-        assert('{');
+        lex.assert('{');
 
         var constructor = null;
         var members = [];
         var methods = [];
         var attributes = [];
 
-        while (accept('with')) {
-            var attrIdent = assert('identifier').text;
+        while (lex.accept('with')) {
+            var attrIdent = lex.assert('identifier').text;
             if (attributes.indexOf(attrIdent) !== -1) {
                 throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
             }
 
             attributes.push(attrIdent);
-            assert(';');
+            lex.assert(';');
         }
 
         var peekedType;
@@ -1055,13 +1023,13 @@ module.exports = function Parser(tokenizer) {
         var methodSelfParam;
         var isPrivate;
         var isFinal;
-        while (!(endBrace = accept('}'))) {
+        while (!(endBrace = lex.accept('}'))) {
             methodSelfParam = null;
 
-            isPrivate = accept('private');
-            isFinal = accept('final');
+            isPrivate = lex.accept('private');
+            isFinal = lex.accept('final');
 
-            if (constructorBase = accept('new')) {
+            if (constructorBase = lex.accept('new')) {
 
                 if (isPrivate) {
                     throw new SyntaxError('Private constructors are not allowed');
@@ -1071,15 +1039,15 @@ module.exports = function Parser(tokenizer) {
                     throw new SyntaxError('Cannot have multiple constructors in the same object declaration');
                 }
 
-                assert('(');
+                lex.assert('(');
 
-                if (accept('[')) {
+                if (lex.accept('[')) {
                     methodSelfParam = parseTypedIdentifier();
-                    assert(']');
+                    lex.assert(']');
                 }
 
                 methodSignature = [];
-                if (methodSelfParam && accept(',') || !methodSelfParam) {
+                if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
                     methodSignature = parseSignature(true, ')');
                 }
                 methodSignature.unshift(methodSelfParam || node(
@@ -1100,10 +1068,10 @@ module.exports = function Parser(tokenizer) {
                     }
                 ));
 
-                assert(')');
-                assert('{');
+                lex.assert(')');
+                lex.assert('{');
                 methodBody = parseStatements('}');
-                endBrace = assert('}');
+                endBrace = lex.assert('}');
 
                 constructor = node(
                     'ObjectConstructor',
@@ -1129,9 +1097,9 @@ module.exports = function Parser(tokenizer) {
                 continue;
             }
 
-            peekedType = peek();
+            peekedType = lex.peek();
             memberType = parseSymbol();
-            if (peek().text === ':' || peek().text === '<') {
+            if (lex.peek().text === ':' || lex.peek().text === '<') {
                 memberType = parseTypedIdentifier(peekedType);
             }
             if (members.some(function(member) {return member.name === memberType.name;}) ||
@@ -1139,7 +1107,7 @@ module.exports = function Parser(tokenizer) {
                 throw new SyntaxError('Class "' + name.text + '" cannot declare "' + memberType.name + '" more than once.');
             }
 
-            if (memberType.type === 'TypedIdentifier' && accept(';')) {
+            if (memberType.type === 'TypedIdentifier' && lex.accept(';')) {
                 members.push(node(
                     'ObjectMember',
                     isPrivate ?
@@ -1157,14 +1125,14 @@ module.exports = function Parser(tokenizer) {
                     }
                 ));
                 continue;
-            } else if (accept('(')) {
-                if (accept('[')) {
+            } else if (lex.accept('(')) {
+                if (lex.accept('[')) {
                     methodSelfParam = parseTypedIdentifier();
-                    assert(']');
+                    lex.assert(']');
                 }
 
                 methodSignature = [];
-                if (methodSelfParam && accept(',') || !methodSelfParam) {
+                if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
                     methodSignature = parseSignature(true, ')');
                 }
                 methodSignature.unshift(methodSelfParam || node(
@@ -1185,10 +1153,10 @@ module.exports = function Parser(tokenizer) {
                     }
                 ));
 
-                endBrace = assert(')');
-                assert('{');
+                endBrace = lex.assert(')');
+                lex.assert('{');
                 methodBody = parseStatements('}');
-                methodEndBrace = assert('}');
+                methodEndBrace = lex.assert('}');
 
                 methods.push(node(
                     'ObjectMethod',
@@ -1219,7 +1187,7 @@ module.exports = function Parser(tokenizer) {
                 continue;
             }
 
-            throw new SyntaxError('Unknown token in class definition: ' + peek().text + ' near line ' + peek().line);
+            throw new SyntaxError('Unknown token in class definition: ' + lex.peek().text + ' near line ' + lex.peek().line);
 
         }
 
@@ -1257,14 +1225,14 @@ module.exports = function Parser(tokenizer) {
     function parseStatements(endTokens, isRoot) {
         endTokens = Array.isArray(endTokens) ? endTokens : [endTokens];
         var statements = [];
-        var temp = peek();
+        var temp = lex.peek();
         while (endTokens.indexOf(temp) === -1 &&
                (temp.type && endTokens.indexOf(temp.type) === -1)) {
             var statement = parseStatement(isRoot);
             if (!statement) {
                 throw new Error('Invalid statement');
             }
-            temp = peek();
+            temp = lex.peek();
             statements.push(statement);
         }
         return statements;

@@ -3,17 +3,17 @@ var assert = require('assert');
 var lexer = require('../src/lexer');
 
 
-function justTokens(tokenStream) {
+function justTokens(lex) {
     var token;
     var output = [];
-    while ((token = tokenStream()) !== 'EOF') {
+    while ((token = lex.next()) !== 'EOF') {
         output.push(token.text);
     }
     return output;
 }
 
 function tokensOfType(token, type) {
-    var token = lexer(token)();
+    var token = lexer(token).next();
     assert.equal(token.type, type);
 }
 
@@ -23,6 +23,59 @@ function matches(input) {
 }
 
 describe('Lexer', function() {
+
+    describe('peek()', function() {
+
+        it('should show the first matched token', function() {
+            var lex = lexer('true false false');
+            assert.equal(lex.peek().type, 'true');
+            assert.equal(lex.peek().type, 'true');
+            assert.equal(lex.peek().type, 'true');
+
+        });
+
+        it('should be cleared on next()', function() {
+            var lex = lexer('true false false');
+            assert.equal(lex.peek().type, 'true');
+            assert.equal(lex.next().type, 'true');
+            assert.equal(lex.peek().type, 'false');
+
+        });
+
+    });
+
+    describe('accept()', function() {
+
+        it('should accept the first matched token', function() {
+
+            var lex = lexer('true false false');
+            assert.equal(lex.accept('int'), null);
+            assert.equal(lex.accept('true').type, 'true');
+
+        });
+
+    });
+
+    describe('assert()', function() {
+
+        it('should return the first token if it matches', function() {
+
+            var lex = lexer('true false false');
+            assert.equal(lex.assert('true').type, 'true');
+
+        });
+
+        it('should return a syntax error if it does not match', function() {
+
+            var lex = lexer('true false false');
+            assert.throws(function() {
+                lex.assert('false');
+            }, /SyntaxError/);
+
+        });
+
+    });
+
     it('should tokenize most symbols', function() {
         matches('{ ( [ ] ) }');
         matches('+ - / * % == != <= >= = < >');

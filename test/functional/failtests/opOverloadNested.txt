@@ -1,1 +1,1 @@
-SyntaxError: Expected "identifier", got "operator" on line 2
+SyntaxError: Unexpected token "operator", expected "identifier" at line 2 near " (int:x + int:y) int"
