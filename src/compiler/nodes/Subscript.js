@@ -13,6 +13,17 @@ exports.substitute = function substitute(cb) {
 
 exports.getType = function getType(ctx) {
     var baseType = this.base.getType(ctx);
+    var subscriptType = this.subscript.getType(ctx);
+
+    // Support for subscript overloading
+    var temp;
+    if ((temp = ctx.env.registeredOperators[baseType.flatTypeName()]) &&
+        (temp = temp[subscriptType.flatTypeName()]) &&
+        (temp = temp['[]'])) {
+
+        return ctx.env.registeredOperatorReturns[temp];
+    }
+
     var index = null;
     if (this.subscript.type === 'Literal' &&
         this.subscript.litType === 'int') {
@@ -23,11 +34,19 @@ exports.getType = function getType(ctx) {
 
 exports.validateTypes = function validateTypes(ctx, parentNode) {
     var baseType = this.base.getType(ctx);
+    var subscriptType = this.subscript.getType(ctx);
+
+    // Don't perform any further type validation if the subscript is overloaded
+    var temp;
+    if ((temp = ctx.env.registeredOperators[baseType.flatTypeName()]) &&
+        (temp = temp[subscriptType.flatTypeName()]) &&
+        '[]' in temp) {
+        return;
+    }
+
     if (!baseType.isSubscriptable()) {
         throw new TypeError('Cannot subscript ' + this.toString());
     }
-
-    var subscriptType = this.subscript.getType(ctx);
 
     if (subscriptType._type !== 'primitive' ||
         subscriptType.typeName !== 'int') {

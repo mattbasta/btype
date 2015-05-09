@@ -3,7 +3,6 @@ var path = require('path');
 
 // var externalFuncs = require('../js/externalFuncs');
 var llvmTranslate = require('./translate');
-var postOptimizer = require('./postOptimizer');
 var traverser = require('../../traverser');
 
 var getLLVMType = require('./util').getLLVMType;

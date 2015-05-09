@@ -1,0 +1,16 @@
+object Subscriptable {
+    float:member;
+    new(float:member) {
+        self.member = member;
+    }
+}
+
+operator (Subscriptable:left[float:foo]) float {
+    return left.member * foo + 1.0;
+}
+
+func float:main() {
+    var testSub = new Subscriptable(3.0);
+    return testSub[4.0];
+}
+export main;

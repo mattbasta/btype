@@ -41,8 +41,6 @@ function _binop(env, ctx, prec) {
     var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
     var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
 
-
-
     var leftTypeRaw = this.left.getType(ctx);
     var rightTypeRaw = this.right.getType(ctx);
 
@@ -469,8 +467,22 @@ var NODES = {
     },
 
     Subscript: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, prec) + '[' +
-            _node(this.subscript, env, ctx, 1) + ']';
+        var baseType = this.base.getType(ctx);
+        var subscriptType = this.subscript.getType(ctx);
+
+        var baseOutput = _node(this.base, env, ctx, prec);
+        var subscriptOutput = _node(this.subscript, env, ctx, 1);
+
+        var temp;
+        if ((temp = env.registeredOperators[baseType.flatTypeName()]) &&
+            (temp = temp[subscriptType.flatTypeName()]) &&
+            '[]' in temp) {
+
+            var operatorStmtFunc = ctx.env.registeredOperators[baseType.flatTypeName()][subscriptType.flatTypeName()]['[]'];
+            return operatorStmtFunc + '(' + baseOutput + ',' + subscriptOutput + ')';
+        }
+
+        return baseOutput + '[' + subscriptOutput + ']';
     },
 
     TupleLiteral: function(env, ctx) {

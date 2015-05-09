@@ -22,13 +22,23 @@ exports.getType = function getType(ctx) {
 exports.validateTypes = function validateTypes(ctx) {
     this.left.validateTypes(ctx);
     this.right.validateTypes(ctx);
-    var left = this.left.getType(ctx);
-    var right = this.right.getType(ctx);
-    if (!left.equals(right)) {
-        throw new TypeError('Mismatched types in binop (' + this.operator + ' near char ' + this.start + '): ' + (left || 'null').toString() + ' != ' + (right || 'null').toString());
+
+    var leftType = this.left.getType(ctx);
+    var rightType = this.right.getType(ctx);
+
+    // Don't perform any further type validation if the operator is overloaded
+    var temp;
+    if ((temp = ctx.env.registeredOperators[leftType.toString()]) &&
+        (temp = temp[rightType.toString()]) &&
+        this.operator in temp) {
+        return;
     }
 
-    binop.checkBinopOperation.call(this, ctx, left, right);
+    if (!leftType.equals(rightType)) {
+        throw new TypeError('Mismatched types in binop (' + this.operator + ' near char ' + this.start + '): ' + (leftType || 'null').toString() + ' != ' + (rightType || 'null').toString());
+    }
+
+    binop.checkBinopOperation.call(this, ctx, leftType, rightType);
 };
 
 exports.toString = function toString() {

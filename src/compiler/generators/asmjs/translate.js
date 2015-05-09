@@ -710,6 +710,20 @@ var NODES = {
 
     Subscript: function(env, ctx, tctx, parent) {
         var baseType = this.base.getType(ctx);
+        var subscriptType = this.subscript.getType(ctx);
+
+        var temp;
+        if ((temp = env.registeredOperators[baseType.flatTypeName()]) &&
+            (temp = temp[subscriptType.flatTypeName()]) &&
+            '[]' in temp) {
+
+            var operatorStmtFunc = ctx.env.registeredOperators[baseType.flatTypeName()][subscriptType.flatTypeName()]['[]'];
+            return operatorStmtFunc + '(' +
+                _node(this.base, env, ctx, tctx) + ',' +
+                _node(this.subscript, env, ctx, tctx) + ')';
+        }
+
+
         if (baseType._type !== 'array' && baseType._type !== 'tuple') {
             throw new Error('Cannot subscript non-arrays in asmjs');
         }

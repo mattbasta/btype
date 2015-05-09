@@ -906,6 +906,9 @@ module.exports = function Parser(lex) {
 
         lex.assert('(');
         var left = parseTypedIdentifier();
+        if (lex.accept('[')) {
+            return parseOperatorStatementSubscript(operator, left);
+        }
         var binOp;
         switch (lex.peek().type) {
             case '+':
@@ -950,6 +953,31 @@ module.exports = function Parser(lex) {
                 left: left,
                 right: right,
                 operator: binOp,
+                body: body,
+                returnType: returnType,
+            }
+        );
+    }
+
+    function parseOperatorStatementSubscript(operator, left) {
+        var right = parseTypedIdentifier();
+        lex.assert(']');
+        lex.assert(')');
+
+        var returnType = parseType();
+
+        lex.assert('{');
+        var body = parseStatements('}');
+        var endBrace = lex.assert('}');
+
+        return node(
+            'OperatorStatement',
+            operator.start,
+            endBrace.end,
+            {
+                left: left,
+                right: right,
+                operator: '[]',
                 body: body,
                 returnType: returnType,
             }
