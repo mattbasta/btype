@@ -95,7 +95,10 @@ Struct.prototype.toString = function toString() {
 };
 
 Struct.prototype.flatTypeName = function flatTypeName() {
-    return 'struct$' + (this.__assignedName || this.typeName);
+    if (!this.__assignedName) {
+        throw new TypeError('Cannot get struct type (' + this.typeName + ') before assigned name is generated');
+    }
+    return 'struct$' + this.__assignedName;
 };
 
 Struct.prototype.hasMethod = function hasMethod(name) {

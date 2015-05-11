@@ -25,6 +25,7 @@ describe('Object declaration parser', function() {
                         attributes: [],
                         methods: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -45,6 +46,7 @@ describe('Object declaration parser', function() {
                         members: [],
                         methods: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -76,6 +78,7 @@ describe('Object declaration parser', function() {
                         )],
                         methods: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -107,6 +110,7 @@ describe('Object declaration parser', function() {
                         )],
                         methods: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -138,6 +142,7 @@ describe('Object declaration parser', function() {
                         )],
                         methods: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -169,6 +174,7 @@ describe('Object declaration parser', function() {
                         )],
                         methods: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -220,6 +226,7 @@ describe('Object declaration parser', function() {
                         )],
                         members: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -271,6 +278,7 @@ describe('Object declaration parser', function() {
                         )],
                         members: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -322,6 +330,7 @@ describe('Object declaration parser', function() {
                         )],
                         members: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -373,6 +382,7 @@ describe('Object declaration parser', function() {
                         )],
                         members: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -424,6 +434,7 @@ describe('Object declaration parser', function() {
                         )],
                         members: [],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])
@@ -466,6 +477,7 @@ describe('Object declaration parser', function() {
                                 isFinal: false,
                             }
                         ),
+                        operators: [],
                     }
                 )
             ])
@@ -508,6 +520,7 @@ describe('Object declaration parser', function() {
                                 isFinal: true,
                             }
                         ),
+                        operators: [],
                     }
                 )
             ])
@@ -550,6 +563,7 @@ describe('Object declaration parser', function() {
                                 isFinal: false,
                             }
                         ),
+                        operators: [],
                     }
                 )
             ])
@@ -612,6 +626,7 @@ describe('Object declaration parser', function() {
                             }
                         )],
                         objConstructor: null,
+                        operators: [],
                     }
                 )
             ])

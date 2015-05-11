@@ -50,3 +50,21 @@ exports.toString = function toString() {
         '    Body:\n' +
         indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'), 2);
 };
+
+exports.registerWithContext = function registerWithContext(ctx, rootCtx) {
+    // Remember the function in the function hierarchy.
+    rootCtx.functions.push(this);
+
+    // Mark the function as a variable containing a function type.
+    var assignedName = ctx.env.namer();
+    rootCtx.functionDeclarations[assignedName] = this;
+    rootCtx.isFuncMap[assignedName] = true;
+    this.__assignedName = assignedName;
+    this.__firstClass = false;
+
+    var newContext = new (require('../context').Context)(ctx.env, this, ctx);
+    // Add all the parameters of the nested function to the new scope.
+    this.left.__assignedName = newContext.addVar(this.left.name, this.left.getType(ctx));
+    this.right.__assignedName = newContext.addVar(this.right.name, this.right.getType(ctx));
+
+};

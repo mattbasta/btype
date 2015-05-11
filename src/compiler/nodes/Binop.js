@@ -28,8 +28,8 @@ exports.validateTypes = function validateTypes(ctx) {
 
     // Don't perform any further type validation if the operator is overloaded
     var temp;
-    if ((temp = ctx.env.registeredOperators[leftType.toString()]) &&
-        (temp = temp[rightType.toString()]) &&
+    if ((temp = ctx.env.registeredOperators[leftType.flatTypeName()]) &&
+        (temp = temp[rightType.flatTypeName()]) &&
         this.operator in temp) {
         return;
     }

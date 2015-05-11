@@ -70,7 +70,7 @@ exports.Consolelogbool = function(env) {
         '    br label %a',
         'f:',
         '    %ignoref = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([6 x i8]* @.str.false, i32 0, i32 0))',
-        '   br label %a',
+        '    br label %a',
         'a:',
         '    ret void',
         '}',

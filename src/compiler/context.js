@@ -3,6 +3,13 @@ var traverser = require('./traverser');
 var types = require('./types');
 
 
+/**
+ * @constructor
+ * @param {Environment} env
+ * @param {*} scope
+ * @param {Context|null} parent
+ * @param {boolean} [privileged]
+ */
 function Context(env, scope, parent, privileged) {
     // Null by default, since most contexts don't represent a file.
     this.filename = null;
@@ -62,7 +69,14 @@ function Context(env, scope, parent, privileged) {
     this.initializer = null;
 }
 
-Context.prototype.addVar = function(varName, type, assignedName) {
+/**
+ * Adds a variable to the context
+ * @param {string} varName
+ * @param {*} type
+ * @param {string} [assignedName]
+ * @return {string} The assigned name of the var
+ */
+Context.prototype.addVar = function addVar(varName, type, assignedName) {
     if (varName in this.nameMap) {
         throw new Error('Cannot redeclare symbol in context: ' + varName);
     }
@@ -72,7 +86,12 @@ Context.prototype.addVar = function(varName, type, assignedName) {
     return assignedName;
 };
 
-Context.prototype.lookupVar = function(varName) {
+/**
+ * Retrieves the name of the variable with the given name varName
+ * @param  {string} varName
+ * @return {string} The assigned name of the variable
+ */
+Context.prototype.lookupVar = function lookupVar(varName) {
     if (varName in this.nameMap) {
         return this;
     } else if (this.parent) {
@@ -82,7 +101,12 @@ Context.prototype.lookupVar = function(varName) {
     }
 };
 
-Context.prototype.lookupFunctionByName = function(assignedName) {
+/**
+ * Looks up the function declaration node with the assigned name assignedName
+ * @param  {string} assignedName
+ * @return {*|null}
+ */
+Context.prototype.lookupFunctionByName = function lookupFunctionByName(assignedName) {
     if (assignedName in this.functionDeclarations) {
         return this.functionDeclarations[assignedName];
     } else if (this.parent) {
@@ -91,21 +115,27 @@ Context.prototype.lookupFunctionByName = function(assignedName) {
     return null;
 };
 
-Context.prototype.registerPrototype = function(givenTypeName, type) {
+/**
+ * Registers an object declaration as a prototye
+ * @param  {string} givenTypeName
+ * @param  {*} type
+ * @return {void}
+ */
+Context.prototype.registerPrototype = function registerPrototype(givenTypeName, type) {
     if (this.prototypes.hasOwnProperty(givenTypeName)) {
         throw new TypeError('Cannot declare object more than once: ' + givenTypeName);
     }
     this.prototypes[givenTypeName] = type;
 };
 
-Context.prototype.registerType = function(givenTypeName, type, assignedName) {
+Context.prototype.registerType = function registerType(givenTypeName, type, assignedName) {
     assignedName = assignedName || this.env.namer();
     type.__assignedName = assignedName;
     this.typeNameMap[givenTypeName] = assignedName;
     this.env.registerType(assignedName, type, this);
 };
 
-Context.prototype.serializePrototypeName = function(name, attributes) {
+Context.prototype.serializePrototypeName = function serializePrototypeName(name, attributes) {
     return name + '<' + attributes.map(function(a) {
         // We don't need to recursively use serializePrototypeName because at
         // this point, the constructor would have already been built if the
@@ -114,51 +144,10 @@ Context.prototype.serializePrototypeName = function(name, attributes) {
     }).join(',') + '>';
 };
 
-Context.prototype.resolveType = function(typeName, attributes) {
+Context.prototype.resolveType = function resolveType(typeName, attributes) {
 
     if (this.prototypes.hasOwnProperty(typeName)) {
-        var serName = this.serializePrototypeName(typeName, attributes);
-        // If we've already seen the constructed version of this prototype,
-        // return it directly.
-        if (serName in this.constructedPrototypes) {
-            return this.constructedPrototypeTypes[serName];
-        }
-
-        // Create a new instance of the object declaration
-        var clonedProto = this.prototypes[typeName].clone();
-        clonedProto.__assignedName = this.env.namer();
-        // Rewrite the declaration to use the provided attributes
-        clonedProto.rewriteAttributes(attributes);
-        // Record a copy of the constructed declaration
-        this.constructedPrototypes[serName] = clonedProto;
-        // Record the incomplete type, which will get fully populated below.
-        this.constructedPrototypeTypes[serName] = clonedProto.getIncompleteType(this);
-
-        clonedProto.__isConstructed = true;
-
-        // Generate contexts for the declaration
-        var fakeRoot = new nodes.Root({
-            body: [clonedProto],
-        });
-        generateContext(this.env, fakeRoot, null, this, false);
-
-        // Mark each methods as having come from the cloned prototype.
-        // This is used for visibility testing.
-        if (clonedProto.objConstructor) {
-            clonedProto.objConstructor.base.__context.__basePrototype = clonedProto;
-        }
-        clonedProto.methods.forEach(function(mem) {
-            mem.base.__context.__basePrototype = clonedProto;
-        });
-
-        // Finally, get the type of the newly constructed declaration and
-        // register it for use.
-        var typeToRegister = clonedProto.getType(this);
-        typeToRegister.__assignedName = clonedProto.__assignedName;
-        this.env.registerType(typeToRegister.__assignedName, typeToRegister, this);
-        this.scope.body.push(clonedProto);
-
-        return typeToRegister;
+        return this.resolvePrototype(typeName, attributes);
     }
 
     if (typeName in this.typeNameMap) {
@@ -170,6 +159,50 @@ Context.prototype.resolveType = function(typeName, attributes) {
 
     // There are no primitives that use attributes.
     return types.resolve(typeName, this.privileged);
+};
+
+Context.prototype.resolvePrototype = function resolvePrototype(typeName, attributes) {
+    var serName = this.serializePrototypeName(typeName, attributes);
+    // If we've already seen the constructed version of this prototype,
+    // return it directly.
+    if (serName in this.constructedPrototypes) {
+        return this.constructedPrototypeTypes[serName];
+    }
+
+    // Create a new instance of the object declaration
+    var clonedProto = this.prototypes[typeName].clone();
+    clonedProto.__assignedName = this.env.namer();
+    // Rewrite the declaration to use the provided attributes
+    clonedProto.rewriteAttributes(attributes);
+    // Record a copy of the constructed declaration
+    this.constructedPrototypes[serName] = clonedProto;
+    // Record the incomplete type, which will get fully populated below.
+    this.constructedPrototypeTypes[serName] = clonedProto.getIncompleteType(this);
+
+    clonedProto.__isConstructed = true;
+
+    // Generate contexts for the declaration
+    var fakeRoot = new nodes.Root({body: [clonedProto]});
+    fakeRoot.__isConstructingPrototype = true;
+    generateContext(this.env, fakeRoot, null, this, false);
+
+    // Mark each methods as having come from the cloned prototype.
+    // This is used for visibility testing.
+    if (clonedProto.objConstructor) {
+        clonedProto.objConstructor.base.__context.__basePrototype = clonedProto;
+    }
+    clonedProto.methods.forEach(function(mem) {
+        mem.base.__context.__basePrototype = clonedProto;
+    });
+
+    // Finally, get the type of the newly constructed declaration and
+    // register it for use.
+    var typeToRegister = clonedProto.getType(this);
+    typeToRegister.__assignedName = clonedProto.__assignedName;
+    this.env.registerType(typeToRegister.__assignedName, typeToRegister, this);
+    this.scope.body.push(clonedProto);
+
+    return typeToRegister;
 };
 
 var generateContext = module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
@@ -249,27 +282,19 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
                 return false;
 
+            case 'ObjectOperatorStatement':
+                if (!tree.__isConstructingPrototype) {
+                    return false;
+                }
+
+                break;
 
             case 'OperatorStatement':
-                // Remember the function in the function hierarchy.
-                contexts[0].functions.push(node);
-
-                // Mark the function as a variable containing a function type.
-                assignedName = env.namer();
-                contexts[0].functionDeclarations[assignedName] = node;
-                contexts[0].isFuncMap[assignedName] = true;
-                node.__assignedName = assignedName;
-                node.__firstClass = false;
-
-                newContext = new Context(env, node, contexts[0]);
-                // Add all the parameters of the nested function to the new scope.
-                node.left.__assignedName = newContext.addVar(node.left.name, node.left.getType(newContext));
-                node.right.__assignedName = newContext.addVar(node.right.name, node.right.getType(newContext));
+                node.registerWithContext(contexts[0], contexts[0]);
 
                 innerFunctions[0].push(node);
                 operatorOverloads.push(node);
-
-                return false; // `false` to block the traverser from going deeper.
+                return false;
 
             case 'Symbol':
                 node.__refContext = contexts[0].lookupVar(node.name);
@@ -306,11 +331,6 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                 // We don't want to create contexts for the contents of an
                 // un-constructed object declaration.
                 return false;
-
-                // var objType = node.getType(contexts[0]);
-                // contexts[0].registerType(node.name, objType);
-                // node.__assignedName = objType.__assignedName;
-                // return;
 
         }
     }
@@ -408,7 +428,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
     function traverseOperatorOverloads() {
         if (!operatorOverloads.length) return;
-        operatorOverloads.forEach(function(node) {
+        operatorOverloads.forEach(function traverseOperatorOverloadsIter(node) {
             var leftType = node.left.getType(node.__context).flatTypeName();
             if (!(leftType in env.registeredOperators)) env.registeredOperators[leftType] = {};
             var rightType = node.right.getType(node.__context).flatTypeName();

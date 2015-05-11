@@ -14,107 +14,111 @@ object complex {
     complex:conjugate() {
         return new complex(self.real, self.imag * -1);
     }
+
+    # Addition
+
+    operator (complex:left + complex:right) complex {
+        return new complex(
+            left.real + right.real,
+            left.imag + right.imag
+        );
+    }
+
+    operator (complex:left + int:right) complex {
+        return new complex(left.real + right as float, left.imag);
+    }
+
+    operator (int:left + complex:right) complex {
+        return new complex(right.real + left as float, right.imag);
+    }
+
+    operator (complex:left + float:right) complex {
+        return new complex(left.real + right, left.imag);
+    }
+
+    operator (float:left + complex:right) complex {
+        return new complex(right.real + left, right.imag);
+    }
+
+    # Subtraction
+
+    operator (complex:left - complex:right) complex {
+        return new complex(
+            left.real - right.real,
+            left.imag - right.imag
+        );
+    }
+
+    operator (complex:left - int:right) complex {
+        return new complex(left.real - right as float, left.imag);
+    }
+
+    operator (int:left - complex:right) complex {
+        return new complex(left as float - right.real, -1 * right.imag);
+    }
+
+    operator (complex:left - float:right) complex {
+        return new complex(left.real - right, left.imag);
+    }
+
+    operator (float:left - complex:right) complex {
+        return new complex(left - right.real, -1 * right.imag);
+    }
+
+    # Multiplication
+
+    operator (complex:left * complex:right) complex {
+        return new complex(
+            left.real * right.real - left.imag * right.imag,
+            left.real * right.imag + left.imag * right.real
+        );
+    }
+
+    operator (complex:left * int:right) complex {
+        var rightFloat = right as float;
+        return new complex(left.real * rightAsFloat, left.imag * rightAsFloat);
+    }
+
+    operator (int:left * complex:right) complex {
+        var leftFloat = left as float;
+        return new complex(leftAsFloat * right.real, leftAsFloat * right.imag);
+    }
+
+    operator (complex:left * float:right) complex {
+        return new complex(left.real * right, left.imag * right);
+    }
+
+    operator (float:left * complex:right) complex {
+        return new complex(left * right.real, left * right.imag);
+    }
+
+    # Division
+
+    operator (complex:left / complex:right) complex {
+        var div = right.real * right.real + right.imag * right.imag;
+        return new complex(
+            (left.real * right.real + left.imag * right.imag) / div,
+            (left.imag * right.real - left.real * right.imag) / div
+        );
+    }
+
+    operator (complex:left / int:right) complex {
+        var rightFloat = right as float;
+        return new complex(left.real / rightAsFloat, left.imag / rightAsFloat);
+    }
+
+    operator (int:left / complex:right) complex {
+        var leftFloat = left as float;
+        return new complex(leftAsFloat / right.real, leftAsFloat / right.imag);
+    }
+
+    operator (complex:left / float:right) complex {
+        return new complex(left.real / right, left.imag / right);
+    }
+
+    operator (float:left / complex:right) complex {
+        return new complex(left / right.real, left / right.imag);
+    }
+
 }
 export complex;
-
-
-operator (complex:left + complex:right) complex {
-    return new complex(
-        left.real + right.real,
-        left.imag + right.imag
-    );
-}
-
-operator (complex:left + int:right) complex {
-    return new complex(left.real + right as float, left.imag);
-}
-
-operator (int:left + complex:right) complex {
-    return new complex(right.real + left as float, right.imag);
-}
-
-operator (complex:left + float:right) complex {
-    return new complex(left.real + right, left.imag);
-}
-
-operator (float:left + complex:right) complex {
-    return new complex(right.real + left, right.imag);
-}
-
-
-operator (complex:left - complex:right) complex {
-    return new complex(
-        left.real - right.real,
-        left.imag - right.imag
-    );
-}
-
-operator (complex:left - int:right) complex {
-    return new complex(left.real - right as float, left.imag);
-}
-
-operator (int:left - complex:right) complex {
-    return new complex(left as float - right.real, -1 * right.imag);
-}
-
-operator (complex:left - float:right) complex {
-    return new complex(left.real - right, left.imag);
-}
-
-operator (float:left - complex:right) complex {
-    return new complex(left - right.real, -1 * right.imag);
-}
-
-
-operator (complex:left * complex:right) complex {
-    return new complex(
-        left.real * right.real - left.imag * right.imag,
-        left.real * right.imag + left.imag * right.real
-    );
-}
-
-operator (complex:left * int:right) complex {
-    var rightFloat = right as float;
-    return new complex(left.real * rightAsFloat, left.imag * rightAsFloat);
-}
-
-operator (int:left * complex:right) complex {
-    var leftFloat = left as float;
-    return new complex(leftAsFloat * right.real, leftAsFloat * right.imag);
-}
-
-operator (complex:left * float:right) complex {
-    return new complex(left.real * right, left.imag * right);
-}
-
-operator (float:left * complex:right) complex {
-    return new complex(left * right.real, left * right.imag);
-}
-
-
-
-operator (complex:left / complex:right) complex {
-    var div = right.real * right.real + right.imag * right.imag;
-    return new complex(
-        (left.real * right.real + left.imag * right.imag) / div,
-        (left.imag * right.real - left.real * right.imag) / div
-    );
-}
-
-operator (complex:left / int:right) complex {
-    var rightFloat = right as float;
-    return new complex(left.real / rightAsFloat, left.imag / rightAsFloat);
-}
-
-operator (int:left / complex:right) complex {
-    var leftFloat = left as float;
-    return new complex(leftAsFloat / right.real, leftAsFloat / right.imag);
-}
-
-operator (complex:left / float:right) complex {
-    return new complex(left.real / right, left.imag / right);
-}
-
-operator (float:left / complex:right) complex {
-    return new complex(left / right.real, left / right.imag);
-}

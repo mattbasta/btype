@@ -10,6 +10,9 @@ exports.traverse = function traverse(cb) {
     this.methods.forEach(function traverseObjectDeclMethods(stmt) {
         cb(stmt, 'methods');
     });
+    this.operators.forEach(function traverseObjectDeclOperators(stmt) {
+        cb(stmt, 'operator');
+    });
     if (this.objConstructor) cb(this.objConstructor, 'objConstructor');
 };
 

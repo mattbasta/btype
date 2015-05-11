@@ -32,6 +32,7 @@ var NODES = {
     ObjectDeclaration: require('./nodes/ObjectDeclaration'),
     ObjectMember: require('./nodes/ObjectMember'),
     ObjectMethod: require('./nodes/ObjectMethod'),
+    ObjectOperatorStatement: require('./nodes/ObjectOperatorStatement'),
     OperatorStatement: require('./nodes/OperatorStatement'),
     Return: require('./nodes/Return'),
     Subscript: require('./nodes/Subscript'),
