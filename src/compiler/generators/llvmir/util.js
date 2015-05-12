@@ -1,8 +1,18 @@
+/**
+ * Converts an internal name to an LLVM IR-friendly name
+ * @param  {string} assignedName The assigned name to convert
+ * @return {string}
+ */
 var makeName = exports.makeName = function makeName(assignedName) {
     assignedName = assignedName.replace(/_/g, '.');
     return assignedName.replace(/\$/g, '_');
 };
 
+/**
+ * Converts a type to the type name used to identify the type in LLVM IR
+ * @param  {*} type The type to convert
+ * @return {string}
+ */
 var getLLVMType = exports.getLLVMType = function getLLVMType(type) {
     if (!type) {
         return 'void';
@@ -33,6 +43,11 @@ var getLLVMType = exports.getLLVMType = function getLLVMType(type) {
     return '%' + makeName(type.flatTypeName()) + '*';
 };
 
+/**
+ * Returns the byte alignment for a given type
+ * @param  {*} type
+ * @return {int}
+ */
 exports.getAlignment = function getAlignment(type) {
     if (type._type === 'primitive') {
         return type.getSize();
@@ -43,6 +58,12 @@ exports.getAlignment = function getAlignment(type) {
     return 8;
 };
 
+/**
+ * Returns the function signature of a function with a provided type
+ * @param  {*} type The function type
+ * @param  {bool} [noSelf] Whether to include the `self` param
+ * @return {string}
+ */
 exports.getFunctionSignature = function getFunctionSignature(type, noSelf) {
     var out = type.returnType ? getLLVMType(type.returnType) : 'void';
     out += ' (';
