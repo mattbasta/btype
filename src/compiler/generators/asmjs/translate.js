@@ -1,6 +1,5 @@
-var types = require('../../types');
-
 var TranslationContext = require('./TranslationContext');
+var types = require('../../types');
 
 
 var HEAP_MODIFIERS = {
@@ -391,23 +390,6 @@ var NODES = {
         });
         tctx.pop();
         tctx.write('}');
-    },
-    Switch: function(env, ctx, tctx) {
-        tctx.write('switch (' + _node(this.condition, env, ctx, tctx) + ') {');
-        tctx.push();
-        this.cases.forEach(function(x) {
-            _node(x, env, ctx, tctx);
-        });
-        tctx.pop();
-        tctx.write('}');
-    },
-    Case: function(env, ctx, tctx) {
-        tctx.write('case ' + _node(this.value, env, ctx, tctx) + ':');
-        tctx.push();
-        this.body.forEach(function(x) {
-            _node(x, env, ctx, tctx);
-        });
-        tctx.pop();
     },
     If: function(env, ctx, tctx) {
         tctx.write('if (' + _node(this.condition, env, ctx, tctx) + ') {');

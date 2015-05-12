@@ -1,12 +1,10 @@
-var types = require('../../types');
-
 var externalFuncs = require('./externalFuncs');
-
 var getAlignment = require('./util').getAlignment;
 var getFunctionSignature = require('./util').getFunctionSignature;
 var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
 var TranslationContext = require('./TranslationContext');
+var types = require('../../types');
 
 
 function _binop(env, ctx, tctx) {
@@ -656,10 +654,6 @@ var NODES = {
         tctx.writeLabel(afterLbl);
         tctx.popLoop();
     },
-    Switch: function(env, ctx, tctx) {
-        throw new Error('Not Implemented: switch');
-    },
-    Case: function() {},
     If: function(env, ctx, tctx) {
         var condition = _node(this.condition, env, ctx, tctx);
 

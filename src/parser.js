@@ -5,16 +5,23 @@ function node(name, start, end, args) {
     return new (nodes[name])(start, end, args);
 }
 
+/**
+ * Turns an encoded string into its text content
+ * @param  {string} input
+ * @return {string}
+ */
 function parseString(input) {
     var stripped = input.substring(1, input.length - 1);
 
-    return stripped.replace(/\\\w/gi, function(_, b) {
+    return stripped.replace(/\\(\w|\\)/gi, function(_, b) {
         switch (b) {
-            case 'r': return '\r';
-            case 'n': return '\n';
-            case 't': return '\t';
-            case '0': return '\0';
-            case '\\': return '\\';
+            case '\\r': return '\r';
+            case '\\n': return '\n';
+            case '\\t': return '\t';
+            case '\\0': return '\0';
+            case '\\\\': return '\\';
+            default:
+                throw new SyntaxError('Invalid escape code: ' + b);
         }
     });
 }

@@ -1,45 +1,11 @@
+var TranslationContext = require('./TranslationContext');
 var types = require('../../types');
 
 
-var OP_PREC = {
-    '*': 5,
-    '/': 5,
-    '%': 5,
-
-    '+': 6,
-    '-': 6,
-
-    '<<': 7,
-    '>>': 7,
-
-    '<': 8,
-    '<=': 8,
-    '>': 8,
-    '>=': 8,
-
-    '==': 9,
-    '!=': 9,
-
-    '&': 10,
-    '^': 11,
-    '|': 12,
-
-    'and': 13,
-    'or': 14,
-};
-
-function trimSemicolon(inp) {
-    inp = inp.trim();
-    if (inp[inp.length - 1] === ';') {
-        inp = inp.substr(0, inp.length - 1);
-    }
-    return inp;
-}
-
-function _binop(env, ctx, prec) {
+function _binop(env, ctx, tctx) {
     var out;
-    var left = _node(this.left, env, ctx, OP_PREC[this.operator]);
-    var right = _node(this.right, env, ctx, OP_PREC[this.operator]);
+    var left = _node(this.left, env, ctx, tctx);
+    var right = _node(this.right, env, ctx, tctx);
 
     var leftTypeRaw = this.left.getType(ctx);
     var rightTypeRaw = this.right.getType(ctx);
@@ -56,8 +22,6 @@ function _binop(env, ctx, prec) {
             return operatorStmtFunc + '(' + left + ',' + right + ')';
         }
     }
-
-    var oPrec = OP_PREC[this.operator] || 13;
 
     switch (this.operator) {
         case 'and':
@@ -78,7 +42,6 @@ function _binop(env, ctx, prec) {
                     env.__globalPrefix += 'var imul = stdlib.Math.imul;\n';
                 }
                 out = 'imul(' + left + ', ' + right + ')';
-                oPrec = 18;
                 break;
             }
         case '/':
@@ -87,7 +50,6 @@ function _binop(env, ctx, prec) {
                 this.right.getType(ctx) === types.publicTypes.int) {
 
                 out = '(' + left + ' / ' + right + ' | 0)';
-                oPrec = 18;
                 break;
             }
         default:
@@ -102,18 +64,19 @@ function _node(node, env, ctx, prec) {
 }
 
 var NODES = {
-    Root: function(env, ctx) {
+    Root: function(env, ctx, tctx) {
         env.__globalPrefix = '';
-        var output = this.body.map(function(stmt) {
-            return _node(stmt, env, ctx, 0);
-        }).join('\n');
-        output = env.__globalPrefix + output;
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        if (env.__globalPrefix) {
+            tctx.prepend(env.__globalPrefix);
+        }
         delete env.__globalPrefix;
-        return output;
     },
-    Unary: function(env, ctx, prec) {
+    Unary: function(env, ctx, tctx) {
         // Precedence here will always be 4.
-        var out = _node(this.base, env, ctx, 4);
+        var out = _node(this.base, env, ctx, tctx);
         out = this.operator + '(' + out + ')';
         return out;
     },
@@ -121,31 +84,29 @@ var NODES = {
     EqualityBinop: _binop,
     RelativeBinop: _binop,
     Binop: _binop,
-    CallStatement: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 0);
+    CallStatement: function(env, ctx, tctx) {
+        tctx.write(_node(this.base, env, ctx, tctx) + ';');
     },
-    CallRaw: function(env, ctx, prec) {
-        return _node(this.callee, env, ctx, 1) + '(/* CallRaw */' +
+    CallRaw: function(env, ctx, tctx) {
+        return _node(this.callee, env, ctx, tctx) + '(/* CallRaw */' +
             this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
+                return _node(param, env, ctx, tctx);
             }).join(',') +
-            ')' +
-            (!prec ? ';' : '');
+            ')';
     },
-    CallDecl: function(env, ctx, prec) {
-        return _node(this.callee, env, ctx, 1) +
+    CallDecl: function(env, ctx, tctx) {
+        return _node(this.callee, env, ctx, tctx) +
             '(/* CallDecl */' +
             this.params.map(function(param) {
-                return _node(param, env, ctx, 18);
+                return _node(param, env, ctx, tctx);
             }).join(',') +
-            ')' +
-            (!prec ? ';' : '');
+            ')';
     },
-    CallRef: function(env, ctx, prec) {
+    CallRef: function(env, ctx, tctx) {
         var funcType = this.callee.getType(ctx);
 
         var paramList = this.params.map(function(param) {
-            return _node(param, env, ctx, 18);
+            return _node(param, env, ctx, tctx);
         }).join(',');
 
         var temp;
@@ -154,28 +115,27 @@ var NODES = {
             temp.hasMethod(this.callee.child)) {
 
             return temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, 18) + (paramList ? ', ' : '') + paramList + ')';
+                _node(this.callee.base, env, ctx, tctx) + (paramList ? ', ' : '') + paramList + ')';
         }
 
-        return _node(this.callee, env, ctx, 1) +
-            '(/* CallRef */' + paramList + ')' +
-            (!prec ? ';' : '');
+        return _node(this.callee, env, ctx, tctx) +
+            '(/* CallRef */' + paramList + ')';
     },
-    FunctionReference: function(env, ctx, prec) {
+    FunctionReference: function(env, ctx, tctx) {
         if (!this.ctx) {
             // If there is no context, it means it's just a root global or
             // needs no context.
-            return _node(this.base, env, ctx, 1);
+            return _node(this.base, env, ctx, tctx);
         }
 
-        var ctx = _node(this.ctx, env, ctx);
+        var ctx = _node(this.ctx, env, ctx, tctx);
         if (ctx === '0') {
-            return _node(this.base, env, ctx, 1);
+            return _node(this.base, env, ctx, tctx);
         }
         // TODO: optimize this by adding the function prototype directly
-        return '(function($$ctx) {return ' + _node(this.base, env, ctx, 1) + '.apply(null, Array.prototype.slice.call(arguments, 1).concat([$$ctx]))}.bind(null, ' + _node(this.ctx, env, ctx) + '))';
+        return '(function($$ctx) {return ' + _node(this.base, env, ctx, tctx) + '.apply(null, Array.prototype.slice.call(arguments, 1).concat([$$ctx]))}.bind(null, ' + _node(this.ctx, env, ctx, tctx) + '))';
     },
-    Member: function(env, ctx, prec) {
+    Member: function(env, ctx, tctx) {
         var baseType = this.base.getType(ctx);
         if (baseType._type === 'module') {
             return baseType.memberMapping[this.child];
@@ -190,7 +150,7 @@ var NODES = {
             }
             return 'foreign.' + this.child;
         } else {
-            base = _node(this.base, env, ctx, 1);
+            base = _node(this.base, env, ctx, tctx);
         }
 
         if (baseType._type === '_foreign_curry') {
@@ -198,7 +158,7 @@ var NODES = {
         }
 
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
-            return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, 1) + ')';
+            return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, tctx) + ')';
         }
 
         if (baseType._type === 'string' || baseType._type === 'array') {
@@ -210,10 +170,10 @@ var NODES = {
 
         return base + '.' + this.child;
     },
-    Assignment: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, 1) + ' = ' + _node(this.value, env, ctx, 1) + ';';
+    Assignment: function(env, ctx, tctx) {
+        tctx.write(_node(this.base, env, ctx, tctx) + ' = ' + _node(this.value, env, ctx, tctx) + ';');
     },
-    Declaration: function(env, ctx, prec) {
+    Declaration: function(env, ctx, tctx) {
         var type = this.value.getType(ctx);
         var output = 'var ' + this.__assignedName + ' = ';
 
@@ -230,109 +190,127 @@ var NODES = {
         }
         output += def + ';\n';
 
-        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, 17) + ';';
-        return output;
+        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, tctx) + ';';
+        tctx.write(output);
     },
     ConstDeclaration: function() {
         return NODES.Declaration.apply(this, arguments);
     },
-    Return: function(env, ctx, prec) {
+    Return: function(env, ctx, tctx) {
         if (!this.value) {
             if (ctx.scope.__objectSpecial === 'constructor') {
-                return 'return ' + ctx.scope.params[0].__assignedName + ';';
+                tctx.write('return ' + ctx.scope.params[0].__assignedName + ';');
+                return;
             }
-            return 'return;';
+            tctx.write('return;');
+            return;
         }
-        return 'return ' + _node(this.value, env, ctx, 1) + ';';
+        tctx.write('return ' + _node(this.value, env, ctx, tctx) + ';');
     },
-    Export: function() {return '';},
-    Import: function() {return '';},
-    For: function(env, ctx, prec) {
-        return 'for (' +
-            _node(this.assignment, env, ctx, 0) +
-            _node(this.condition, env, ctx, 0) + ';' +
-            trimSemicolon(this.iteration ? _node(this.iteration, env, ctx, 1) : '') +
-            ') {' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    Export: function() {},
+    Import: function() {},
+    For: function(env, ctx, tctx) {
+        tctx.write('for (');
+
+        tctx.push();
+        _node(this.assignment, env, ctx, tctx);
+        tctx.write(_node(this.condition, env, ctx, tctx) + ';');
+        _node(this.iteration, env, ctx, tctx);
+        tctx.trimSemicolon();
+        tctx.pop();
+
+        tctx.write(') {');
+
+        tctx.push();
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.pop();
+
+        tctx.write('}');
     },
-    DoWhile: function(env, ctx, prec) {
-        return 'do {' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '} while (' +
-            _node(this.condition, env, ctx, 0) +
-            ');';
+    DoWhile: function(env, ctx, tctx) {
+        tctx.write('do {');
+
+        tctx.push();
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.pop();
+
+        tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + ');');
     },
-    While: function(env, ctx, prec) {
-        return 'while (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    While: function(env, ctx, tctx) {
+        tctx.write('while (' + _node(this.condition, env, ctx, tctx) + ') {');
+
+        tctx.push();
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.pop();
+
+        tctx.write('}');
     },
-    Switch: function(env, ctx, prec) {
-        return 'switch (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.cases.map(function(_case) {
-                return _node(_case, env, ctx, 0);
-            }).join('\n') +
-            '}';
+    If: function(env, ctx, tctx) {
+        tctx.write('if (' + _node(this.condition, env, ctx, tctx) + ') {');
+
+        tctx.push();
+        this.consequent.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.pop();
+
+        if (this.alternate) {
+            tctx.write('} else {');
+            tctx.push();
+            this.alternate.forEach(function(stmt) {
+                _node(stmt, env, ctx, tctx);
+            });
+            tctx.pop();
+        }
+        tctx.write('}');
     },
-    Case: function(env, ctx, prec) {
-        return 'case ' +
-            _node(this.value, env, ctx, 0) +
-            ';\n' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n');
-            // TODO: force a break until break is supported?
-    },
-    If: function(env, ctx, prec) {
-        return 'if (' +
-            _node(this.condition, env, ctx, 0) +
-            ') {' +
-            this.consequent.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') +
-            '}' +
-            (this.alternate ? ' else {' + this.alternate.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') + '}' : '');
-    },
-    Function: function(env, ctx, prec) {
+    Function: function(env, ctx, tctx) {
         var context = this.__context;
-        var output = 'function ' + this.__assignedName + '(' +
-            this.params.map(function(param) {
-                return _node(param, env, context, 1);
-            }).join(',') + ') {\n' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, context, 0);
-            }).join('\n');
+
+        tctx.write('function ' + this.__assignedName + '(');
+        tctx.push();
+        tctx.write(this.params.map(function(param) {
+            return _node(param, env, context, tctx);
+        }).join(','));
+        tctx.pop();
+        tctx.write(') {');
+
+        tctx.push();
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
 
         if (this.__objectSpecial === 'constructor') {
-            output += 'return ' + this.params[0].__assignedName + ';';
+            tctx.write('return ' + this.params[0].__assignedName + ';');
         }
 
-        output += '\n}';
-        return output;
+        tctx.pop();
+
+        tctx.write('}');
     },
-    OperatorStatement: function(env, ctx, prec) {
-        return 'function ' + this.__assignedName + '(' +
-            _node(this.left, env, ctx, 1) + ', ' +
-            _node(this.right, env, ctx, 1) + ') {\n' +
-            this.body.map(function(stmt) {
-                return _node(stmt, env, ctx, 0);
-            }).join('\n') + '\n}';
+    OperatorStatement: function(env, ctx, tctx) {
+        tctx.write('function ' + this.__assignedName + '(');
+        tctx.push();
+        tctx.write(_node(this.left, env, ctx, tctx) + ', ' + _node(this.right, env, ctx, tctx));
+        tctx.pop();
+        tctx.write(') {');
+
+        tctx.push();
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+        tctx.pop();
+
+        tctx.write('}');
     },
-    Type: function() {return '';},
-    TypedIdentifier: function(env, ctx, prec) {
+    Type: function() {},
+    TypedIdentifier: function() {
         return this.__assignedName;
     },
     Literal: function(env) {
@@ -348,12 +326,12 @@ var NODES = {
     Symbol: function() {
         return this.__refName;
     },
-    New: function(env, ctx) {
+    New: function(env, ctx, tctx) {
         var type = this.getType(ctx);
 
         // TODO: Consider making this use typed arrays for primitives
         if (type._type === 'array') {
-            var arrLength = _node(this.params[0], env, ctx, 1);
+            var arrLength = _node(this.params[0], env, ctx, tctx);
             if (type.contentsType._type === 'primitive') {
                 switch (type.contentsType.typeName) {
                     case 'float': return 'new Float64Array(' + arrLength + ')';
@@ -370,7 +348,7 @@ var NODES = {
 
         if (type instanceof types.Struct && type.objConstructor) {
             output += '(' + this.params.map(function(param) {
-                return _node(param, env, ctx, 1);
+                return _node(param, env, ctx, tctx);
             }).join(', ') + ')';
         } else {
             output += '()';
@@ -379,44 +357,38 @@ var NODES = {
         return output;
     },
 
-    Break: function() {
-        return 'break;';
+    Break: function(env, ctx, tctx) {
+        tctx.write('break;');
     },
-    Continue: function() {
-        return 'continue;';
+    Continue: function(env, ctx, tctx) {
+        tctx.write('continue;');
     },
 
-    ObjectDeclaration: function(env, ctx) {
+    ObjectDeclaration: function(env, ctx, tctx) {
         if (!this.__isConstructed) return;
-        var output = '';
 
         if (this.objConstructor) {
-            output = _node(this.objConstructor, env, ctx, 0) + '\n';
+            _node(this.objConstructor, env, ctx, tctx);
         }
 
-        output += this.methods.map(function(method) {
-            return _node(method, env, ctx, 0);
-        }).join('\n');
-
-        return output;
+        this.methods.forEach(function(method) {
+            _node(method, env, ctx, tctx);
+        });
     },
-    ObjectMember: function() {
-        return '';
+    ObjectMember: function() {},
+    ObjectMethod: function(env, ctx, tctx) {
+        return _node(this.base, env, ctx, tctx);
     },
-    ObjectMethod: function(env, ctx, prec) {
-        return _node(this.base, env, ctx, prec);
-    },
-    ObjectConstructor: function(env, ctx, prec) {
+    ObjectConstructor: function() {
         // Constructors are merged with the JS constructor in `typeTranslate`
         // in the JS generate module.
-        return '';
     },
 
-    TypeCast: function(env, ctx, prec) {
+    TypeCast: function(env, ctx, tctx) {
         var baseType = this.left.getType(ctx);
         var targetType = this.rightType.getType(ctx);
 
-        var base = _node(this.left, env, ctx, 1);
+        var base = _node(this.left, env, ctx, tctx);
         if (baseType.equals(targetType)) return base;
 
         switch (baseType.typeName) {
@@ -466,12 +438,12 @@ var NODES = {
 
     },
 
-    Subscript: function(env, ctx, prec) {
+    Subscript: function(env, ctx, tctx) {
         var baseType = this.base.getType(ctx);
         var subscriptType = this.subscript.getType(ctx);
 
-        var baseOutput = _node(this.base, env, ctx, prec);
-        var subscriptOutput = _node(this.subscript, env, ctx, 1);
+        var baseOutput = _node(this.base, env, ctx, tctx);
+        var subscriptOutput = _node(this.subscript, env, ctx, tctx);
 
         var temp;
         if ((temp = env.registeredOperators[baseType.flatTypeName()]) &&
@@ -485,8 +457,10 @@ var NODES = {
         return baseOutput + '[' + subscriptOutput + ']';
     },
 
-    TupleLiteral: function(env, ctx) {
-        return '[' + this.content.map(function(x) {return _node(x, env, ctx, 1);}).join(',') + ']';
+    TupleLiteral: function(env, ctx, tctx) {
+        return '[' + this.content.map(function(x) {
+            return _node(x, env, ctx, tctx);
+        }).join(',') + ']';
     },
 
     SwitchType: function(env, ctx, tctx) {
@@ -508,5 +482,7 @@ var NODES = {
 };
 
 module.exports = function translateJS(ctx) {
-    return _node(ctx.scope, ctx.env, ctx, 0);
+    var tctx = new TranslationContext(ctx.env, ctx);
+    _node(ctx.scope, ctx.env, ctx, tctx);
+    return tctx.toString();
 };
