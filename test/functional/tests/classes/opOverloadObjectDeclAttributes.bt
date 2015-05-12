@@ -1,0 +1,24 @@
+object Foo {
+    with T;
+
+    T:x;
+
+    new(T:x) {
+        self.x = x;
+    }
+
+    operator (Foo<T>:left + T:right) Foo {
+        return new Foo<T>(left.x + right);
+    }
+}
+
+func int:main() {
+    var a1 = new Foo<int>(10);
+    var a2 = new Foo<float>(10.0);
+
+    var b1 = a1 + 5;
+    var b2 = a2 + 5.0;
+
+    return b1.x + (b2.x as int);
+}
+export main;

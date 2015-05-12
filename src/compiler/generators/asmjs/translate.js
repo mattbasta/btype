@@ -1,45 +1,7 @@
 var types = require('../../types');
 
+var TranslationContext = require('./TranslationContext');
 
-function TranslationContext(env, ctx) {
-    this.env = env;
-    this.ctx = ctx;
-
-    this.outputStack = [''];
-    this.countStack = [0];
-    this.indentation = '';
-
-    this.uniqCounter = 0;
-
-    this.push = function() {
-        this.outputStack.unshift('');
-        this.countStack.unshift(this.countStack[0]);
-        this.indentation += '    ';
-    };
-
-    this.pop = function() {
-        var popped = this.outputStack.shift();
-        this.outputStack[0] += popped;
-        this.countStack.shift();
-        this.indentation = this.indentation.substr(4);
-    };
-
-    this.write = function(data, noIndent) {
-        this.outputStack[0] += (noIndent ? '' : this.indentation) + data + '\n';
-    };
-
-    this.prepend = function(data, noIndent) {
-        this.outputStack[0] = (noIndent ? '' : this.indentation) + data + '\n' + this.outputStack[0];
-    };
-
-    this.toString = function() {
-        if (this.outputStack.length > 1) {
-            throw new Error('Leaking output in asm.js generator');
-        }
-        return this.outputStack[0];
-    };
-
-}
 
 var HEAP_MODIFIERS = {
     memheap: '>>0',
@@ -766,6 +728,23 @@ var NODES = {
                 return typeAnnotation(_node(c, env, ctx, tctx), type.contentsTypeArr[i]);
             }).join(',') +
             ')|0)';
+    },
+
+    SwitchType: function(env, ctx, tctx) {
+        var type = this.expr.getType(ctx);
+        for (i = 0; i < this.cases.length; i++) {
+            if (!this.cases[i].getType(ctx).equals(type)) {
+                continue;
+            }
+            _node(this.cases[i], env, ctx, tctx);
+            return;
+        }
+    },
+
+    SwitchTypeCase: function(env, ctx, tctx) {
+        this.body.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
     },
 
 };

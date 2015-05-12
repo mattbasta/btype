@@ -136,35 +136,35 @@ export SQRT2;
 
 #@ TODO: See if we can use the native min/max functions here
 func float:min(float:x, float:y) {
-    if (y < x) return y;
+    if y < x { return y; }
     return x;
 }
 export min;
 func float:max(float:x, float:y) {
-    if (y > x) return y;
+    if y > x { return y; }
     return x;
 }
 export max;
 func float:bound(float:i, float:min, float:max) {
-    if (i < min) return min;
-    if (i > max) return max;
+    if i < min { return min; }
+    if i > max { return max; }
     return i;
 }
 export bound;
 
 func int:imin(int:x, int:y) {
-    if (y < x) return y;
+    if y < x { return y; }
     return x;
 }
 export imin;
 func int:imax(int:x, int:y) {
-    if (y > x) return y;
+    if y > x { return y; }
     return x;
 }
 export imax;
 func int:ibound(int:i, int:min, int:max) {
-    if (i < min) return min;
-    if (i > max) return max;
+    if i < min { return min; }
+    if i > max { return max; }
     return i;
 }
 export ibound;

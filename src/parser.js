@@ -1232,6 +1232,70 @@ function parseObjectDeclaration(lex) {
     );
 }
 
+/**
+ * Parses a `switchtype` statement
+ * @param  {Lexer} lex
+ * @return {SwitchType}
+ */
+function parseSwitchType(lex) {
+    var start = lex.accept('switchtype');
+    if (!start) {
+        return null;
+    }
+
+    var expr = parseExpression(lex);
+    lex.assert('{');
+
+    var case_;
+    var cases = [];
+    var end;
+    do {
+        case_ = parseSwitchTypeCase(lex);
+        cases.push(case_);
+    } while (!(end = lex.accept('}')));
+
+    return node(
+        'SwitchType',
+        start.start,
+        end.end,
+        {
+            expr: expr,
+            cases: cases,
+        }
+    );
+}
+
+/**
+ * Parses a SwitchType's case statement
+ * @param  {Lexer}
+ * @return {SwitchTypeCase}
+ */
+function parseSwitchTypeCase(lex) {
+    var start = lex.assert('case');
+    var type = parseType(lex);
+    lex.assert('{');
+
+    var body = parseStatements(lex, '}', false);
+
+    var end = lex.assert('}');
+
+    return node(
+        'SwitchTypeCase',
+        start.start,
+        end.end,
+        {
+            caseType: type,
+            body: body,
+        }
+    );
+}
+
+/**
+ * Parses a single statement
+ * @param  {Lexer} lex
+ * @param  {bool}
+ * @return {*}
+ */
 function parseStatement(lex, isRoot) {
     return parseFunctionDeclaration(lex) ||
            isRoot && parseOperatorStatement(lex) ||
@@ -1240,6 +1304,7 @@ function parseStatement(lex, isRoot) {
            parseReturn(lex) ||
            isRoot && parseExport(lex) ||
            isRoot && parseImport(lex) ||
+           parseSwitchType(lex) ||
            parseWhile(lex) ||
            parseDoWhile(lex) ||
            parseFor(lex) ||
@@ -1248,6 +1313,13 @@ function parseStatement(lex, isRoot) {
            parseExpressionBase(lex);
 }
 
+/**
+ * Parses an array of statements
+ * @param  {Lexer} lex
+ * @param  {string|string[]} endTokens
+ * @param  {bool} isRoot
+ * @return {array}
+ */
 function parseStatements(lex, endTokens, isRoot) {
     endTokens = Array.isArray(endTokens) ? endTokens : [endTokens];
     var statements = [];

@@ -47,7 +47,6 @@ var TOKENS = [
     [/^~/, '~'],
 
     // Reserved Words
-    [/^case(?!\w)/, 'reserved'],
     [/^catch(?!\w)/, 'reserved'],
     [/^default(?!\w)/, 'reserved'],
     [/^enum(?!\w)/, 'reserved'],
@@ -61,7 +60,6 @@ var TOKENS = [
     [/^static(?!\w)/, 'reserved'],
     [/^super(?!\w)/, 'reserved'],
     [/^switch(?!\w)/, 'switch'],
-    [/^switchtype(?!\w)/, 'reserved'],
     [/^try(?!\w)/, 'reserved'],
     [/^typedef(?!\w)/, 'reserved'],
     [/^unittest(?!\w)/, 'reserved'],
@@ -71,6 +69,7 @@ var TOKENS = [
     [/^and(?!\w)/, 'and'], // binary and
     [/^as(?!\w)/, 'as'], // typecasting
     [/^break(?!\w)/, 'break'], // loop break
+    [/^case(?!\w)/, 'case'],
     [/^const(?!\w)/, 'const'], // constant variable declarations
     [/^continue(?!\w)/, 'continue'], // loop continue
     [/^do(?!\w)/, 'do'], // do loop
@@ -90,6 +89,7 @@ var TOKENS = [
     [/^or(?!\w)/, 'or'], // binary or
     [/^private(?!\w)/, 'private'], // member/method visibility
     [/^return(?!\w)/, 'return'],
+    [/^switchtype(?!\w)/, 'switchtype'],
     [/^true(?!\w)/, 'true'],
     [/^var(?!\w)/, 'var'], // type inference declaration
     [/^while(?!\w)/, 'while'], // while loop

@@ -1,0 +1,9 @@
+func int:main() {
+    var x = 3;
+    switchtype x {
+        case int { return x + 1; }
+        case float { return x + 1.0; }
+        case sfloat { return x + 1.0s; }
+    }
+}
+export main;

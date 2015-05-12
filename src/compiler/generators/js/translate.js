@@ -489,6 +489,22 @@ var NODES = {
         return '[' + this.content.map(function(x) {return _node(x, env, ctx, 1);}).join(',') + ']';
     },
 
+    SwitchType: function(env, ctx, tctx) {
+        var type = this.expr.getType(ctx);
+        for (i = 0; i < this.cases.length; i++) {
+            if (!this.cases[i].getType(ctx).equals(type)) {
+                continue;
+            }
+            return _node(this.cases[i], env, ctx, tctx);
+        }
+    },
+
+    SwitchTypeCase: function(env, ctx, tctx) {
+        return this.body.map(function(x) {
+            return _node(x, env, ctx, tctx);
+        }).join('\n');
+    },
+
 };
 
 module.exports = function translateJS(ctx) {

@@ -1103,7 +1103,24 @@ var NODES = {
         });
 
         return ptrReg;
-    }
+    },
+
+    SwitchType: function(env, ctx, tctx) {
+        var type = this.expr.getType(ctx);
+        for (i = 0; i < this.cases.length; i++) {
+            if (!this.cases[i].getType(ctx).equals(type)) {
+                continue;
+            }
+            _node(this.cases[i], env, ctx, tctx);
+            return;
+        }
+    },
+
+    SwitchTypeCase: function(env, ctx, tctx) {
+        this.body.forEach(function(x) {
+            _node(x, env, ctx, tctx);
+        });
+    },
 };
 
 module.exports = function translate(ctx) {
