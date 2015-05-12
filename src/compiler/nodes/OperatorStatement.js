@@ -8,7 +8,7 @@ exports.traverse = function traverse(cb) {
     cb(this.left, 'left');
     cb(this.right, 'right');
     cb(this.returnType, 'returnType');
-    this.body.forEach(function(stmt) {
+    this.body.forEach(function operatorStmtBodyTraverser(stmt) {
         cb(stmt, 'body');
     });
 };
@@ -44,7 +44,7 @@ exports.validateTypes = function validateTypes() {
 };
 
 exports.toString = function toString() {
-    return 'Operator(' + this.operator + '): ' + this.returnType.toString() + '\n' +
+    return 'Operator:' + this.__assignedName + '(' + this.operator + '): ' + this.returnType.toString() + '\n' +
         '    Left: ' + this.left.toString() + '\n' +
         '    Right: ' + this.right.toString() + '\n' +
         '    Body:\n' +
@@ -56,7 +56,7 @@ exports.registerWithContext = function registerWithContext(ctx, rootCtx) {
     rootCtx.functions.push(this);
 
     // Mark the function as a variable containing a function type.
-    var assignedName = ctx.env.namer();
+    var assignedName = this.__assignedName || ctx.env.namer();
     rootCtx.functionDeclarations[assignedName] = this;
     rootCtx.isFuncMap[assignedName] = true;
     this.__assignedName = assignedName;
@@ -67,4 +67,5 @@ exports.registerWithContext = function registerWithContext(ctx, rootCtx) {
     this.left.__assignedName = newContext.addVar(this.left.name, this.left.getType(ctx));
     this.right.__assignedName = newContext.addVar(this.right.name, this.right.getType(ctx));
 
+    this.__context = newContext;
 };

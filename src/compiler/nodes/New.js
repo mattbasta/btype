@@ -3,9 +3,10 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse(cb) {
-    if (this.newType && this.newType.type)
+    if (this.newType && this.newType.type) {
         cb(this.newType);
-    this.params.forEach(function(param) {
+    }
+    this.params.forEach(function newParamTraverser(param) {
         cb(param, 'params');
     });
 };

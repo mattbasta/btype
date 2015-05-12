@@ -94,6 +94,7 @@ describe('Parity tests', function() {
                             tree: parsed,
                             format: 'llvmir'
                         });
+                        // console.log(compiled);
                     } catch (e) {
                         done(e);
                         return;

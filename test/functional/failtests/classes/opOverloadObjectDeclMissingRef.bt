@@ -1,0 +1,9 @@
+object Foo {
+    int:x;
+    operator (float:left + int:right) Foo {
+        return new Foo((left as int) + right);
+    }
+}
+
+func main() {}
+export main;

@@ -147,12 +147,14 @@ Context.prototype.serializePrototypeName = function serializePrototypeName(name,
 Context.prototype.resolveType = function resolveType(typeName, attributes) {
 
     if (this.prototypes.hasOwnProperty(typeName)) {
-        return this.resolvePrototype(typeName, attributes);
+        var resolved = this.resolvePrototype(typeName, attributes);
+        return resolved;
     }
 
     if (typeName in this.typeNameMap) {
         return this.env.typeMap[this.typeNameMap[typeName]];
     }
+
     if (this.parent) {
         return this.parent.resolveType(typeName, attributes);
     }
@@ -183,7 +185,6 @@ Context.prototype.resolvePrototype = function resolvePrototype(typeName, attribu
 
     // Generate contexts for the declaration
     var fakeRoot = new nodes.Root({body: [clonedProto]});
-    fakeRoot.__isConstructingPrototype = true;
     generateContext(this.env, fakeRoot, null, this, false);
 
     // Mark each methods as having come from the cloned prototype.
@@ -213,7 +214,6 @@ var generateContext = module.exports = function generateContext(env, tree, filen
         }
     }
     var contexts = [rootContext];
-    var newContext;
 
     // This is used to keep track of nested functions so that they can be
     // processed after each context has been completely defined. This allows
@@ -226,6 +226,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
     function preTraverseContext(node) {
         if (!node) return false;
         var assignedName;
+        var newContext;
 
         node.__context = contexts[0];
         switch (node.type) {
@@ -282,17 +283,10 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
                 return false;
 
-            case 'ObjectOperatorStatement':
-                if (!tree.__isConstructingPrototype) {
+            case 'OperatorStatement':
+                if (operatorOverloads.indexOf(node) !== -1) {
                     return false;
                 }
-
-                break;
-
-            case 'OperatorStatement':
-                node.registerWithContext(contexts[0], contexts[0]);
-
-                innerFunctions[0].push(node);
                 operatorOverloads.push(node);
                 return false;
 
@@ -308,7 +302,6 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                     contexts[0].accessesGlobalScope = true;
 
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
-
                     // Ignore calls from a nested function to itself (recursion)
                     if (node.__isFunc && node.__refName === contexts[0].scope.__assignedName) return;
 
@@ -317,10 +310,9 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                     for (var i = 0; i < contexts.length && contexts[i] !== node.__refContext; i++) {
                         contexts[i].accessesLexicalScope = true;
                         contexts[i].lexicalLookups[node.__refName] = node.__refContext;
-
                     }
-
                 }
+
                 return;
 
             case 'ObjectDeclaration':
@@ -417,7 +409,6 @@ var generateContext = module.exports = function generateContext(env, tree, filen
     function doTraverse(tree) {
         innerFunctions.unshift([]);
         traverser.traverse(tree, preTraverseContext, postTraverseContext);
-        traverseOperatorOverloads();
         innerFunctions.shift().forEach(function contextInnerFunctionIterator(node) {
             contexts.unshift(node.__context);
             doTraverse(node);
@@ -426,26 +417,43 @@ var generateContext = module.exports = function generateContext(env, tree, filen
     }
     doTraverse(tree);
 
-    function traverseOperatorOverloads() {
-        if (!operatorOverloads.length) return;
-        operatorOverloads.forEach(function traverseOperatorOverloadsIter(node) {
-            var leftType = node.left.getType(node.__context).flatTypeName();
-            if (!(leftType in env.registeredOperators)) env.registeredOperators[leftType] = {};
-            var rightType = node.right.getType(node.__context).flatTypeName();
-            if (!(rightType in env.registeredOperators[leftType])) env.registeredOperators[leftType][rightType] = {};
+    operatorOverloads.forEach(registerOperatorOverload);
 
-            if (env.registeredOperators[leftType][rightType][node.operator]) {
-                throw new Error('Cannot redeclare operator overload for ' +
-                    '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
-            }
+    function registerOperatorOverload(node) {
+        var leftType = node.left.getType(rootContext).flatTypeName();
+        if (!(leftType in rootContext.env.registeredOperators)) {
+            rootContext.env.registeredOperators[leftType] = {};
+        }
+        var rightType = node.right.getType(rootContext).flatTypeName();
+        if (!(rightType in rootContext.env.registeredOperators[leftType])) {
+            rootContext.env.registeredOperators[leftType][rightType] = {};
+        }
 
-            env.registeredOperators[leftType][rightType][node.operator] = node.__assignedName;
-            env.registeredOperatorReturns[node.__assignedName] = node.returnType.getType(contexts[0]);
-        });
-        operatorOverloads = [];
+        if (rootContext.env.registeredOperators[leftType][rightType][node.operator]) {
+            throw new Error('Cannot redeclare operator overload for ' +
+                '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
+        }
+
+        node.__assignedName = rootContext.env.namer();
+
+        rootContext.env.registeredOperators[leftType][rightType][node.operator] = node.__assignedName;
+        rootContext.env.registeredOperatorReturns[node.__assignedName] = node.returnType.getType(rootContext);
+
+        node.registerWithContext(node.__context, rootContext);
+
+        contexts.unshift(node.__context);
+        doTraverse(node);
+        contexts.shift();
+
+        // TODO: Find a way to do this implicitly. It's only done because
+        // sometimes the node gets output twice.
+        if (rootContext.scope.body.indexOf(node) === -1) {
+            rootContext.scope.body.push(node);
+        }
     }
 
     return rootContext;
 };
+
 
 module.exports.Context = Context;

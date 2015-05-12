@@ -1,0 +1,18 @@
+object Foo {
+    int:x;
+
+    new(int:x) {
+        self.x = x;
+    }
+
+    operator (Foo:left + int:right) Foo {
+        return new Foo(left.x + right);
+    }
+}
+
+func int:main() {
+    var a = new Foo(10);
+    var b = a + 5;
+    return b.x;
+}
+export main;

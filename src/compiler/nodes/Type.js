@@ -19,28 +19,38 @@ exports.getType = function getType(ctx) {
     }
 
     if (this.name === 'func') {
-        return this.__type = new types.Func(
+        this.__type = new types.Func(
             this.attributes[0] && this.attributes[0].getType(ctx),
             this.attributes.slice(1).map(function(attribute) {
                 return attribute.getType(ctx);
             })
         );
     } else if (this.name === 'array') {
-        return this.__type = new types.Array(this.attributes[0].getType(ctx));
+        this.__type = new types.Array(this.attributes[0].getType(ctx));
     } else if (this.name === 'tuple') {
-        return this.__type = new types.Tuple(this.attributes.map(function(t) {return t.getType(ctx);}));
+        this.__type = new types.Tuple(this.attributes.map(function(t) {return t.getType(ctx);}));
+    } else {
+        this.__type = ctx.resolveType(
+            this.name,
+            this.attributes.map(function(a) {
+                return a.getType(ctx);
+            }
+        ));
     }
 
-    return this.__type = ctx.resolveType(
-        this.name,
-        this.attributes.map(function(a) {
-            return a.getType(ctx);
-        }
-    ));
+    return this.__type;
+
 };
 
 exports.validateTypes = function validateTypes() {};
 
 exports.toString = function toString() {
-    return '<' + this.name + (this.attributes.length ? '; ' + this.attributes.map(function(attribute) {return attribute ? attribute.toString() : 'null';}).join(', ') : '') + '>';
+    return '<' + this.name +
+        (this.__type ? ':' + (this.__type.__assignedName || 'unassigned') : '') +
+        (this.attributes.length ?
+            '; ' + this.attributes.map(function(attribute) {
+                return attribute ? attribute.toString() : 'null';
+            }).join(', ') :
+            '') +
+        '>';
 };

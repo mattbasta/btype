@@ -31,7 +31,10 @@ exports.getIncompleteType = function getIncompleteType(ctx) {
     if (this.__incompleteType) return this.__incompleteType;
 
     var mapping = this.__typeMapping = this.__typeMapping || {};
-    return this.__incompleteType = new types.Struct(this.name, mapping);
+    var incompleteType = new types.Struct(this.name, mapping);
+    incompleteType.__assignedName = this.__assignedName;
+    this.__incompleteType = incompleteType;
+    return incompleteType;
 };
 
 exports.getType = function getType(ctx) {
@@ -108,7 +111,7 @@ exports.rewriteAttributes = function rewriteAttributes(attributes) {
     }
 
     var me = this;
-    require('../traverser').traverse(this, function(node) {
+    require('../traverser').traverse(this, function attributeRewriteTraverser(node) {
         if (node.type !== 'Type') return;
 
         var idx;
