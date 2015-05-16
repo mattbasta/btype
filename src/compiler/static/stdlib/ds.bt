@@ -5,8 +5,7 @@
 #@ performance.
 
 
-object LinkedList {
-    with T;
+object LinkedList<T> {
 
     GenericDLLNode<LinkedList<T>, T>:front; # Reference to the front node
     GenericDLLNode<LinkedList<T>, T>:back; # Reference to the back node
@@ -202,15 +201,13 @@ object LinkedList {
 export LinkedList;
 
 
-object Vector {
+object Vector<T> {
     #@ This is a vanilla implementation of a vector. It does not inherently
     #@ perform any special CPU vectorization optimizations (SIMD, etc.), but it
     #@ does provide a means of creating a growable array.
     #@
     #@ Vectors can contain `null` values for non-primitive types, but they
     #@ cannot holes. That is, there cannot be an "undefined" value in a vector.
-
-    with T;
 
     int:growthFactor;
     array<T>:body;
@@ -420,8 +417,7 @@ object Vector {
 
 }
 
-object SplayTree {
-    with T;
+object SplayTree<T> {
 
     GenericBinTreeNode<SplayTree<T>, T>:root;
     int:size;
@@ -455,11 +451,8 @@ object SplayTree {
 }
 
 
-object GenericDLLNode {
+object GenericDLLNode<Parent, T> {
     #@ This is a generic linked list node. It supports doubly-linked lists.
-
-    with Parent;
-    with T;
 
     Parent:parent;
     GenericDLLNode<Parent, T>:next;
@@ -474,12 +467,9 @@ object GenericDLLNode {
 }
 
 
-object GenericBinTreeNode {
+object GenericBinTreeNode<Host, T> {
     #@ This is a generic binary tree node. It supports most kinds of binary
     #@ data structures, such as binary trees, splay trees, etc.
-
-    with Host;
-    with T;
 
     Host:host;
     GenericDLLNode<Host, T>:parent;

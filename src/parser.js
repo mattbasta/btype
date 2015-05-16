@@ -1009,12 +1009,29 @@ function parseObjectDeclaration(lex) {
 
     var name = lex.assert('identifier');
 
+    var attributes = [];
+    var attrIdent;
+    if (lex.accept('<')) {
+        while (true) {
+            attrIdent = lex.assert('identifier').text;
+            if (attributes.indexOf(attrIdent) !== -1) {
+                throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
+            }
+
+            attributes.push(attrIdent);
+
+            if (lex.accept('>')) {
+                break;
+            }
+            lex.assert(',');
+        }
+    }
+
     lex.assert('{');
 
     var constructor = null;
     var members = [];
     var methods = [];
-    var attributes = [];
     var operatorStatements = [];
 
     while (lex.accept('with')) {

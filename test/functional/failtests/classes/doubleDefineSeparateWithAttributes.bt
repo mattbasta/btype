@@ -1,5 +1,5 @@
-object Foo {with X;}
-object Foo {with Y;}
+object Foo<X> {}
+object Foo<Y> {}
 
 func main() {}
 export main;

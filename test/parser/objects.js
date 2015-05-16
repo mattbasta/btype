@@ -34,12 +34,12 @@ describe('Object declaration parser', function() {
 
     it('should parse attributes', function() {
         compareTree(
-            'object foo {with x; with y;}',
+            'object foo<x, y> {}',
             _root([
                 node(
                     'ObjectDeclaration',
                     0,
-                    28,
+                    19,
                     {
                         name: 'foo',
                         attributes: ['x', 'y'],

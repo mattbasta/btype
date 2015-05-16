@@ -65,6 +65,7 @@ var TOKENS = [
     [/^try(?!\w)/, 'reserved'],
     [/^typedef(?!\w)/, 'reserved'],
     [/^unittest(?!\w)/, 'reserved'],
+    [/^with(?!\w)/, 'reserved'],
     [/^yield(?!\w)/, 'reserved'],
 
     // Keywords
@@ -95,7 +96,6 @@ var TOKENS = [
     [/^true(?!\w)/, 'true'],
     [/^var(?!\w)/, 'var'], // type inference declaration
     [/^while(?!\w)/, 'while'], // while loop
-    [/^with(?!\w)/, 'with'], // type generics
 
     [/^[a-zA-Z_][\w_]*/, 'identifier'],
 ];

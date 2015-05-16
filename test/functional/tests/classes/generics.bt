@@ -1,5 +1,4 @@
-object Adder {
-    with X;
+object Adder<X> {
 
     X:base;
 

@@ -1,6 +1,4 @@
-object Foo {
-    with x;
-
+object Foo<x> {
     x<abc>:bar; # x cannot have attributes
 }
 

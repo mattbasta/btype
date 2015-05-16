@@ -1,5 +1,4 @@
-object LinkedList {
-    with T;
+object LinkedList<T> {
 
     LinkedListNode<T>:first;
     LinkedListNode<T>:last;
@@ -33,8 +32,7 @@ object LinkedList {
 }
 
 
-object LinkedListNode {
-    with T;
+object LinkedListNode<T> {
 
     LinkedList<T>:parent;
     LinkedListNode<T>:next;

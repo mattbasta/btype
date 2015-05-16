@@ -1,6 +1,4 @@
-object Foo {
-    with T;
-
+object Foo<T> {
     T:x;
 
     new(T:x) {

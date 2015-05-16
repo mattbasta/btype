@@ -1,7 +1,4 @@
-object Foo {
-    with x;
-    with y;
-    with x;
+object Foo<x, y, x> {
 }
 
 func main() {}
