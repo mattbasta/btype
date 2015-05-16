@@ -1,0 +1,30 @@
+import math;
+
+object Foo<T> {
+
+    T:val;
+
+    new(T:val) {
+        self.val = val;
+    }
+
+    T:getPositive() {
+        switchtype self.val {
+            case int {
+                return math.iabs(self.val);
+            }
+            case float {
+                return math.fabs(self.val);
+            }
+            case sfloat {
+                return math.fabs(self.val as float) as sfloat;
+            }
+        }
+    }
+}
+
+func int:main() {
+    var x = new Foo<int>(-25);
+    return x.getPositive();
+}
+export main;

@@ -3,6 +3,7 @@ var getAlignment = require('./util').getAlignment;
 var getFunctionSignature = require('./util').getFunctionSignature;
 var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
+var stdlibFuncs = require('./stdlibFuncs');
 var TranslationContext = require('./TranslationContext');
 var types = require('../../types');
 
@@ -189,6 +190,7 @@ var NODES = {
     Root: function(env, ctx, tctx) {
         env.__globalPrefix = '';
         env.__foreignRequested = {};
+        env.__stdlibRequested = {};
         env.__arrayTypes = {};
         env.__tupleTypes = {};
         env.__funcrefTypes = {};
@@ -444,15 +446,12 @@ var NODES = {
         }
 
         if (baseType._type === '_stdlib') {
-            throw new Error('Not Implemented: stdlib');
-            var stdlibName = baseType.name + '.' + this.child;
-            if (stdlibName in env.__stdlibRequested) {
-                return env.__stdlibRequested[stdlibName];
+            var stdlibName = 'stdlib.' + baseType.name + '.' + this.child;
+            if (!(stdlibName in env.__stdlibRequested)) {
+                env.__stdlibRequested[stdlibName] = true;
+                env.__globalPrefix += stdlibFuncs[stdlibName](env);
             }
-            var stdlibAssignedName = env.namer();
-            env.__globalPrefix += 'var ' + stdlibAssignedName + ' = stdlib.' + stdlibName + ';\n';
-            env.__stdlibRequested[stdlibName] = stdlibAssignedName;
-            return stdlibAssignedName;
+            return '@' + stdlibName;
         }
 
         if (baseType._type === '_foreign') {

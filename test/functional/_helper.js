@@ -115,7 +115,7 @@ describe('Parity tests', function() {
 
                     function runLLI() {
                         var cp = child_process.exec(
-                            path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S | lli',
+                            path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S -O1 | lli',
                             function(err, stdout, stderr) {
                                 if (err) {
                                     failedLLI++;
@@ -131,7 +131,12 @@ describe('Parity tests', function() {
                             }
                         );
 
+                        cp.stdin.write(getRunnable(read));
+                        cp.stdin.end();
 
+                    }
+
+                    function getRunnable(read) {
                         var parsed = parser(lexer(read));
                         var env = compiler.buildEnv({filename: 'test', tree: parsed});
                         var mainFunc = env.requested.exports.main;
@@ -151,9 +156,7 @@ describe('Parity tests', function() {
                                 break;
                         }
 
-                        cp.stdin.write(raw);
-                        cp.stdin.end();
-
+                        return raw;
                     }
 
                 });
