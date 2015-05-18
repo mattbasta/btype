@@ -17,7 +17,6 @@ var MathRaw = [
     'func float:exp(float:i) {}',
     'func float:log(float:i) {}',
     'func float:sqrt(float:i) {}',
-    'func float:hypot(float:a, float:b) {}',
     'func float:atan2(float:y, float:x) {}',
     'func float:pow(float:y, float:x) {}',
 ].join('\n');

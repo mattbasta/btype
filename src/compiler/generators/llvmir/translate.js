@@ -447,10 +447,7 @@ var NODES = {
 
         if (baseType._type === '_stdlib') {
             var stdlibName = 'stdlib.' + baseType.name + '.' + this.child;
-            if (!(stdlibName in env.__stdlibRequested)) {
-                env.__stdlibRequested[stdlibName] = true;
-                env.__globalPrefix += stdlibFuncs[stdlibName](env);
-            }
+            stdlibFuncs.registerFunc(env, stdlibName);
             return '@' + stdlibName;
         }
 

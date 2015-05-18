@@ -8,8 +8,14 @@ function include(env, func) {
     }
 
     env.__stdlibRequested[func] = true;
-    env.__globalPrefix += exports[func](env);
+    var val = exports[func](env);
+    env.__globalPrefix += val;
 }
+
+exports.registerFunc = function registerFunc(env, funcName) {
+    include(env, funcName);
+};
+
 
 exports['stdlib.Math.abs'] = function fabs(env) {
     return [
@@ -126,20 +132,6 @@ exports['stdlib.Math.floor'] = function floor(env) {
         '    %0 = call double @llvm.floor.f64(double %inp)',
         '    %1 = fptosi double %0 to i32',
         '    ret i32 %1',
-        '}',
-    ].join('\n') + '\n';
-};
-
-exports['stdlib.Math.hypot'] = function hypot(env) {
-    include(env, 'stdlib.Math.sqrt');
-    return [
-        'define private double @stdlib.Math.hypot(double %x, double %y) alwaysinline {',
-        'entry:',
-        '    %xs = fmul double %x, double %x',
-        '    %ys = fmul double %y, double %y',
-        '    %xps = fadd double %xs, double %ys',
-        '    %ret = call double @stdlib.Math.sqrt(double %xps)',
-        '    ret double %ret',
         '}',
     ].join('\n') + '\n';
 };
