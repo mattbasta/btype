@@ -75,7 +75,7 @@ function makeModule(env, ENV_VARS, body) {
         }).join(',\n'),
         '};',
         // Declare the asm module
-        '})(function' + (env.name ? ' ' + env.name : ' module_') + '(stdlib, foreign, heap) {',
+        '})(function module_(stdlib, foreign, heap) {',
         // asm.js pragma
         '    "use asm";',
         // Always add imul since it's used for integer multiplication
