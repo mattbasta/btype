@@ -36,7 +36,7 @@ function makeModule(env, ENV_VARS, body) {
             return e + ': ret.' + e;
         }).join(',\n'),
         '};',
-        '})(function' + (env.name ? ' ' + env.name : '') + '(stdlib, foreign) {',
+        '})(function module_(stdlib, foreign) {',
         'var fround = stdlib.Math.fround;',
         body,
         '})'
