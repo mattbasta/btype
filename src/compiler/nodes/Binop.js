@@ -10,8 +10,8 @@ exports.getType = function getType(ctx) {
     var rightType = this.right.getType(ctx);
 
     var temp;
-    if ((temp = ctx.env.registeredOperators[leftType.toString()]) &&
-        (temp = temp[rightType.toString()]) &&
+    if ((temp = ctx.env.registeredOperators[leftType.flatTypeName()]) &&
+        (temp = temp[rightType.flatTypeName()]) &&
         (temp = temp[this.operator])) {
 
         return ctx.env.registeredOperatorReturns[temp];

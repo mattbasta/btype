@@ -7,8 +7,7 @@ function buildEnv(options) {
     env.markRequested(ctx);
 
     if (!Object.keys(ctx.exports).length) {
-        console.error('Nothing exported from ' + options.filename);
-        return '';
+        throw new TypeError('Nothing exported from ' + options.filename);
     }
 
     return env;

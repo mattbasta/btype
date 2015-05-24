@@ -100,8 +100,9 @@ export pow;
 
 
 # Constants
+const CONST_PI = 3.141592653589793;
 func float:PI() {
-    return 3.141592653589793;
+    return CONST_PI;
 }
 export PI;
 func float:E() {
@@ -168,3 +169,8 @@ func int:ibound(int:i, int:min, int:max) {
     return i;
 }
 export ibound;
+
+func float:getNaN() {
+    return foreign.Math.getNaN();
+}
+export getNaN;

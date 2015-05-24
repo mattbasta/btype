@@ -25,6 +25,8 @@ function makeModule(env, ENV_VARS, body) {
         'var heap = new ArrayBuffer(' + getHeapSize(ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         // Shim imul if it doesn't exist (*COUGH* NODE *COUGH*)
         'this.Math.imul = this.Math.imul || function imul(a, b) {return (a | 0) * (b | 0) | 0;};',
+        // TODO: don't screw with Math
+        'this.Math.getNaN = this.Math.getNaN || function getNaN() {return NaN;};',
         // Shim fround in the same way
         'var f32_ = new Float32Array(1);',
         'this.Math.fround = this.Math.fround || function fround(x) {return f32[0] = x, f32[0];};',

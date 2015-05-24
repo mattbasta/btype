@@ -673,6 +673,7 @@ var NODES = {
                 tctx.write('; Statement: ' + stmt.type);
                 _node(stmt, env, ctx, tctx);
             });
+            tctx.write('br label %' + afterLbl);
         }
 
         tctx.writeLabel(afterLbl);

@@ -370,6 +370,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                 }
                 return;
 
+            case 'ConstDeclaration':
             case 'Declaration':
                 node.__assignedName = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
                 return;

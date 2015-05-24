@@ -1,0 +1,4 @@
+func double:foo() {
+    # noop
+}
+export foo;

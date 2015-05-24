@@ -36,13 +36,25 @@ exports.getType = function getType(ctx) {
         return this.__originalType;
     }
     if (this.__type) return this.__type;
-    var returnType = this.returnType ? this.returnType.getType(ctx) : null;
-    return this.__type = new types.Func(
-        returnType,
-        this.params.map(function(p) {
-            return p.getType(ctx);
-        })
-    );
+
+    var returnType = null;
+    if (this.returnType) {
+        returnType = this.returnType.getType(ctx);
+        if (!returnType) {
+            throw new TypeError('Non-void function with undefined return type: ' + this.returnType.toString());
+        }
+    }
+
+    var paramTypes = [];
+    this.params.forEach(function(p, i) {
+        var type = p.getType(ctx);
+        if (!type) {
+            throw new TypeError('Function with parameter (' + i + ') with undefined type: ' + p.toString());
+        }
+        paramTypes.push(type);
+    });
+
+    return this.__type = new types.Func(returnType, paramTypes);
 };
 
 exports.validateTypes = function validateTypes(ctx) {

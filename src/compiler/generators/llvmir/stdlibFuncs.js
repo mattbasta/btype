@@ -17,6 +17,26 @@ exports.registerFunc = function registerFunc(env, funcName) {
 };
 
 
+exports['stdlib.private.xatan'] = function xatan(env) {
+    return [
+        'define private double @stdlib.private.xatan(double %inp) alwaysinline {',
+        'entry:',
+        '    %0 = icmp slt i32 %inp, 0',
+        '    br i1 %0, label %t, label %f',
+        't:',
+        '    %out = mul nsw i32 %inp, -1',
+        '    ret i32 %out',
+        'f:',
+        '    ret i32 %inp',
+        '}',
+    ].join('\n') + '\n';
+};
+
+exports['stdlib.private.satan'] = function satan(env) {
+
+};
+
+
 exports['stdlib.Math.abs'] = function fabs(env) {
     return [
         'define private i32 @stdlib.Math.abs(i32 %inp) alwaysinline {',
@@ -140,19 +160,45 @@ exports['stdlib.Math.floor'] = function floor(env) {
 // TO DO:
 
 exports['stdlib.Math.asin'] = function asin(env) {
+    include(env, 'stdlib.Math.sqrt');
+    include(env, 'stdlib.Math.getNaN');
     return [
         'define private double @stdlib.Math.asin(double %inp) alwaysinline {',
         'entry:',
+        // '    %retVal = alloca double',
+        // '    %sign = alloca i1',
+
+        // '    %iszero = fcmp ueq double %inp, 0.0',
+        // '    br i1 %iszero, label %waszero, label %notzero',
+        // 'waszero:',
+        // '    store double %inp, double* %retVal',
+        // '    br label %exit',
+        // 'notzero:',
+        // '    store i1 false, i1* %sign',
+
+        // '    %isneg = fcmp olt double %inp, 0.0',
+        // '    br i1 %isneg, label %wasneg, label %notneg',
+        // 'wasneg:',
+        // '    %inp = fmul double %inp, -1.0',
+        // '    store i1 true, i1* %sign',
+        // '    br label %notneg',
+        // 'notneg:',
+
+        // 'exit:',
+        // '    %out = load i32 %retVal',
         '    ret double 0.0',
         '}',
     ].join('\n') + '\n';
 };
 
 exports['stdlib.Math.acos'] = function acos(env) {
+    include(env, 'stdlib.Math.asin');
     return [
         'define private double @stdlib.Math.acos(double %inp) alwaysinline {',
         'entry:',
-        '    ret double 0.0',
+        '    %denom = call double @stdlib.Math.asin(double %inp)',
+        '    %out = fdiv double 1.570796325, %denom',
+        '    ret double %out',
         '}',
     ].join('\n') + '\n';
 };
@@ -171,6 +217,17 @@ exports['stdlib.Math.atan2'] = function atan2(env) {
         'define private double @stdlib.Math.atan2(double %x, double %y) alwaysinline {',
         'entry:',
         '    ret double 0.0',
+        '}',
+    ].join('\n') + '\n';
+};
+
+exports['stdlib.Math.getNaN'] = function getNaN(env) {
+    return [
+        '@NAN = private global double 0x7FF8000000000000',
+        'define private double @stdlib.Math.getNaN() alwaysinline {',
+        'entry:',
+        '    %out = load double* @NAN',
+        '    ret double %out',
         '}',
     ].join('\n') + '\n';
 };

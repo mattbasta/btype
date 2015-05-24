@@ -647,7 +647,7 @@ function parseExpression(lex, base, precedence) {
                 return parseFunctionExpression(lex, base);
             default:
                 if (base.isToken) {
-                    throw new SyntaxError('Invalid token found while parsing expression: "' + base.text + '"\nNear line ' + tokenizer.currentLine);
+                    throw new SyntaxError('Invalid token found while parsing expression: "' + base.text + '"\nNear line ' + lex.currentLine);
                 }
 
                 // This catches complex expressions.

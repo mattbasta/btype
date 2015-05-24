@@ -19,6 +19,7 @@ var MathRaw = [
     'func float:sqrt(float:i) {}',
     'func float:atan2(float:y, float:x) {}',
     'func float:pow(float:y, float:x) {}',
+    'func float:getNaN() {}',
 ].join('\n');
 
 function StdlibType(env, name, raw) {

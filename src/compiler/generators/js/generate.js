@@ -20,6 +20,7 @@ function makeModule(env, ENV_VARS, body) {
         '(function(module) {',
         'this.Math.imul = this.Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
         'this.Math.fround = this.Math.fround || function fround(x) {var f32 = new Float32Array(1);return f32[0] = x, f32[0];};',
+        'this.Math.getNaN = this.Math.getNaN || function getNaN() {return NaN;};',
         'var ret = module(this, {' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';
             if (foreign in externalFuncs) {
