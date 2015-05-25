@@ -1,54 +1,19 @@
 import foreign;
 
 
-func float:fabs(float:i) {
+func float:abs(float:i) {
     if i < 0.0 {
-        i = i * -1.0;
+        return i * -1.0;
+    } else {
+        return i;
     }
-    return i;
 }
-export fabs;
+export abs;
 
 func int:iabs(int:i) {
     return foreign.Math.abs(i);
 }
 export iabs;
-
-
-# Trig functions
-
-func float:acos(float:i) {
-    return foreign.Math.acos(i);
-}
-export acos;
-
-func float:asin(float:i) {
-    return foreign.Math.asin(i);
-}
-export asin;
-
-func float:atan(float:i) {
-    return foreign.Math.atan(i);
-}
-export atan;
-
-func float:cos(float:i) {
-    return foreign.Math.cos(i);
-}
-export cos;
-
-func float:sin(float:i) {
-    return foreign.Math.sin(i);
-}
-export sin;
-
-func float:tan(float:i) {
-    return foreign.Math.tan(i);
-}
-export tan;
-
-
-# Int functions
 
 func int:ceil(float:i) {
     return foreign.Math.ceil(i);
@@ -83,16 +48,6 @@ func float:sqrt(float:i) {
 }
 export sqrt;
 
-func float:hypot(float:a, float:b) {
-    return sqrt(a * a + b * b);
-}
-export hypot;
-
-func float:atan2(float:y, float:x) {
-    return foreign.Math.atan2(y, x);
-}
-export atan2;
-
 func float:pow(float:y, float:x) {
     return foreign.Math.pow(y, x);
 }
@@ -101,41 +56,32 @@ export pow;
 
 # Constants
 const CONST_PI = 3.141592653589793;
-func float:PI() {
-    return CONST_PI;
-}
+const CONST_E = 2.718281828459045;
+const CONST_LN10 = 2.302585092994046;
+const CONST_LN2 = 0.6931471805599453;
+const CONST_LN10E = 0.4342944819032518;
+const CONST_LN2E = 1.4426950408889634;
+const CONST_SQRT1_2 = 0.7071067811865476;
+const CONST_SQRT2 = 1.4142135623730951;
+
+func float:PI() { return CONST_PI; }
 export PI;
-func float:E() {
-    return 2.718281828459045;
-}
+func float:E() { return CONST_E; }
 export E;
-func float:LN10() {
-    return 2.302585092994046;
-}
+func float:LN10() { return CONST_LN10; }
 export LN10;
-func float:LN2() {
-    return 0.6931471805599453;
-}
+func float:LN2() { return CONST_LN2; }
 export LN2;
-func float:LN10E() {
-    return 0.4342944819032518;
-}
+func float:LN10E() { return CONST_LN10E; }
 export LN10E;
-func float:LN2E() {
-    return 1.4426950408889634;
-}
+func float:LN2E() { return CONST_LN2E; }
 export LN2E;
-func float:SQRT1_2() {
-    return 0.7071067811865476;
-}
+func float:SQRT1_2() { return CONST_SQRT1_2; }
 export SQRT1_2;
-func float:SQRT2() {
-    return 1.4142135623730951;
-}
+func float:SQRT2() { return CONST_SQRT2; }
 export SQRT2;
 
 
-#@ TODO: See if we can use the native min/max functions here
 func float:min(float:x, float:y) {
     if y < x { return y; }
     return x;
@@ -170,7 +116,8 @@ func int:ibound(int:i, int:min, int:max) {
 }
 export ibound;
 
-func float:getNaN() {
-    return foreign.Math.getNaN();
+
+func float:NaN() {
+    return foreign.external.getNaN.float();
 }
-export getNaN;
+export NaN;

@@ -232,7 +232,14 @@ var generateContext = module.exports = function generateContext(env, tree, filen
         switch (node.type) {
             case 'Import':
                 var imp = env.import(node, rootContext);
-                contexts[0].addVar(node.alias ? node.alias.name : node.base, imp);
+                var impName = node.base;
+                if (node.member) {
+                    impName = node.member;
+                }
+                if (node.alias) {
+                    impName = node.alias;
+                }
+                contexts[0].addVar(impName, imp);
                 return;
 
             case 'Function':

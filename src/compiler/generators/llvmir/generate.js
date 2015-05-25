@@ -57,23 +57,29 @@ function getRuntime(env) {
         return '';
     }
 
+    var runtimeExtension = '';
+
     var entry = env.getConfig('runtimeEntry');
-    if (!(entry in env.requested.exports)) {
-        throw new TypeError('Cannot find requested runtime entry point in exported functions: ' + entry);
-    }
+    if (entry) {
+        if (!(entry in env.requested.exports)) {
+            throw new TypeError('Cannot find requested runtime entry point in exported functions: ' + entry);
+        }
 
-    var funcName = env.requested.exports[entry];
-    var func = env.requested.typeMap[funcName];
+        var funcName = env.requested.exports[entry];
+        var func = env.requested.typeMap[funcName];
 
-    if (func.returnType || func.args.length) {
-        throw new TypeError('Cannot use "' + entry + '" as entry point because it has incompatible signature: ' + func.toString());
+        if (func.returnType || func.args.length) {
+            throw new TypeError('Cannot use "' + entry + '" as entry point because it has incompatible signature: ' + func.toString());
+        }
+
+        runtimeExtension = '    call void @' + makeName(funcName) + '()';
     }
 
     return [
         'define i32 @main() nounwind ssp uwtable {',
         'entry:',
         (!env.inits.length ? '' : '    call void @modInit()'),
-        '    call void @' + makeName(funcName) + '()',
+        runtimeExtension,
         '    ret i32 0',
         '}',
     ].join('\n');

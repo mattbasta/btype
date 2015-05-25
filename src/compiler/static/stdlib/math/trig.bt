@@ -1,0 +1,142 @@
+import foreign;
+import math; # It's stdlib
+
+
+func float:sin(float:i) {
+    return foreign.Math.sin(i);
+}
+export sin;
+
+func float:cos(float:i) {
+    return foreign.Math.cos(i);
+}
+export cos;
+
+func float:tan(float:i) {
+    return foreign.Math.tan(i);
+}
+export tan;
+
+
+
+const P0 = -0.8750608600031904122785;
+const P1 = -16.15753718733365076637;
+const P2 = -75.00855792314704667340;
+const P3 = -122.8866684490136173410;
+const P4 = -64.85021904942025371773;
+const Q0 = 24.85846490142306297962;
+const Q1 = 165.0270098316988542046;
+const Q2 = 432.8810604912902668951;
+const Q3 = 485.3903996359136964868;
+const Q4 = 194.5506571482613964425;
+
+func float:xatan(float:x) {
+
+    var z = x * x;
+    z = z * (
+        (
+            (
+                (
+                    P0 * z + P1
+                ) * z + P2
+            ) * z + P3
+        ) * z + P4
+    ) / (
+        (
+            (
+                (
+                    (z + Q0) * z + Q1
+                ) * z + Q2
+            ) * z + Q3
+        ) * z + Q4
+    );
+    z = x * z + x;
+    return z;
+}
+
+
+const Morebits = 0.00000000000000006123233995736765886130;
+const Tan3pio8 = 2.41421356237309504880;
+
+func float:satan(float:x) {
+    if x <= 0.66 {
+        return xatan(x);
+    }
+    if x > Tan3pio8 {
+        return math.PI() / 2.0 - xatan(1.0 / x) + Morebits;
+    }
+    return math.PI() / 4.0 + xatan((x - 1.0) / (x + 1.0)) + 0.5 * Morebits;
+}
+
+
+func float:asin(float:x) {
+    if foreign.external.featureArcTrig.bool() {
+        return foreign.Math.asin(x);
+    }
+
+    if x == 0.0 {
+        return x;
+    }
+    var sign = false;
+    if x < 0.0 {
+        x = -1.0 * x;
+        sign = true;
+    }
+    if x > 1.0 {
+        return math.NaN();
+    }
+
+    var temp = math.sqrt(1.0 - x * x);
+    if x > 0.7 {
+        temp = math.PI() / 2.0 - satan(temp / x);
+    } else {
+        temp = satan(x / temp);
+    }
+
+    if sign {
+        temp = -1.0 * temp;
+    }
+    return temp;
+}
+export asin;
+
+func float:acos(float:i) {
+    if foreign.external.featureArcTrig.bool() {
+        return foreign.Math.acos(i);
+    }
+
+    return math.PI() / 2.0 - asin(i);
+}
+export acos;
+
+func float:atan(float:i) {
+    if foreign.external.featureArcTrig.bool() {
+        return foreign.Math.atan(i);
+    }
+
+    if i == 0.0 {
+        return i;
+    }
+
+    if i > 0.0 {
+        return satan(i);
+    }
+
+    return -1.0 * satan(-1.0 * i);
+}
+export atan;
+
+
+func float:atan2(float:y, float:x) {
+    if foreign.external.featureArcTrig.bool() {
+        return foreign.Math.atan2(y, x);
+    }
+
+}
+export atan2;
+
+
+func float:hypot(float:a, float:b) {
+    return math.sqrt(a * a + b * b);
+}
+export hypot;

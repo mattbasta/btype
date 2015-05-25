@@ -86,3 +86,22 @@ exports.Consolelogsfloat = function(env) {
         '}',
     ].join('\n');
 };
+exports.getNaN = function() {
+    return [
+        '@NAN = private global double 0x7FF8000000000000',
+        'define private double @foreign_getNaN() alwaysinline {',
+        'entry:',
+        '    %out = load double* @NAN',
+        '    ret double %out',
+        '}',
+    ].join('\n');
+};
+
+exports.featureArcTrig = function() {
+    return [
+        'define private i1 @foreign_featureArcTrig() alwaysinline {',
+        'entry:',
+        '    ret i1 false',
+        '}',
+    ].join('\n');
+};

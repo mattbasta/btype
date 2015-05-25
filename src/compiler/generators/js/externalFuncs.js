@@ -25,3 +25,10 @@ exports.Consolelogfloat = function() {
 exports.Consolelogbool = function() {
     return 'function(x) {console.log(x ? \'true\' : \'false\')}'
 };
+exports.getNaN = function() {
+    return 'function() {return NaN;}'
+};
+
+exports.featureArcTrig = function() {
+    return 'function() {return true;}'
+};
