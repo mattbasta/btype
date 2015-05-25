@@ -115,9 +115,3 @@ func int:ibound(int:i, int:min, int:max) {
     return i;
 }
 export ibound;
-
-
-func float:NaN() {
-    return foreign.external.getNaN.float();
-}
-export NaN;

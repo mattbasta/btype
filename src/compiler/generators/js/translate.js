@@ -65,14 +65,14 @@ function _node(node, env, ctx, prec) {
 
 var NODES = {
     Root: function(env, ctx, tctx) {
-        env.__globalPrefix = '';
+        env.__globalPrefix = env.__globalPrefix || '';
         this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
         if (env.__globalPrefix) {
             tctx.prepend(env.__globalPrefix);
         }
-        delete env.__globalPrefix;
+        env.__globalPrefix = '';
     },
     Unary: function(env, ctx, tctx) {
         // Precedence here will always be 4.

@@ -188,18 +188,18 @@ function _node(node, env, ctx, tctx, extra) {
 
 var NODES = {
     Root: function(env, ctx, tctx) {
-        env.__globalPrefix = '';
-        env.__foreignRequested = {};
-        env.__stdlibRequested = {};
-        env.__arrayTypes = {};
-        env.__tupleTypes = {};
-        env.__funcrefTypes = {};
+        env.__globalPrefix = env.__globalPrefix || '';
+        env.__foreignRequested = env.__foreignRequested || {};
+        env.__stdlibRequested = env.__stdlibRequested || {};
+        env.__arrayTypes = env.__arrayTypes || {};
+        env.__tupleTypes = env.__tupleTypes || {};
+        env.__funcrefTypes = env.__funcrefTypes || {};
         this.body.forEach(function(stmt) {
             tctx.write('; Statement: ' + stmt.type);
             _node(stmt, env, ctx, tctx, 'root');
         });
         tctx.prepend(env.__globalPrefix);
-        delete env.__globalPrefix;
+        env.__globalPrefix = '';
     },
     Unary: function(env, ctx, tctx) {
         var out = _node(this.base, env, ctx, tctx);
@@ -454,9 +454,9 @@ var NODES = {
         if (baseType._type === '_foreign') {
             env.foreigns.push(this.child);
             if (!(this.child in env.__foreignRequested)) {
-                var funcVal = externalFuncs[this.child](env);
-                env.__globalPrefix += funcVal + '\n';
                 env.__foreignRequested[this.child] = true;
+                var funcVal = externalFuncs[this.child](env); // Don't inline this into the next line
+                env.__globalPrefix += funcVal + '\n';
             }
 
             return '@foreign_' + makeName(this.child);

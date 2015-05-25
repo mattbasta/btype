@@ -85,6 +85,13 @@ function foldBinop(node, ctx) {
         }
 
         if (nodeRightType === 'Literal') {
+            // Avoid folding into a special floating point value
+            if (node.operator === '/' && parseFloat(node.right.value) === 0) {
+                return function() {
+                    return node;
+                };
+            }
+
             return function() {
                 return combine(node.left, node.right, leftType.typeName, node.operator);
             };

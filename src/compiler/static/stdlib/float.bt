@@ -1,0 +1,49 @@
+import foreign;
+
+
+func bool:signBit(float:x) {
+    return x < 0.0 or isNegZero(x);
+}
+export signBit;
+
+func bool:isNegZero(float:x) {
+    return x == 0.0 and 1.0 / x < 0.0;
+}
+export isNegZero;
+
+func float:copySign(float:fromVal, float:toVal) {
+    var signFrom = signBit(fromVal);
+    var signTo = signBit(toVal);
+
+    if signFrom == signTo {
+        return toVal;
+    }
+
+    if isNegZero(toVal) {
+        return 0.0;
+    }
+
+    return -1.0 * toVal;
+}
+export copySign;
+
+
+func float:NaN() {
+    return foreign.external.getNaN.float();
+}
+export NaN;
+
+func float:NegZero() {
+    return foreign.external.getNegZero.float();
+}
+export NegZero;
+
+func float:Infinity() {
+    return foreign.external.getInfinity.float();
+}
+export Infinity;
+
+func float:NegInfinity() {
+    return foreign.external.getNegInfinity.float();
+}
+export NegInfinity;

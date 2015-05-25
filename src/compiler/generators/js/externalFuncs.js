@@ -28,6 +28,15 @@ exports.Consolelogbool = function() {
 exports.getNaN = function() {
     return 'function() {return NaN;}'
 };
+exports.getNegZero = function() {
+    return 'function() {return -0.0;}'
+};
+exports.getInfinity = function() {
+    return 'function() {return Infinity;}'
+};
+exports.getNegInfinity = function() {
+    return 'function() {return -Infinity;}'
+};
 
 exports.featureArcTrig = function() {
     return 'function() {return true;}'

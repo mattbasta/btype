@@ -133,16 +133,16 @@ function getFunctionDerefs(ctx, exclude) {
 
 var NODES = {
     Root: function(env, ctx, tctx) {
-        env.__globalPrefix = '';
-        env.__stdlibRequested = {};
-        env.__foreignRequested = {};
+        env.__globalPrefix = env.__globalPrefix || '';
+        env.__stdlibRequested = env.__stdlibRequested || {};
+        env.__foreignRequested = env.__foreignRequested || {};
         this.body.forEach(function(stmt) {
             _node(stmt, env, ctx, tctx);
         });
-        tctx.prepend(env.__globalPrefix);
-        delete env.__globalPrefix;
-        delete env.__stdlibRequested;
-        delete env.__foreignRequested;
+        if (env.__globalPrefix) {
+            tctx.prepend(env.__globalPrefix);
+        }
+        env.__globalPrefix = '';
     },
     Unary: function(env, ctx, tctx) {
         var out = typeAnnotation(_node(this.base, env, ctx, tctx), this.base.getType(ctx));

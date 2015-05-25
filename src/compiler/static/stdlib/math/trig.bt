@@ -1,3 +1,4 @@
+import float;
 import foreign;
 import math; # It's stdlib
 
@@ -83,7 +84,7 @@ func float:asin(float:x) {
         sign = true;
     }
     if x > 1.0 {
-        return math.NaN();
+        return float.NaN();
     }
 
     var temp = math.sqrt(1.0 - x * x);
@@ -132,6 +133,49 @@ func float:atan2(float:y, float:x) {
         return foreign.Math.atan2(y, x);
     }
 
+    if y == float.NaN() or x == float.NaN() {
+        return float.NaN();
+    }
+
+    if y == 0.0 {
+        if x >= 0.0 and !float.signBit(x) {
+            return float.copySign(y, 0.0);
+        }
+        return float.copySign(y, math.PI());
+    }
+
+    if x == 0.0 {
+        return float.copySign(y, math.PI() / 2.0);
+    }
+
+    if x == float.Infinity() or x == float.NegInfinity() {
+        if x == float.Infinity() {
+            if y == float.Infinity() or y == float.NegInfinity() {
+                return float.copySign(y, math.PI() / 4.0);
+            } else {
+                return float.copySign(y, 0.0);
+            }
+        }
+
+        if y == float.Infinity() or y == float.NegInfinity() {
+            return float.copySign(y, 3.0 * math.PI() / 4.0);
+        } else {
+            return float.copySign(y, 0.0);
+        }
+    }
+
+    if y == float.Infinity() or y == float.NegInfinity() {
+        return float.copySign(y, math.PI() / 2.0);
+    }
+
+    var q = atan(y / x);
+    if x < 0.0 {
+        if q <= 0.0 {
+            return q + math.PI();
+        }
+        return q - math.PI();
+    }
+    return q;
 }
 export atan2;
 

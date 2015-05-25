@@ -881,7 +881,7 @@ function parseExpressionBase(lex) {
             temp.end = semicolon.end;
             return temp;
         }
-        throw new SyntaxError('Unexpected token "' + lex.peek().text + '" near line ' + tokenizer.currentLine);
+        throw new SyntaxError('Unexpected token "' + lex.peek().text + '" near line ' + lex.currentLine);
     }
     return accumulate([base]);
 }
