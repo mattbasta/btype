@@ -2,14 +2,8 @@ var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse() {};
-
 exports.substitute = function substitute() {};
-
-exports.validateTypes = function validateTypes(ctx) {
-    // this.base.validateTypes(ctx);
-    // if (this.member) this.member.validateTypes(ctx);
-    // if (this.alias) this.alias.validateTypes(ctx);
-};
+exports.validateTypes = function validateTypes(ctx) {};
 
 exports.toString = function toString() {
     return 'Import:\n' +

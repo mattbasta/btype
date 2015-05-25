@@ -551,16 +551,16 @@ var NODES = {
         var declType = this.getType(ctx);
         var typeName = getLLVMType(declType);
 
+        var annotation = ' ; ' + this.identifier;
         if (parent === 'root') {
             var globVal = 'null';
             if (this.value.type === 'Literal' && this.value.litType !== 'str') {
                 globVal = _node(this.value, env, ctx, tctx);
             }
-            tctx.write('@' + makeName(this.__assignedName) + ' = private global ' + getLLVMType(declType) + ' ' + globVal);
+            tctx.write('@' + makeName(this.__assignedName) + ' = private global ' + getLLVMType(declType) + ' ' + globVal + annotation);
             return;
         }
 
-        var annotation = ' ; ' + this.identifier;
 
         var ptrName = '%' + makeName(this.__assignedName);
         if (this.value) {

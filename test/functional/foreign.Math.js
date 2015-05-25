@@ -48,11 +48,15 @@ describe('foreign.Math module', function() {
     }
 
     function suite(code, expectation) {
-        var parsed = parser(lexer(code));
-        var env = compiler.buildEnv({filename: 'test', tree: parsed});
-        var mainFunc = env.requested.exports.main;
-        var mainFuncDef = env.requested.functionDeclarations[mainFunc];
-        var mainReturnType = mainFuncDef.getType(env.requested).getReturnType().typeName;
+        var mainReturnType;
+
+        beforeEach(function() {
+            var parsed = parser(lexer(code));
+            var env = compiler.buildEnv({filename: 'test', tree: parsed});
+            var mainFunc = env.requested.exports.main;
+            var mainFuncDef = env.requested.functionDeclarations[mainFunc];
+            mainReturnType = mainFuncDef.getType(env.requested).getReturnType().typeName;
+        });
 
         it('should work in JS', function() {
             run(code, 'js', expectation, mainReturnType);

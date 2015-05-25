@@ -237,7 +237,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                     impName = node.member;
                 }
                 if (node.alias) {
-                    impName = node.alias;
+                    impName = node.alias.name;
                 }
                 contexts[0].addVar(impName, imp);
                 return;
