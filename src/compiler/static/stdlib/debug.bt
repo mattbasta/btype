@@ -15,3 +15,8 @@ func printbool(bool:i) {
     foreign.external.Consolelogbool._null.bool(i);
 }
 export printbool;
+
+func printstr(str:i) {
+    foreign.external.Consolelogstr._null.str(i);
+}
+export printstr;

@@ -3,18 +3,23 @@
 # instance.
 
 func str:rot13(str:input) {
-    array<int> stage = new array(input.length);
-    int i = 0;
-    int char;
-    for (i = 0; i < input.length; i++) {
-        char = input.charAt(i);
-        if (char > 64 and char < 91) {
-            char = 90 - (char - 65);
-        } else if (char > 96 and char < 123) {
-            char = 122 - (char - 95);
+    if input.length == 0 {
+        return input;
+    }
+
+    var orig = input as array<uint>;
+    var stage = new array<uint>(input.length);
+    int:i = 0;
+    uint:char = 0 as uint;
+    for i = 0; i < input.length; i = i + 1; {
+        char = orig[i];
+        if char > (64 as uint) and char < (91 as uint) {
+            char = ((90 as uint) - (char - (65 as uint)));
+        } else if char > (96 as uint) and char < (123 as uint) {
+            char = ((122 as uint) - (char - (95 as uint)));
         }
         stage[i] = char;
     }
-    return ;
+    return stage as str;
 }
 export rot13;

@@ -202,6 +202,7 @@ Environment.prototype.make = function(outputLanguage) {
         throw new Error('No context was requested for export.');
     }
 
+    this.__outputLanguage = outputLanguage;
     var generator = require('./generators/' + outputLanguage + '/generate');
     return generator(this, ENV_VARS);
 };

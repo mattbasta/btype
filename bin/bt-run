@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+
+var argv = require('minimist')(process.argv.slice(2));
+
+
+function help() {
+    console.log([
+        'Usage:',
+        '  bt-run <bt file path> --runtime-entry=<runtime entry func>'
+    ].join('\n'));
+}
+
+var incomingStdin = !('isTTY' in process.stdin);
+
+if (process.argv.length < 3 && !incomingStdin || !argv['runtime-entry']) {
+    help();
+    process.exit(1);
+}
+
+var fs = require('fs');
+var path = require('path');
+
+
+var compiler = require('../src/compiler/compiler');
+var lexer = require('../src/lexer');
+var parser = require('../src/parser');
+
+if (argv._[0]) {
+    fs.readFile(argv._[0], function(err, data) {
+        if (err) {
+            console.error('Could not read file.');
+            console.error(err);
+            help();
+            process.exit(1);
+            return;
+        }
+
+        processData(data);
+    });
+
+} else {
+    var incomingData = '';
+    process.stdin.on('data', function(data) {
+        incomingData += data;
+    });
+    process.stdin.on('end', function() {
+        processData(incomingData);
+    });
+}
+
+function processData(data) {
+    var parsed = parser(lexer(data.toString()));
+    var compiled = compiler({
+        filename: argv._[0],
+        tree: parsed,
+        format: 'js',
+        config: {runtime: true}
+    });
+
+    var output = eval(compiled + '[' + JSON.stringify(argv['runtime-entry']) + ']();');
+    console.log(output);
+}

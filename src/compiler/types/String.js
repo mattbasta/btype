@@ -19,7 +19,7 @@ String_.prototype.flatTypeName = String_.prototype.toString = function toString(
 };
 
 String_.prototype.equals = function equals(x) {
-    if (x instanceof types.Array && x.contentsType.equals(types.uint)) return true;
+    if (x instanceof types.Array && x.contentsType.equals(types.privateTypes.uint)) return true;
     return x instanceof String_;
 };
 

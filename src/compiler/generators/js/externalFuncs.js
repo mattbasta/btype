@@ -15,16 +15,14 @@ exports.Performancenow = function() {
     return '(function() {return performance.now.bind(performance) || function() {return (new Date()).getTime();};}())'
 };
 
-exports.Consolelogint = function() {
+exports.Consolelogint = exports.Consolelogfloat = exports.Consolelogstr = function() {
     return 'console.log.bind(console)'
 };
 
-exports.Consolelogfloat = function() {
-    return 'console.log.bind(console)'
-};
 exports.Consolelogbool = function() {
     return 'function(x) {console.log(x ? \'true\' : \'false\')}'
 };
+
 exports.getNaN = function() {
     return 'function() {return NaN;}'
 };

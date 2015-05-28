@@ -28,7 +28,7 @@ Array_.prototype.flatTypeName = function() {
 };
 
 Array_.prototype.equals = function(x) {
-    if (x instanceof types.String && this.contentsType.equals(types.uint)) return true;
+    if (x instanceof types.String && this.contentsType.equals(types.privateTypes.uint)) return true;
     return x instanceof types.Array && this.contentsType.equals(x.contentsType);
 };
 
