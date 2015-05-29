@@ -92,6 +92,7 @@ function CurriedForeignType(env, funcName, typeChain) {
             case 'int':
             case 'float':
             case 'bool':
+            case 'str':
             case '_null':
                 return new CurriedForeignType(env, funcName, typeChain.concat([name]));
         }

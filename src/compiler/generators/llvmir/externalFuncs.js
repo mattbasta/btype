@@ -81,8 +81,9 @@ exports.Consolelogbool = function(env) {
 exports.Consolelogstr = function(env) {
     addPrintf(env);
     return [
-        'define private void @foreign_Consolelogstr(double %inp) alwaysinline {',
-        '    %ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([5 x i8]* @.str.percf, i32 0, i32 0), double %inp)',
+        'define private void @foreign_Consolelogstr(%string* %inp) alwaysinline {',
+        '    ;%strc = getelementptr inbounds %string* %inp, i32 0, i32 2, i32 0',
+        '    ;%ignore = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([4 x i8]* @.str.percs, i32 0, i32 0), i8* %strc)',
         '    ret void',
         '}',
     ].join('\n');

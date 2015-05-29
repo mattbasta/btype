@@ -28,11 +28,25 @@ function makeModule(env, ENV_VARS, body) {
                 base += 'function() {}';
             }
             return base;
-        }).join(',') + '});',
-        'if (ret.$init) {ret.$init();delete ret.$init;}',
+        }).join(',') + (env.foreigns.length ? ',' : '') + 'arr2str:this.TextDecoder ?',
+        'function(arr) {',
+        '    return (new TextDecoder()).decode(arr);',
+        '}',
+        ':',
+        'function(arr) {',
+        '    var out = "";', // slower less cheaty way
+        '    for (var i = 0; i < arr.length; i++) {',
+        '        out += String.fromCharCode(arr[i]);',
+        '    }',
+        '    return out;',
+        '}',
+        '});',
+        'if (ret.$init) {ret.$init();}',
         'return {',
         '$strings:{read: function(x) {return x;}},', // noop
-        Object.keys(env.requested.exports).map(function(e) {
+        Object.keys(env.requested.exports).filter(function(e) {
+            return e !== '$init';
+        }).map(function(e) {
             return e + ': ret.' + e;
         }).join(',\n'),
         '};',

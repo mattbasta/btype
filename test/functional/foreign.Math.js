@@ -22,6 +22,7 @@ describe('foreign.Math module', function() {
         try {
             mod = (new Function('return ' + compiled))();
         } catch (e) {
+            console.log(compiled);
             assert.fail('Error during initialization: ' + e.toString());
         }
 

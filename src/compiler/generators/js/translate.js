@@ -389,12 +389,25 @@ var NODES = {
         var targetType = this.rightType.getType(ctx);
 
         var base = _node(this.left, env, ctx, tctx);
+
+        if (targetType.equals(types.publicTypes.str) &&
+            baseType instanceof types.Array &&
+            baseType.contentsType.equals(types.privateTypes.uint)) {
+            return 'foreign.arr2str(' + base + ')';
+        }
+
         if (baseType.equals(targetType)) return base;
 
         switch (baseType.typeName) {
             case 'int':
                 switch (targetType.typeName) {
-                    case 'uint': return 'int2uint(' + base + ')';
+                    case 'uint':
+                        if (this.left.type === 'Literal' && /^[\d\.]+/.exec(this.left.value)) {
+                            return base; // 123 as uint -> 123
+                        } else if (this.left.type === 'Literal') {
+                            return '0'; // -123 as uint -> 0
+                        }
+                        return 'int2uint(' + base + ')';
                     case 'float': return '(+(' + base + '))';
                     case 'sfloat': return '(fround(' + base + '))';
                     case 'byte': return base;
@@ -452,6 +465,10 @@ var NODES = {
 
             var operatorStmtFunc = ctx.env.registeredOperators[baseType.flatTypeName()][subscriptType.flatTypeName()]['[]'];
             return operatorStmtFunc + '(' + baseOutput + ',' + subscriptOutput + ')';
+        }
+
+        if (baseType._type === 'string') {
+            return baseOutput + '.charCodeAt(' + subscriptOutput + ')';
         }
 
         return baseOutput + '[' + subscriptOutput + ']';

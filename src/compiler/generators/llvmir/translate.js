@@ -818,7 +818,6 @@ var NODES = {
         if (this.value === false) return 'false';
         if (this.value === null) return 'null';
         return this.value.toString();
-        // return getLLVMType(this.getType(ctx)) + ' ' + this.value.toString();
     },
     Symbol: function(env, ctx, tctx, extra) {
         if (this.__isFunc) {

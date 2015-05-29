@@ -12,7 +12,7 @@ function help() {
 
 var incomingStdin = !('isTTY' in process.stdin);
 
-if (process.argv.length < 3 && !incomingStdin || !argv['runtime-entry']) {
+if (process.argv.length < 3 && !incomingStdin) {
     help();
     process.exit(1);
 }
@@ -57,6 +57,11 @@ function processData(data) {
         config: {runtime: true}
     });
 
-    var output = eval(compiled + '[' + JSON.stringify(argv['runtime-entry']) + ']();');
-    console.log(output);
+    var runtimeEntry = argv['runtime-entry'];
+    if (runtimeEntry) {
+        var output = eval(compiled + '[' + JSON.stringify(argv['runtime-entry']) + ']();');
+        console.log(output);
+    } else {
+        eval(compiled + ';');
+    }
 }

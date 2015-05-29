@@ -59,13 +59,16 @@ exports.validateTypes = function validateTypes(ctx) {
 
     var signatureOffset = base.__isObjectMethod ? 1 : 0;
     for (var i = 0; i < this.params.length; i++) {
-        if (!this.params[i].getType(ctx).equals(paramTypes[i + signatureOffset])) {
-            throw new TypeError(
-                'Wrong type passed as parameter to function call: ' +
-                this.params[i].getType(ctx).toString() + ' != ' + paramTypes[i + signatureOffset].toString() +
-                '\nnear char ' + this.start
-            );
+        if (this.params[i].getType(ctx).equals(paramTypes[i + signatureOffset])) {
+            continue;
         }
+        throw new TypeError(
+            'Wrong type passed as parameter to function call: ' +
+            this.params[i].getType(ctx).toString() +
+            ' != ' +
+            paramTypes[i + signatureOffset].toString() +
+            '\nnear char ' + this.start
+        );
     }
 };
 

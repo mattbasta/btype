@@ -55,7 +55,7 @@ TranslationContext.prototype.trimSemicolon = function() {
     var stack = this.outputStack[0].trim();
     var last = stack[stack.length - 1];
     if (last === ';') {
-        this.outputStack[0] = stack.substr(0, stack.length - 2);
+        this.outputStack[0] = stack.substr(0, stack.length - 1);
     }
 };
 
