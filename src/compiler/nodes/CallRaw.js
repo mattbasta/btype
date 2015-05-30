@@ -59,7 +59,7 @@ exports.validateTypes = function validateTypes(ctx) {
 
     var signatureOffset = base.__isObjectMethod ? 1 : 0;
     for (var i = 0; i < this.params.length; i++) {
-        if (this.params[i].getType(ctx).equals(paramTypes[i + signatureOffset])) {
+        if (this.params[i].getType(ctx, paramTypes[i + signatureOffset]).equals(paramTypes[i + signatureOffset])) {
             continue;
         }
         throw new TypeError(

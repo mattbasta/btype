@@ -22,6 +22,7 @@ var NODES = {
     Export: require('./nodes/Export'),
     For: require('./nodes/For'),
     Function: require('./nodes/Function'),
+    FunctionLambda: require('./nodes/FunctionLambda'),
     FunctionReference: require('./nodes/FunctionReference'),
     If: require('./nodes/If'),
     Import: require('./nodes/Import'),

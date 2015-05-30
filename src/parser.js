@@ -83,7 +83,7 @@ function parseFunctionDeclaration(lex, func) {
     );
 }
 
-function parseFunctionExpression(lex, func) {
+function parseFunctionExpression(lex, func, ) {
     var returnType = null;
 
     if (lex.peek().type === 'identifier') {
@@ -354,14 +354,20 @@ function parseTypeCast(lex, base) {
     );
 }
 
-function parseSignature(lex, typed, endToken) {
+function parseSignature(lex, typed, endToken, firstParam) {
     var params = [];
+    if (firstParam)
     if (lex.peek().type === endToken) return params;
+    var temp;
     while (true) {
         if (typed) {
             params.push(parseTypedIdentifier(lex));
         } else {
-            params.push(parseExpression(lex));
+            temp = parseExpression(lex);
+            if (temp.type !== 'Symbol') {
+                throw new SyntaxError('Unexpected expression in signature');
+            }
+            params.push(temp);
         }
         if (lex.peek().type === endToken) {
             break;
@@ -555,9 +561,52 @@ function parseExpression(lex, base, precedence) {
             throw new SyntaxError('Unexpected end of file in expression');
         }
         var parsed;
+        var exprBody;
         switch (base.type) {
             case '(':
+                if (lex.peek().type === ')') {
+                    lex.assert(':');
+                    exprBody = parseExpression(lex);
+                    return node(
+                        'FunctionLambda',
+                        base.start,
+                        exprBody.end,
+                        {
+                            returnType: null,
+                            name: null,
+                            params: [],
+                            body: [
+                                node('Return', {value: exprBody}),
+                            ],
+                        }
+                    );
+                }
+
                 parsed = parseExpression(lex);
+                if (parsed.type === 'Symbol') {
+                    var args = [parsed];
+                    if (lex.accept(',')) {
+                        do {
+                            args.push(parseSymbol(lex));
+                        } while (lex.accept(','));
+                        lex.assert(')');
+                        lex.assert(':');
+                        exprBody = parseExpression(lex);
+                        return node(
+                            'FunctionLambda',
+                            base.start,
+                            exprBody.end,
+                            {
+                                returnType: null,
+                                name: null,
+                                params: [],
+                                body: [
+                                    node('Return', {value: exprBody}),
+                                ],
+                            }
+                        );
+                    }
+                }
                 lex.assert(')');
                 return parsed;
             case '[:':
