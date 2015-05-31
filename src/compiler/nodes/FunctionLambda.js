@@ -11,28 +11,35 @@ exports.validateTypes = Function.validateTypes;
 exports.toString = Function.toString;
 
 
-exports.getType = function getType(ctx) {
-    if (this.__originalType) {
-        return this.__originalType;
-    }
-    if (this.__type) return this.__type;
-
-    var returnType = null;
-    if (this.returnType) {
-        returnType = this.returnType.getType(ctx);
-        if (!returnType) {
-            throw new TypeError('Non-void function with undefined return type: ' + this.returnType.toString());
-        }
+exports.getType = function getType(ctx, inheritedType) {
+    if (!inheritedType) {
+        throw new TypeError('Lambda functions cannot rely on type inference.');
     }
 
-    var paramTypes = [];
-    this.params.forEach(function(p, i) {
-        var type = p.getType(ctx);
-        if (!type) {
-            throw new TypeError('Function with parameter (' + i + ') with undefined type: ' + p.toString());
-        }
-        paramTypes.push(type);
-    });
+    if (!(inheritedType instanceof types.Func)) {
+        throw new TypeError('Lambda function passed where ' + inheritedType.toString() + ' expected');
+    }
 
-    return this.__type = new types.Func(returnType, paramTypes);
+    var actualReturnType = this.body[0].value.getType(this.__context);
+    var inheritedReturnType = inheritedType.returnType;
+    if (actualReturnType && !actualReturnType.equals(inheritedReturnType)) {
+        throw new TypeError(
+            'Type mismatch between inherited and actual return values: ' +
+            (inheritedReturnType ? inheritedReturnType.toString() : 'null') +
+            ' != ' +
+            (actualReturnType ? actualReturnType.toString() : 'null')
+        );
+    } else if (!actualReturnType && !(actualReturnType instanceof types.Primitive)) {
+        throw new TypeError('Cannot return `null` from lambda function where primitive is expected.');
+    }
+
+    if (inheritedType.args.length !== this.params.length) {
+        throw new TypeError(
+            'Lambda function param count does not match inherited type: ' +
+            inheritedType.args.length + ' != ' + this.params.length
+        );
+    }
+
+    return inheritedType;
+
 };
