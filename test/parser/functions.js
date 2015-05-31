@@ -1,6 +1,7 @@
 var node = require('../../src/parser').node;
 
 var compareTree = require('./_utils').compareTree;
+var _i = require('./_utils')._i;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
@@ -352,6 +353,80 @@ describe('Function parser', function() {
                                         16,
                                         23,
                                         {value: null}
+                                    )
+                                ]
+                            }
+                        ),
+                    }
+                )
+            ])
+        );
+    });
+});
+
+describe('Function Lambda Parser', function() {
+    it('should parse empty param lambda functions', function() {
+        compareTree(
+            'var x = (): 123;',
+            _root([
+                node(
+                    'Declaration',
+                    0,
+                    16,
+                    {
+                        declType: null,
+                        identifier: 'x',
+                        value: node(
+                            'FunctionLambda',
+                            8,
+                            15,
+                            {
+                                returnType: null,
+                                name: null,
+                                params: [],
+                                body: [
+                                    node(
+                                        'Return',
+                                        0,
+                                        0,
+                                        {value: _int(123)}
+                                    )
+                                ]
+                            }
+                        ),
+                    }
+                )
+            ])
+        );
+    });
+    it('should parse lambda functions with params', function() {
+        compareTree(
+            'var x = (x, y): 123;',
+            _root([
+                node(
+                    'Declaration',
+                    0,
+                    20,
+                    {
+                        declType: null,
+                        identifier: 'x',
+                        value: node(
+                            'FunctionLambda',
+                            8,
+                            19,
+                            {
+                                returnType: null,
+                                name: null,
+                                params: [
+                                    _i('x'),
+                                    _i('y'),
+                                ],
+                                body: [
+                                    node(
+                                        'Return',
+                                        0,
+                                        0,
+                                        {value: _int(123)}
                                     )
                                 ]
                             }

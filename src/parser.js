@@ -63,6 +63,10 @@ function parseFunctionDeclaration(lex, func) {
     if (lex.accept('(')) {
         // If it's not an empty parameter list, start parsing.
         parameters = parseSignature(lex, true, ')');
+        parameters.forEach(function(p) {
+            if (p.type === 'TypedIdentifier') return;
+            throw new SyntaxError('Unexpected expression in function prototype: ' + p.toString())
+        });
         lex.assert(')');
     }
     lex.assert('{');
@@ -83,7 +87,7 @@ function parseFunctionDeclaration(lex, func) {
     );
 }
 
-function parseFunctionExpression(lex, func, ) {
+function parseFunctionExpression(lex, func) {
     var returnType = null;
 
     if (lex.peek().type === 'identifier') {
@@ -95,6 +99,10 @@ function parseFunctionExpression(lex, func, ) {
     if (lex.accept('(')) {
         // If it's not an empty parameter list, start parsing.
         parameters = parseSignature(lex, true, ')');
+        parameters.forEach(function(p) {
+            if (p.type === 'TypedIdentifier') return;
+            throw new SyntaxError('Unexpected expression in function prototype: ' + p.toString())
+        });
         lex.assert(')');
     }
     lex.assert('{');
@@ -356,7 +364,6 @@ function parseTypeCast(lex, base) {
 
 function parseSignature(lex, typed, endToken, firstParam) {
     var params = [];
-    if (firstParam)
     if (lex.peek().type === endToken) return params;
     var temp;
     while (true) {
@@ -364,9 +371,6 @@ function parseSignature(lex, typed, endToken, firstParam) {
             params.push(parseTypedIdentifier(lex));
         } else {
             temp = parseExpression(lex);
-            if (temp.type !== 'Symbol') {
-                throw new SyntaxError('Unexpected expression in signature');
-            }
             params.push(temp);
         }
         if (lex.peek().type === endToken) {
@@ -565,6 +569,7 @@ function parseExpression(lex, base, precedence) {
         switch (base.type) {
             case '(':
                 if (lex.peek().type === ')') {
+                    lex.assert(')');
                     lex.assert(':');
                     exprBody = parseExpression(lex);
                     return node(
@@ -599,7 +604,7 @@ function parseExpression(lex, base, precedence) {
                             {
                                 returnType: null,
                                 name: null,
-                                params: [],
+                                params: args,
                                 body: [
                                     node('Return', {value: exprBody}),
                                 ],

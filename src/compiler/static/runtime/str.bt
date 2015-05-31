@@ -1,0 +1,8 @@
+func str:makeStrUInt(array<uint>:x) {
+    #
+}
+func str:makeStrByte(array<byte>:x) {
+    #
+}
+
+
