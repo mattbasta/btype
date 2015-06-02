@@ -54,3 +54,10 @@ exports.toString = function toString() {
             '') +
         '>';
 };
+
+exports.translate = function translate() {
+    this.attributes = this.attributes.map(function(p) {
+        return p.translate();
+    });
+    return this;
+};

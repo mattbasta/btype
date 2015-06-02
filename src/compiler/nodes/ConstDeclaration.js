@@ -3,6 +3,7 @@ var Declaration = require('./Declaration');
 
 exports.traverse = Declaration.traverse;
 exports.substitute = Declaration.substitute;
+exports.translate = Declaration.translate;
 exports.getType = Declaration.getType;
 
 exports.validateTypes = function validateTypes(ctx) {

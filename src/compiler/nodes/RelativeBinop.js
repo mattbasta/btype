@@ -6,6 +6,8 @@ var types = require('../types');
 
 exports.traverse = binop.traverse;
 exports.substitute = binop.substitute;
+exports.translate = binop.translate;
+
 exports.getType = function(ctx) {
     return types.publicTypes.bool;
 },

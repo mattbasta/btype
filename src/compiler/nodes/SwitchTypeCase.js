@@ -32,3 +32,11 @@ exports.toString = function toString() {
            '    Body:\n' +
            indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
 };
+
+exports.translate = function translate() {
+    this.caseType = this.caseType.translate();
+    this.body = this.body.map(function(s) {
+        return s.translate();
+    });
+    return this;
+};

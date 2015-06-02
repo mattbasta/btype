@@ -32,6 +32,12 @@ exports.getType = function getType(ctx) {
     return baseType.getSubscriptType(index) || null;
 };
 
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    this.subscript = this.subscript.translate();
+    return this;
+};
+
 exports.validateTypes = function validateTypes(ctx, parentNode) {
     var baseType = this.base.getType(ctx);
     var subscriptType = this.subscript.getType(ctx);

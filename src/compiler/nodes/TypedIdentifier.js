@@ -13,3 +13,8 @@ exports.validateTypes = function validateTypes() {};
 exports.toString = function toString() {
     return 'TypedId(' + this.name + (this.__assignedName ? ':' + this.__assignedName : '') + ': ' + this.idType.toString() + ')';
 };
+
+exports.translate = function translate() {
+    this.idType = this.idType.translate();
+    return this;
+};

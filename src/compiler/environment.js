@@ -84,8 +84,11 @@ Environment.prototype.loadFile = function(filename, tree, privileged) {
 
     var ctx = context(this, tree, filename, null, privileged);
 
-    // Perform simple inline type checking.
+    // Perform inline type checking.
     tree.validateTypes(ctx);
+
+    // Convert the tree into its functional form
+    tree = tree.translate();
 
     // Flatten lexical scope
     transformer(ctx);

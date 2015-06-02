@@ -62,3 +62,11 @@ exports.toString = function toString() {
     return 'New: ' + this.newType.toString() + (this.params.length ? '\n' : '') +
            indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
 };
+
+exports.translate = function translate() {
+    if (this.newType) this.newType = this.newType.translate();
+    this.params = this.params.map(function(p) {
+        return p.translate();
+    });
+    return this;
+};

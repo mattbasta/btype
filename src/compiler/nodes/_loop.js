@@ -40,3 +40,13 @@ exports.getType = function getType(ctx) {
 
     return types.publicTypes.bool;
 };
+
+exports.translate = function translate() {
+    if (this.assignment) this.assignment = this.assignment.translate();
+    this.condition = this.condition.translate();
+    if (this.iteration) this.iteration = this.iteration.translate();
+    this.body = this.body.map(function(s) {
+        return s.translate();
+    });
+    return this;
+};

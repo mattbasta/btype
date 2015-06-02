@@ -77,3 +77,9 @@ exports.toString = function toString() {
             '    Rval:\n' +
             indentEach(this.value.toString(), 2);
 };
+
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    this.value = this.value.translate();
+    return this;
+};

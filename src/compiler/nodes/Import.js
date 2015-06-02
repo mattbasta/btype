@@ -3,6 +3,7 @@ var indentEach = require('./_utils').indentEach;
 
 exports.traverse = function traverse() {};
 exports.substitute = function substitute() {};
+exports.translate = function translate() {return this;};
 exports.validateTypes = function validateTypes(ctx) {};
 
 exports.toString = function toString() {

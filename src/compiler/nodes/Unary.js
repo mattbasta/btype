@@ -26,3 +26,8 @@ exports.validateTypes = function validateTypes(ctx) {
 exports.toString = function toString() {
     return 'Unary(' + this.operator + '): ' + this.base.toString() + '\n';
 };
+
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    return this;
+};

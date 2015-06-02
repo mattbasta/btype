@@ -28,3 +28,10 @@ exports.toString = function toString() {
         return stmt.toString();
     }).join('\n')) + '\n';
 };
+
+exports.translate = function translate() {
+    this.body = this.body.map(function(s) {
+        return s.translate();
+    });
+    return this;
+};

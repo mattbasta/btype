@@ -40,3 +40,13 @@ exports.toString = function toString() {
     return 'TypeMember(' + this.child + '):\n' +
            indentEach(this.base.toString());
 };
+
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    if (this.attributes) {
+        this.attributes = this.attributes.map(function(p) {
+            return p.translate();
+        });
+    }
+    return this;
+};

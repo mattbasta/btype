@@ -18,6 +18,14 @@ exports.substitute = function substitute(cb) {
     }).filter(ident);
 };
 
+exports.translate = function translate() {
+    this.callee = this.callee.translate();
+    this.params = this.params.map(function(p) {
+        return p.translate();
+    });
+    return this;
+};
+
 exports.getType = function getType(ctx) {
     return this.callee.getType(ctx).getReturnType();
 };

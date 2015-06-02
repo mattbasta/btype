@@ -4,7 +4,8 @@ var indentEach = require('./_utils').indentEach;
 
 exports.traverse = binop.traverse;
 exports.substitute = binop.substitute;
-exports.getType = binop.getType,
+exports.translate = binop.translate;
+exports.getType = binop.getType;
 
 exports.validateTypes = function validateTypes(ctx) {
     this.left.validateTypes(ctx);

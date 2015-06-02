@@ -58,3 +58,16 @@ exports.toString = function toString() {
                indentEach(this.alternate.map(function(stmt) {return stmt.toString();}).join('\n'), 2)
             );
 };
+
+exports.translate = function translate() {
+    this.condition = this.condition.translate();
+    this.consequent = this.consequent.map(function(p) {
+        return p.translate();
+    });
+    if (this.alternate) {
+        this.alternate = this.alternate.map(function(s) {
+            return s.translate();
+        });
+    }
+    return this;
+};

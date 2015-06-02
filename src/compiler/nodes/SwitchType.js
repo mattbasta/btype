@@ -45,3 +45,11 @@ exports.toString = function toString() {
            '    Cases:\n' +
            indentEach(this.cases.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
 };
+
+exports.translate = function translate() {
+    this.expr = this.expr.translate();
+    this.cases = this.cases.map(function(p) {
+        return p.translate();
+    });
+    return this;
+};

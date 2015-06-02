@@ -10,6 +10,11 @@ exports.substitute = function substitute(cb) {
     this.value = cb(this.value, 'value') || this.value;
 };
 
+exports.translate = function translate() {
+    if (this.value) this.value = this.value.translate();
+    return this;
+};
+
 exports.validateTypes = function validateTypes(ctx) {
     if (!ctx.parent) {
         throw new TypeError('Return statements must be within functions');

@@ -6,6 +6,11 @@ exports.substitute = function substitute(cb) {
     this.base = cb(this.base, 'base') || this.base;
 };
 
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    return this;
+};
+
 exports.getType = function getType(ctx) {
     return this.base.getType(ctx);
 };

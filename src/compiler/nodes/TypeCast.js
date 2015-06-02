@@ -56,3 +56,9 @@ exports.validateTypes = function validateTypes(ctx) {
 exports.toString = function toString() {
     return 'TypeCast(' + this.rightType.toString() + '): ' + this.left.toString();
 };
+
+exports.translate = function translate() {
+    this.left = this.left.translate();
+    this.rightType = this.rightType.translate();
+    return this;
+};

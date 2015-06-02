@@ -79,6 +79,20 @@ exports.getType = function getType(ctx) {
     return this.__type = output;
 };
 
+exports.translate = function translate() {
+    this.members = this.members.map(function(s) {
+        return s.translate();
+    });
+    this.methods = this.methods.map(function(s) {
+        return s.translate();
+    });
+    this.operators = this.operators.map(function(s) {
+        return s.translate();
+    });
+    if (this.objConstructor) this.objConstructor = this.objConstructor.translate();
+    return this;
+};
+
 exports.validateTypes = function validateTypes(ctx) {
     if (!this.__isConstructed) return;
 

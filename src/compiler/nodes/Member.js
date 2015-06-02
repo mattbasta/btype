@@ -61,3 +61,8 @@ exports.toString = function toString() {
     return 'Member(' + this.child + '):\n' +
            indentEach(this.base.toString());
 };
+
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    return this;
+};

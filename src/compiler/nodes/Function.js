@@ -31,6 +31,17 @@ exports.substitute = function substitute(cb) {
     }).filter(ident);
 };
 
+exports.translate = function translate() {
+    if (this.returnType) this.returnType = this.returnType.translate();
+    this.params = this.params.map(function(p) {
+        return p.translate();
+    });
+    this.body = this.body.map(function(s) {
+        return s.translate();
+    });
+    return this;
+};
+
 exports.getType = function getType(ctx) {
     if (this.__originalType) {
         return this.__originalType;

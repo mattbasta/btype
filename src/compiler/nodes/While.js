@@ -9,6 +9,7 @@ exports.traverseStatements = function traverseStatements(cb) {
 
 exports.traverse = _loop.traverse;
 exports.substitute = _loop.substitute;
+exports.translate = _loop.translate;
 exports.validateTypes = _loop.validateTypes;
 
 exports.toString = function toString() {

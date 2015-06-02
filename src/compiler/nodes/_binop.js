@@ -62,4 +62,10 @@ exports.checkBinopOperation = function checkBinopOperation(ctx, left, right) {
             throw new TypeError('Cannot use operator (' + this.operator + ') on type "' + left.toString() + '"');
         }
     }
-}
+};
+
+exports.translate = function translate() {
+    this.left = this.left.translate();
+    this.right = this.right.translate();
+    return this;
+};

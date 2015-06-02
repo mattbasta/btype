@@ -14,6 +14,11 @@ exports.validateTypes = function validateTypes(ctx) {
     return this.base.validateTypes(ctx);
 };
 
+exports.translate = function translate() {
+    this.base = this.base.translate();
+    return this;
+};
+
 exports.toString = function toString() {
     return this.base.toString();
 };

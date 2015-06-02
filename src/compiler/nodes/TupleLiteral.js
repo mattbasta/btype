@@ -32,3 +32,10 @@ exports.toString = function toString() {
     return 'Tuple:\n' +
            indentEach(this.content.map(function(x) {return x.toString()}).join('\n'));
 };
+
+exports.translate = function translate() {
+    this.content = this.content.map(function(p) {
+        return p.translate();
+    });
+    return this;
+};

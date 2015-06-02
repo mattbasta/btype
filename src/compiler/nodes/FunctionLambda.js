@@ -43,3 +43,14 @@ exports.getType = function getType(ctx, inheritedType) {
     return inheritedType;
 
 };
+
+exports.translate = function translate() {
+    if (this.returnType) this.returnType = this.returnType.translate();
+    this.params = this.params.map(function(p) {
+        return p.translate();
+    });
+    this.body = this.body.map(function(s) {
+        return s.translate();
+    });
+    return this;
+};

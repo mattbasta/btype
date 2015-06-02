@@ -36,6 +36,16 @@ exports.getType = function getType(ctx) {
     );
 };
 
+exports.translate = function translate() {
+    this.left = this.left.translate();
+    this.right = this.right.translate();
+    this.returnType = this.returnType.translate();
+    this.body = this.body.map(function(s) {
+        return s.translate();
+    });
+    return this;
+};
+
 exports.validateTypes = function validateTypes() {
     var context = this.__context;
     this.body.forEach(function(stmt) {

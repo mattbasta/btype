@@ -10,6 +10,12 @@ exports.substitute = function substitute(cb) {
     this.value = cb(this.value, 'value') || this.value;
 };
 
+exports.translate = function translate() {
+    if (this.declType) this.declType = this.declType.translate();
+    this.value = this.value.translate();
+    return this;
+};
+
 exports.getType = function getType(ctx) {
     return this.__staticType || (this.declType || this.value).getType(ctx);
 };
