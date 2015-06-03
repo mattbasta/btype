@@ -198,9 +198,6 @@ var NODES = {
         output += this.__assignedName + ' = ' + _node(this.value, env, ctx, tctx) + ';';
         tctx.write(output);
     },
-    ConstDeclaration: function() {
-        return NODES.Declaration.apply(this, arguments);
-    },
     Return: function(env, ctx, tctx) {
         if (!this.value) {
             if (ctx.scope.__objectSpecial === 'constructor') {

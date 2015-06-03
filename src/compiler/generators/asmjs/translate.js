@@ -339,9 +339,6 @@ var NODES = {
         tctx.write(output);
         tctx.write(this.__assignedName + ' = ' + _node(this.value, env, ctx, tctx) + ';');
     },
-    ConstDeclaration: function() {
-        return NODES.Declaration.apply(this, arguments);
-    },
     Return: function(env, ctx, tctx) {
         tctx.write(getFunctionDerefs(ctx, this.value));
 

@@ -574,9 +574,6 @@ var NODES = {
             tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
         }
     },
-    ConstDeclaration: function() {
-        NODES.Declaration.apply(this, arguments);
-    },
     Return: function(env, ctx, tctx) {
         if (!this.value) {
             tctx.write('br label %exitLabel');
