@@ -74,6 +74,11 @@ var NODES = {
         }
         env.__globalPrefix = '';
     },
+    Block: function(env, ctx, tctx) {
+        this.body.forEach(function(stmt) {
+            _node(stmt, env, ctx, tctx);
+        });
+    },
     Unary: function(env, ctx, tctx) {
         // Precedence here will always be 4.
         var out = _node(this.base, env, ctx, tctx);
@@ -478,22 +483,6 @@ var NODES = {
         return '[' + this.content.map(function(x) {
             return _node(x, env, ctx, tctx);
         }).join(',') + ']';
-    },
-
-    SwitchType: function(env, ctx, tctx) {
-        var type = this.expr.getType(ctx);
-        for (i = 0; i < this.cases.length; i++) {
-            if (!this.cases[i].getType(ctx).equals(type)) {
-                continue;
-            }
-            return _node(this.cases[i], env, ctx, tctx);
-        }
-    },
-
-    SwitchTypeCase: function(env, ctx, tctx) {
-        return this.body.map(function(x) {
-            return _node(x, env, ctx, tctx);
-        }).join('\n');
     },
 
 };

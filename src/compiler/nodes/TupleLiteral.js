@@ -33,9 +33,9 @@ exports.toString = function toString() {
            indentEach(this.content.map(function(x) {return x.toString()}).join('\n'));
 };
 
-exports.translate = function translate() {
+exports.translate = function translate(ctx) {
     this.content = this.content.map(function(p) {
-        return p.translate();
+        return p.translate(ctx);
     });
     return this;
 };

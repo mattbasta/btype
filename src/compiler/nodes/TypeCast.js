@@ -57,8 +57,8 @@ exports.toString = function toString() {
     return 'TypeCast(' + this.rightType.toString() + '): ' + this.left.toString();
 };
 
-exports.translate = function translate() {
-    this.left = this.left.translate();
-    this.rightType = this.rightType.translate();
+exports.translate = function translate(ctx) {
+    this.left = this.left.translate(ctx);
+    this.rightType = this.rightType.translate(ctx);
     return this;
 };

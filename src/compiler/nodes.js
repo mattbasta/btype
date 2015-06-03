@@ -11,9 +11,7 @@ var NODES = {
 
     Assignment: require('./nodes/Assignment'),
     Break: require('./nodes/Break'),
-    CallDecl: require('./nodes/CallDecl'),
     CallRaw: require('./nodes/CallRaw'),
-    CallRef: require('./nodes/CallRef'),
     CallStatement: require('./nodes/CallStatement'),
     ConstDeclaration: require('./nodes/ConstDeclaration'),
     Continue: require('./nodes/Continue'),
@@ -23,7 +21,6 @@ var NODES = {
     For: require('./nodes/For'),
     Function: require('./nodes/Function'),
     FunctionLambda: require('./nodes/FunctionLambda'),
-    FunctionReference: require('./nodes/FunctionReference'),
     If: require('./nodes/If'),
     Import: require('./nodes/Import'),
     Literal: require('./nodes/Literal'),
@@ -47,6 +44,12 @@ var NODES = {
     TypedIdentifier: require('./nodes/TypedIdentifier'),
     Unary: require('./nodes/Unary'),
     While: require('./nodes/While'),
+
+    // Functional nodes
+    Block: require('./nodes/Block'),
+    CallDecl: require('./nodes/CallDecl'),
+    CallRef: require('./nodes/CallRef'),
+    FunctionReference: require('./nodes/FunctionReference'),
 };
 
 function nodeBase(start, end, base) {

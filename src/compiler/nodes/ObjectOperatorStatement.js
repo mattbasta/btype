@@ -10,8 +10,8 @@ exports.getType = function getType(ctx) {
     return this.base.getType(ctx);
 };
 
-exports.translate = function translate() {
-    this.base = this.base.translate();
+exports.translate = function translate(ctx) {
+    this.base = this.base.translate(ctx);
     return this;
 };
 

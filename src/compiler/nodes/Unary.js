@@ -27,7 +27,7 @@ exports.toString = function toString() {
     return 'Unary(' + this.operator + '): ' + this.base.toString() + '\n';
 };
 
-exports.translate = function translate() {
-    this.base = this.base.translate();
+exports.translate = function translate(ctx) {
+    this.base = this.base.translate(ctx);
     return this;
 };

@@ -59,14 +59,14 @@ exports.toString = function toString() {
             );
 };
 
-exports.translate = function translate() {
-    this.condition = this.condition.translate();
+exports.translate = function translate(ctx) {
+    this.condition = this.condition.translate(ctx);
     this.consequent = this.consequent.map(function(p) {
-        return p.translate();
+        return p.translate(ctx);
     });
     if (this.alternate) {
         this.alternate = this.alternate.map(function(s) {
-            return s.translate();
+            return s.translate(ctx);
         });
     }
     return this;

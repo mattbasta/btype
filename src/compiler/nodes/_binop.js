@@ -64,8 +64,8 @@ exports.checkBinopOperation = function checkBinopOperation(ctx, left, right) {
     }
 };
 
-exports.translate = function translate() {
-    this.left = this.left.translate();
-    this.right = this.right.translate();
+exports.translate = function translate(ctx) {
+    this.left = this.left.translate(ctx);
+    this.right = this.right.translate(ctx);
     return this;
 };

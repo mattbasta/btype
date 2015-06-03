@@ -78,8 +78,8 @@ exports.toString = function toString() {
             indentEach(this.value.toString(), 2);
 };
 
-exports.translate = function translate() {
-    this.base = this.base.translate();
-    this.value = this.value.translate();
+exports.translate = function translate(ctx) {
+    this.base = this.base.translate(ctx);
+    this.value = this.value.translate(ctx);
     return this;
 };

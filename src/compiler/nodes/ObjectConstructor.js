@@ -14,8 +14,8 @@ exports.validateTypes = function validateTypes(ctx) {
     return this.base.validateTypes(ctx);
 };
 
-exports.translate = function translate() {
-    this.base = this.base.translate();
+exports.translate = function translate(ctx) {
+    this.base = this.base.translate(ctx);
     return this;
 };
 

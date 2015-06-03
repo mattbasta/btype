@@ -40,17 +40,17 @@ exports.getType = function getType(ctx, inheritedType) {
         );
     }
 
-    return inheritedType;
+    return this.__inheritedType = inheritedType;
 
 };
 
-exports.translate = function translate() {
-    if (this.returnType) this.returnType = this.returnType.translate();
+exports.translate = function translate(ctx) {
+    if (this.returnType) this.returnType = this.returnType.translate(ctx);
     this.params = this.params.map(function(p) {
-        return p.translate();
+        return p.translate(ctx);
     });
     this.body = this.body.map(function(s) {
-        return s.translate();
+        return s.translate(ctx);
     });
     return this;
 };

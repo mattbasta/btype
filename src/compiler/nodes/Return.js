@@ -10,8 +10,8 @@ exports.substitute = function substitute(cb) {
     this.value = cb(this.value, 'value') || this.value;
 };
 
-exports.translate = function translate() {
-    if (this.value) this.value = this.value.translate();
+exports.translate = function translate(ctx) {
+    if (this.value) this.value = this.value.translate(ctx);
     return this;
 };
 

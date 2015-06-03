@@ -79,17 +79,18 @@ exports.getType = function getType(ctx) {
     return this.__type = output;
 };
 
-exports.translate = function translate() {
+exports.translate = function translate(ctx, constructing) {
+    if (!constructing) return this;
     this.members = this.members.map(function(s) {
-        return s.translate();
+        return s.translate(ctx);
     });
     this.methods = this.methods.map(function(s) {
-        return s.translate();
+        return s.translate(ctx);
     });
     this.operators = this.operators.map(function(s) {
-        return s.translate();
+        return s.translate(ctx);
     });
-    if (this.objConstructor) this.objConstructor = this.objConstructor.translate();
+    if (this.objConstructor) this.objConstructor = this.objConstructor.translate(ctx);
     return this;
 };
 

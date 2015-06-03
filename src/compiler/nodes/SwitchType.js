@@ -46,10 +46,18 @@ exports.toString = function toString() {
            indentEach(this.cases.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
 };
 
-exports.translate = function translate() {
-    this.expr = this.expr.translate();
-    this.cases = this.cases.map(function(p) {
-        return p.translate();
-    });
-    return this;
+exports.translate = function translate(ctx) {
+    var exprType = this.expr.getType(ctx);
+    for (var i = 0; i < this.cases.length; i++) {
+        if (!this.cases[i].caseType.getType(ctx).equals(exprType)) continue;
+        return new (require('../nodes').Block)(
+            this.cases[i].start,
+            this.cases[i].end,
+            {
+                body: this.cases[i].body,
+            }
+        );
+    }
+
+    throw new Error('No switchtype cases matched during translation');
 };

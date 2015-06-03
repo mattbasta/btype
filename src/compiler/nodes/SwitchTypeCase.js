@@ -33,10 +33,10 @@ exports.toString = function toString() {
            indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'), 2) + '\n';
 };
 
-exports.translate = function translate() {
-    this.caseType = this.caseType.translate();
+exports.translate = function translate(ctx) {
+    this.caseType = this.caseType.translate(ctx);
     this.body = this.body.map(function(s) {
-        return s.translate();
+        return s.translate(ctx);
     });
     return this;
 };

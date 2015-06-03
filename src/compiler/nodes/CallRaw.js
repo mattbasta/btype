@@ -18,10 +18,10 @@ exports.substitute = function substitute(cb) {
     }).filter(ident);
 };
 
-exports.translate = function translate() {
-    this.callee = this.callee.translate();
+exports.translate = function translate(ctx) {
+    this.callee = this.callee.translate(ctx);
     this.params = this.params.map(function(p) {
-        return p.translate();
+        return p.translate(ctx);
     });
     return this;
 };

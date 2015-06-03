@@ -201,7 +201,7 @@ Context.prototype.resolvePrototype = function resolvePrototype(typeName, attribu
     var typeToRegister = clonedProto.getType(this);
     typeToRegister.__assignedName = clonedProto.__assignedName;
     this.env.registerType(typeToRegister.__assignedName, typeToRegister, this);
-    this.scope.body.push(clonedProto);
+    this.scope.body.push(clonedProto.translate(this, true));
 
     return typeToRegister;
 };

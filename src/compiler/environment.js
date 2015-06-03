@@ -88,7 +88,7 @@ Environment.prototype.loadFile = function(filename, tree, privileged) {
     tree.validateTypes(ctx);
 
     // Convert the tree into its functional form
-    tree = tree.translate();
+    tree = tree.translate(ctx);
 
     // Flatten lexical scope
     transformer(ctx);

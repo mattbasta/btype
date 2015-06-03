@@ -6,8 +6,8 @@ exports.substitute = function substitute(cb) {
     this.base = cb(this.base, 'base') || this.base;
 };
 
-exports.translate = function translate() {
-    this.base = this.base.translate();
+exports.translate = function translate(ctx) {
+    this.base = this.base.translate(ctx);
     return this;
 };
 

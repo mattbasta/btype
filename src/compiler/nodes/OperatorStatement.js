@@ -36,12 +36,13 @@ exports.getType = function getType(ctx) {
     );
 };
 
-exports.translate = function translate() {
-    this.left = this.left.translate();
-    this.right = this.right.translate();
-    this.returnType = this.returnType.translate();
+exports.translate = function translate(ctx) {
+    var context = this.__context;
+    this.left = this.left.translate(ctx);
+    this.right = this.right.translate(ctx);
+    this.returnType = this.returnType.translate(ctx);
     this.body = this.body.map(function(s) {
-        return s.translate();
+        return s.translate(context);
     });
     return this;
 };

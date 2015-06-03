@@ -12,9 +12,9 @@ exports.getType = function getType(ctx) {
     return this.memberType.getType(ctx);
 };
 
-exports.translate = function translate() {
-    if (this.value) this.value = this.value.translate();
-    this.memberType = this.memberType.translate();
+exports.translate = function translate(ctx) {
+    if (this.value) this.value = this.value.translate(ctx);
+    this.memberType = this.memberType.translate(ctx);
     return this;
 };
 

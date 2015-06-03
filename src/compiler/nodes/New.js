@@ -63,10 +63,10 @@ exports.toString = function toString() {
            indentEach(this.params.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
 };
 
-exports.translate = function translate() {
-    if (this.newType) this.newType = this.newType.translate();
+exports.translate = function translate(ctx) {
+    if (this.newType) this.newType = this.newType.translate(ctx);
     this.params = this.params.map(function(p) {
-        return p.translate();
+        return p.translate(ctx);
     });
     return this;
 };

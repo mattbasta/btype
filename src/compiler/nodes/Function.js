@@ -31,13 +31,14 @@ exports.substitute = function substitute(cb) {
     }).filter(ident);
 };
 
-exports.translate = function translate() {
-    if (this.returnType) this.returnType = this.returnType.translate();
+exports.translate = function translate(ctx) {
+    var context = this.__context;
+    if (this.returnType) this.returnType = this.returnType.translate(ctx);
     this.params = this.params.map(function(p) {
-        return p.translate();
+        return p.translate(context);
     });
     this.body = this.body.map(function(s) {
-        return s.translate();
+        return s.translate(context);
     });
     return this;
 };

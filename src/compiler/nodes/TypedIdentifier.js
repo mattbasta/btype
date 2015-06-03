@@ -14,7 +14,7 @@ exports.toString = function toString() {
     return 'TypedId(' + this.name + (this.__assignedName ? ':' + this.__assignedName : '') + ': ' + this.idType.toString() + ')';
 };
 
-exports.translate = function translate() {
-    this.idType = this.idType.translate();
+exports.translate = function translate(ctx) {
+    this.idType = this.idType.translate(ctx);
     return this;
 };

@@ -41,11 +41,11 @@ exports.toString = function toString() {
            indentEach(this.base.toString());
 };
 
-exports.translate = function translate() {
-    this.base = this.base.translate();
+exports.translate = function translate(ctx) {
+    this.base = this.base.translate(ctx);
     if (this.attributes) {
         this.attributes = this.attributes.map(function(p) {
-            return p.translate();
+            return p.translate(ctx);
         });
     }
     return this;

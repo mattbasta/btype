@@ -1,8 +1,11 @@
+var types = require('../types');
+
+var ident = require('./_utils').ident;
 var indentEach = require('./_utils').indentEach;
 
 
 exports.traverse = function traverse(cb) {
-    this.body.forEach(function traverseBody(stmt) {
+    this.body.forEach(function(stmt) {
         cb(stmt, 'body');
     });
 };
@@ -18,20 +21,15 @@ exports.substitute = function substitute(cb) {
 };
 
 exports.validateTypes = function validateTypes(ctx) {
-    this.body.forEach(function validateTypesRootBodyIter(stmt) {
-        stmt.validateTypes(ctx);
+    this.body.forEach(function(s) {
+        s.validateTypes(ctx);
     });
 };
 
 exports.toString = function toString() {
-    return 'Root:\n' + indentEach(this.body.map(function toStringBody(stmt) {
-        return stmt.toString();
-    }).join('\n')) + '\n';
+    return 'Block:\n' + indentEach(this.body.map(function(stmt) {return stmt.toString();}).join('\n'), 1);
 };
 
 exports.translate = function translate(ctx) {
-    this.body = this.body.map(function(s) {
-        return s.translate(ctx);
-    });
     return this;
 };
