@@ -22,15 +22,15 @@ exports.validateTypes = function validateTypes(ctx) {
 
     if (this.value) this.value.validateTypes(ctx);
 
-    var valueType = this.value ? this.value.getType(ctx) : null;
     var func = ctx.scope;
     var funcReturnType = func.returnType && func.returnType.getType(ctx);
-    if (!!valueType !== !!funcReturnType) {
+    if (!!this.value !== !!funcReturnType) {
         throw new TypeError('Mismatched void/typed return type');
     }
 
-    if (!valueType) return;
+    if (!this.value) return;
 
+    var valueType = this.value.getType(ctx, funcReturnType);
     if (!funcReturnType.equals(valueType)) {
         throw new TypeError('Mismatched return type: ' + funcReturnType.toString() + ' != ' + valueType.toString());
     }
