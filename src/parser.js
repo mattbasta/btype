@@ -588,32 +588,34 @@ function parseExpression(lex, base, precedence) {
                 }
 
                 parsed = parseExpression(lex);
-                if (parsed.type === 'Symbol') {
-                    var args = [parsed];
-                    if (lex.accept(',')) {
-                        do {
-                            args.push(parseSymbol(lex));
-                        } while (lex.accept(','));
-                        lex.assert(')');
-                        lex.assert(':');
-                        exprBody = parseExpression(lex);
-                        return node(
-                            'FunctionLambda',
-                            base.start,
-                            exprBody.end,
-                            {
-                                returnType: null,
-                                name: null,
-                                params: args,
-                                body: [
-                                    node('Return', {value: exprBody}),
-                                ],
-                            }
-                        );
-                    }
+                if (parsed.type !== 'Symbol') {
+                    lex.assert(')');
+                    return parsed;
+                }
+
+                var args = [parsed];
+                while (lex.accept(',')) {
+                    args.push(parseSymbol(lex));
                 }
                 lex.assert(')');
-                return parsed;
+
+                if (!lex.accept(':')) {
+                    return parsed;
+                }
+                exprBody = parseExpression(lex);
+                return node(
+                    'FunctionLambda',
+                    base.start,
+                    exprBody.end,
+                    {
+                        returnType: null,
+                        name: null,
+                        params: args,
+                        body: [
+                            node('Return', {value: exprBody}),
+                        ],
+                    }
+                );
             case '[:':
                 return parseTuple(lex, base);
             case 'true':

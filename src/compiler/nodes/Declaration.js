@@ -42,7 +42,7 @@ exports.validateTypes = function validateTypes(ctx) {
         return;
     }
     var declType = this.declType.getType(ctx);
-    var valueType = this.value.getType(ctx);
+    var valueType = this.value.getType(ctx, declType);
     if (!valueType.equals(declType)) {
         throw new TypeError('Mismatched types in declaration: ' + declType.toString() + ' != ' + valueType.toString());
     }
