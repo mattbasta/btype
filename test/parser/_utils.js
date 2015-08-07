@@ -1,6 +1,7 @@
-var assert = require('assert');
+import assert from 'assert';
 
-var lexer = require('../../src/lexer');
+import lexer from '../../src/lexer';
+import token from '../../src/lexer';
 var parser = require('../../src/parser');
 
 var node = parser.node;
@@ -13,7 +14,7 @@ var parse = exports.parse = function parse(script) {
 exports.compareTree = function compareTree(script, tree) {
     var parsed = parse(script);
     function compare(left, right, base, key) {
-        if (left instanceof lexer.token) {
+        if (left instanceof token) {
             assert.equal(left.text, right.text, 'Expected token "' + key + '" text to be equal in both trees at ' + base + ': "' + left.text + '" != "' + right.text + '"');
             assert.equal(left.type, right.type, 'Expected token "' + key + '" type to be equal in both trees at ' + base + ': "' + left.type + '" != "' + right.type + '"');
             return true;

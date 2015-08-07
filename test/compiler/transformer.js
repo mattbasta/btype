@@ -1,3 +1,7 @@
+'use strict';
+require('babel/register');
+
+
 var assert = require('assert');
 
 var context = require('../../src/compiler/context');
@@ -11,7 +15,7 @@ function getCtx(script, env) {
     if (script instanceof Array) script = script.join('\n');
     return context(
         env || new environment.Environment(),
-        parser(lexer(script))
+        parser(lexer.default(script))
     );
 }
 

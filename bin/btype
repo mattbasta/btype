@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+'use strict';
+require('babel/register');
+
+
 var argv = require('minimist')(process.argv.slice(2));
 
 
@@ -25,6 +29,7 @@ var compiler = require('../src/compiler/compiler');
 var lexer = require('../src/lexer');
 var parser = require('../src/parser');
 
+
 if (argv._[0]) {
     fs.readFile(argv._[0], function(err, data) {
         if (err) {
@@ -48,7 +53,7 @@ if (argv._[0]) {
 }
 
 function processData(data) {
-    var parsed = parser(lexer(data.toString()));
+    var parsed = parser(lexer.default(data.toString()));
     var compiled = compiler({
         filename: argv._[0],
         tree: parsed,

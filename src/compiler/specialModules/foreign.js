@@ -1,5 +1,5 @@
 var context = require('../context');
-var lexer = require('../../lexer');
+import lexer from '../../lexer';
 var nodes = require('../nodes');
 var parser = require('../../parser');
 var types = require('../types');

@@ -1,3 +1,7 @@
+'use strict';
+require('babel/register');
+
+
 var assert = require('assert');
 
 var lexer = require('../../src/lexer');

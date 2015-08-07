@@ -1,6 +1,10 @@
-var assert = require('assert');
+'use strict';
+require('babel/register');
 
-var lexer = require('../src/lexer');
+
+import assert from 'assert';
+
+import lexer from '../src/lexer';
 
 
 function justTokens(lex) {

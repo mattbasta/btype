@@ -1,4 +1,4 @@
-var TOKENS = [
+const TOKENS = [
     [/^(?:\r\n|\r|\n)/, null],
     [/^\s+/, null],
     [/^"(?:\\(?:.|\r\n|\r|\n)|[^"\\\n])*"/i, 'str'],
@@ -23,10 +23,9 @@ var TOKENS = [
     [/^\(/, '('],
     [/^\)/, ')'],
 
-    [/^=>/, '=>'], // fat arrow
 
     // Bitwise operators
-    [/^\|/, '|'], // also used for lambdas
+    [/^\|/, '|'],
     [/^&/, '&'],
     [/^\^/, '^'],
     [/^<</, '<<'],
@@ -49,6 +48,7 @@ var TOKENS = [
     [/^~/, '~'],
 
     // Reserved Words
+    [/^=>/, 'reserved'],
     [/^catch(?!\w)/, 'reserved'],
     [/^default(?!\w)/, 'reserved'],
     [/^enum(?!\w)/, 'reserved'],
@@ -100,146 +100,150 @@ var TOKENS = [
     [/^[a-zA-Z_][\w_]*/, 'identifier'],
 ];
 
-/**
- * @constructor
- * @param {string} text  Text content of the token
- * @param {string} type  Token type
- * @param {int} start Start position of token
- * @param {int} end   End position of token
- * @param {int} line  Line number of token
- */
-function Token(text, type, start, end, line) {
-    this.text = text;
-    this.type = type;
-    this.start = start;
-    this.end = end;
-    this.line = line;
-}
-Token.prototype.isToken = true;
 
+class Token {
+    /**
+     * @param {string} text  Text content of the token
+     * @param {string} type  Token type
+     * @param {int} start Start position of token
+     * @param {int} end   End position of token
+     * @param {int} line  Line number of token
+     */
+    constructor(text, type, start, end, line) {
+        this.text = text;
+        this.type = type;
+        this.start = start;
+        this.end = end;
+        this.line = line;
 
-/**
- * @return {string} Stringified version of the token
- */
-Token.prototype.toString = function toString() {
-    return '[token ' + this.type + ']';
-};
-
-
-/**
- * @constructor
- * @param {string} text Input data
- */
-function Lexer(text) {
-    this.pointer = 0;
-    this.remainingData = text;
-    this.currentLine = 1;
-
-    this.peeked = null;
-}
-
-/**
- * Returns the next token from the stream
- * @return {Token|null} The next token
- */
-Lexer.prototype.readToken = function readToken() {
-    var match;
-    var startPointer = this.pointer;
-    for (var i = 0; i < TOKENS.length; i++) {
-        if (!(match = TOKENS[i][0].exec(this.remainingData))) {
-            continue;
-        }
-        if (match.index !== 0) {
-            continue;
-        }
-        this.remainingData = this.remainingData.substr(match[0].length);
-        this.currentLine += match[0].split(/(?:\r\n|\r|\n)/).length - 1;
-        this.pointer += match[0].length;
-        if (!TOKENS[i][1] || TOKENS[i][1] === 'comment') {
-            i = -1;
-            startPointer = this.pointer;
-            continue;
-        }
-        return new Token(match[0], TOKENS[i][1], startPointer, this.pointer, this.currentLine);
+        this.isToken = true;
     }
-    return null;
-};
 
-/**
- * Gets the next token
- * @return {Token|string} The next token
- */
-Lexer.prototype.next = function next() {
-    if (this.peeked !== null) {
-        var tmp = this.peeked;
+    /**
+     * @return {string} Stringified version of the token
+     */
+    toString() {
+        return '[token ' + this.type + ']';
+    }
+}
+
+
+class Lexer {
+    /**
+     * @param {string} text Input data
+     */
+    constructor(text) {
+        this.pointer = 0;
+        this.remainingData = text;
+        this.currentLine = 1;
+
         this.peeked = null;
-        return tmp;
     }
 
-    if (!this.remainingData.trim()) return 'EOF';
-    var token = this.readToken();
-    if (!token) {
-        if (!this.remainingData.trim()) return 'EOF';
-        throw new SyntaxError('Unknown token at line ' + this.currentLine + ' near "' + this.remainingData.substr(0, 20) + '"');
-    }
-    return token;
-};
-
-/**
- * Peeks the next token without removing it from the stream
- * @return {Token}
- */
-Lexer.prototype.peek = function peek() {
-    if (this.peeked !== null) {
-        return this.peeked;
-    }
-    var next = this.next();
-    this.peeked = next;
-    return next;
-};
-
-/**
- * If the next token matches the provided type, it is returned.
- * @param  {string} tokenType
- * @return {Token|null}
- */
-Lexer.prototype.accept = function accept(tokenType) {
-    var peeked = this.peek();
-    if (peeked.type !== tokenType) {
+    /**
+     * Returns the next token from the stream
+     * @return {Token|null} The next token
+     */
+    readToken() {
+        var match;
+        var startPointer = this.pointer;
+        for (var i = 0; i < TOKENS.length; i++) {
+            if (!(match = TOKENS[i][0].exec(this.remainingData))) {
+                continue;
+            }
+            if (match.index !== 0) {
+                continue;
+            }
+            this.remainingData = this.remainingData.substr(match[0].length);
+            this.currentLine += match[0].split(/(?:\r\n|\r|\n)/).length - 1;
+            this.pointer += match[0].length;
+            if (!TOKENS[i][1] || TOKENS[i][1] === 'comment') {
+                i = -1;
+                startPointer = this.pointer;
+                continue;
+            }
+            return new Token(match[0], TOKENS[i][1], startPointer, this.pointer, this.currentLine);
+        }
         return null;
     }
-    return this.next();
-};
 
-/**
- * Asserts that the next token is of the specified type and returns
- * the token.
- * @param  {string} tokenType
- * @return {Token}
- */
-Lexer.prototype.assert = function assert(tokenType) {
-    var next = this.next();
-    if (next === 'EOF') {
-        if (tokenType !== 'EOF') {
-            throw new SyntaxError('Expected ' + tokenType + ' but reached the end of the file');
+    /**
+     * Gets the next token
+     * @return {Token|string} The next token
+     */
+    next() {
+        if (this.peeked !== null) {
+            var tmp = this.peeked;
+            this.peeked = null;
+            return tmp;
         }
-    } else if (next.type !== tokenType) {
-        throw new SyntaxError(
-            'Unexpected token "' + next.type + '", expected "' + tokenType + '"' +
-            ' at line ' + this.currentLine + ' near "' +
-            this.remainingData.substr(0, 20) + '"');
+
+        if (!this.remainingData.trim()) return 'EOF';
+        var token = this.readToken();
+        if (!token) {
+            if (!this.remainingData.trim()) return 'EOF';
+            throw new SyntaxError('Unknown token at line ' + this.currentLine + ' near "' + this.remainingData.substr(0, 20) + '"');
+        }
+        return token;
     }
-    return next;
-};
+
+    /**
+     * Peeks the next token without removing it from the stream
+     * @return {Token}
+     */
+    peek() {
+        if (this.peeked !== null) {
+            return this.peeked;
+        }
+        var next = this.next();
+        this.peeked = next;
+        return next;
+    }
+
+    /**
+     * If the next token matches the provided type, it is returned.
+     * @param  {string} tokenType
+     * @return {Token|null}
+     */
+    accept(tokenType) {
+        var peeked = this.peek();
+        if (peeked.type !== tokenType) {
+            return null;
+        }
+        return this.next();
+    }
+
+    /**
+     * Asserts that the next token is of the specified type and returns
+     * the token.
+     * @param  {string} tokenType
+     * @return {Token}
+     */
+    assert(tokenType) {
+        var next = this.next();
+        if (next === 'EOF') {
+            if (tokenType !== 'EOF') {
+                throw new SyntaxError('Expected ' + tokenType + ' but reached the end of the file');
+            }
+        } else if (next.type !== tokenType) {
+            throw new SyntaxError(
+                'Unexpected token "' + next.type + '", expected "' + tokenType + '"' +
+                ' at line ' + this.currentLine + ' near "' +
+                this.remainingData.substr(0, 20) + '"');
+        }
+        return next;
+    }
+
+}
+
 
 /**
  * Creates a new lexer
  * @param  {string} input
  * @return {Lexer}
  */
-module.exports = function lexer(input) {
-    var lex = new Lexer(input);
-    return lex;
+export default function lexer(input) {
+    return new Lexer(input);
 };
 
-module.exports.token = Token;
+export {Token as token};

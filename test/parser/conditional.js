@@ -1,3 +1,7 @@
+'use strict';
+require('babel/register');
+
+
 var node = require('../../src/parser').node;
 
 var compareTree = require('./_utils').compareTree;

@@ -1,11 +1,16 @@
-var assert = require('assert');
+'use strict';
+require('babel/register');
+
+
+import assert from 'assert';
+
 var child_process = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
 var compiler = require('../../src/compiler/compiler');
+var lexer = require('../../src/lexer').default;
 var parser = require('../../src/parser');
-var lexer = require('../../src/lexer');
 
 
 function globEach(path_, ext, callback) {
@@ -83,7 +88,8 @@ describe('Parity tests', function() {
                 });
 
                 it('in LLVM IR', function llvmirFunctionalTestBody(done) {
-                    this.slow(500);
+                    this.timeout(5000);
+                    this.slow(1000);
 
                     var parsed;
                     var compiled;
@@ -94,24 +100,24 @@ describe('Parity tests', function() {
                             tree: parsed,
                             format: 'llvmir'
                         });
-                        // console.log(compiled);
                     } catch (e) {
                         done(e);
                         return;
                     }
 
-                    child_process.exec(
-                        path.resolve(process.cwd(), 'bin', 'btype') + ' ' + btPath + ' --target=llvmir | opt -S',
-                        function(err, stdout, stderr) {
-                            if (err) {
-                                done(err);
-                            } else if (stderr) {
-                                done(new Error(stderr.toString()));
-                            } else {
-                                runLLI();
-                            }
-                        }
-                    );
+                    // child_process.exec(
+                    //     path.resolve(process.cwd(), 'bin', 'btype') + ' ' + btPath + ' --target=llvmir | opt -S',
+                    //     function(err, stdout, stderr) {
+                    //         if (err) {
+                    //             done(err);
+                    //         } else if (stderr) {
+                    //             done(new Error(stderr.toString()));
+                    //         } else {
+                    //             runLLI();
+                    //         }
+                    //     }
+                    // );
+                    runLLI();
 
                     function runLLI() {
                         var cp = child_process.exec(
@@ -119,9 +125,11 @@ describe('Parity tests', function() {
                             function(err, stdout, stderr) {
                                 if (err) {
                                     failedLLI++;
+                                    console.error(stderr);
                                     done(err);
                                 } else if (stderr) {
                                     failedLLI++;
+                                    console.error(stderr);
                                     done(stderr);
                                 } else {
                                     succeededLLI++;

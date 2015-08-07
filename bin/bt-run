@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+'use strict';
+require('babel/register');
+
+
 var argv = require('minimist')(process.argv.slice(2));
 
 
@@ -49,7 +53,7 @@ if (argv._[0]) {
 }
 
 function processData(data) {
-    var parsed = parser(lexer(data.toString()));
+    var parsed = parser(lexer.default(data.toString()));
     var compiled = compiler({
         filename: argv._[0],
         tree: parsed,

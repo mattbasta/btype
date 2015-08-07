@@ -18,8 +18,8 @@ function compileIncludes(env, ENV_VARS) {
 function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
-        'this.Math.imul = this.Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
-        'this.Math.fround = this.Math.fround || function fround(x) {var f32 = new Float32Array(1);return f32[0] = x, f32[0];};',
+        'Math.imul = Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
+        'Math.fround = Math.fround || function fround(x) {var f32 = new Float32Array(1);return f32[0] = x, f32[0];};',
         'var ret = module(this, {' + env.foreigns.map(function(foreign) {
             var base = JSON.stringify(foreign) + ':';
             if (foreign in externalFuncs) {
@@ -28,7 +28,7 @@ function makeModule(env, ENV_VARS, body) {
                 base += 'function() {}';
             }
             return base;
-        }).join(',') + (env.foreigns.length ? ',' : '') + 'arr2str:this.TextDecoder ?',
+        }).join(',') + (env.foreigns.length ? ',' : '') + 'arr2str:typeof TextDecoder !== \'undefined\' ?',
         'function(arr) {',
         '    return (new TextDecoder()).decode(arr);',
         '}',
@@ -50,7 +50,7 @@ function makeModule(env, ENV_VARS, body) {
             return e + ': ret.' + e;
         }).join(',\n'),
         '};',
-        '})(function module_(stdlib, foreign) {',
+        '}).call(typeof global !== "undefined" ? global : this, function app(stdlib, foreign) {',
         'var fround = stdlib.Math.fround;',
         body,
         '})'

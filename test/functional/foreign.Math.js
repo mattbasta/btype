@@ -1,11 +1,15 @@
+'use strict';
+require('babel/register');
+
+
 var assert = require('assert');
 var child_process = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
 var compiler = require('../../src/compiler/compiler');
+import lexer from '../../src/lexer';
 var parser = require('../../src/parser');
-var lexer = require('../../src/lexer');
 
 
 describe('foreign.Math module', function() {
@@ -51,8 +55,9 @@ describe('foreign.Math module', function() {
     function suite(code, expectation) {
         var mainReturnType;
 
+        var parsed;
         beforeEach(function() {
-            var parsed = parser(lexer(code));
+            parsed = parser(lexer(code));
             var env = compiler.buildEnv({filename: 'test', tree: parsed});
             var mainFunc = env.requested.exports.main;
             var mainFuncDef = env.requested.functionDeclarations[mainFunc];
@@ -60,11 +65,11 @@ describe('foreign.Math module', function() {
         });
 
         it('should work in JS', function() {
-            run(code, 'js', expectation, mainReturnType);
+            run(parsed, 'js', expectation, mainReturnType);
         });
 
         it('should work in asm.js', function() {
-            run(code, 'asmjs', expectation, mainReturnType);
+            run(parsed, 'asmjs', expectation, mainReturnType);
         });
 
         it('should work in llvmir', function(done) {

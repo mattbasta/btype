@@ -1028,7 +1028,7 @@ var NODES = {
             base = _node(this.base, env, ctx, tctx);
             subscript = _node(this.subscript, env, ctx, tctx);
 
-            outReg = tctx.getRegister();
+            var outReg = tctx.getRegister();
             tctx.write(outReg + ' = call ' + getLLVMType(this.getType(ctx)) + ' @' + makeName(operatorStmtFunc) + '(' +
                 getLLVMType(baseType) + ' ' + base + ', ' +
                 getLLVMType(subscriptType) + ' ' + subscript +

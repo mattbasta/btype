@@ -1,3 +1,7 @@
+'use strict';
+require('babel/register');
+
+
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
@@ -32,7 +36,13 @@ function getInstance() {
         'view: memheap',
     ].join(',');
 
-    return eval('(function() {' + setup + memModule + '\nreturn {' + returns + '}}())');
+    var code = '(function() {' + setup + memModule + '\nreturn {' + returns + '}}.call(global))';
+    try {
+        return eval(code);
+    } catch (e) {
+        console.log(code);
+        throw e;
+    }
 }
 
 describe('Memory (buddy) special module', function() {

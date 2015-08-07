@@ -7,6 +7,7 @@ var constantFold = require('./optimizer/constantFold');
 var context = require('./context');
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
+import lexer from '../lexer';
 var namer = require('./namer');
 var nodes = require('./nodes');
 var specialModules = require('./specialModules/__directory');
@@ -77,7 +78,6 @@ Environment.prototype.loadFile = function(filename, tree, privileged) {
     if (filename in this.moduleCache) return this.moduleCache[filename];
 
     if (!tree) {
-        var lexer = require('../lexer');
         var parser = require('../parser');
         tree = parser(lexer(fs.readFileSync(filename).toString()));
     }

@@ -1,3 +1,7 @@
+'use strict';
+require('babel/register');
+
+
 var assert = require('assert');
 
 var context = require('../../src/compiler/context');
@@ -9,7 +13,7 @@ var namer = require('../../src/compiler/namer');
 
 function parse(script) {
     if (script instanceof Array) script = script.join('\n');
-    return parser(lexer(script));
+    return parser(lexer.default(script));
 }
 
 function env() {
