@@ -2,11 +2,10 @@
 require('babel/register');
 
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('Conditional parser', function() {
@@ -25,8 +24,8 @@ describe('Conditional parser', function() {
                             7,
                             13,
                             {
-                                base: node(
-                                    'CallRaw',
+                                call: node(
+                                    'Call',
                                     7,
                                     12,
                                     {
@@ -57,8 +56,8 @@ describe('Conditional parser', function() {
                             7,
                             13,
                             {
-                                base: node(
-                                    'CallRaw',
+                                call: node(
+                                    'Call',
                                     7,
                                     12,
                                     {
@@ -73,8 +72,8 @@ describe('Conditional parser', function() {
                             21,
                             27,
                             {
-                                base: node(
-                                    'CallRaw',
+                                call: node(
+                                    'Call',
                                     21,
                                     26,
                                     {

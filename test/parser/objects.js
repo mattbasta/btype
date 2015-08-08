@@ -4,14 +4,13 @@ require('babel/register');
 
 var assert = require('assert');
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
 var _typed = require('./_utils')._typed;
 var parse = require('./_utils').parse;
+var node = require('./_utils').node;
 
 
 describe('Object declaration parser', function() {
@@ -73,7 +72,7 @@ describe('Object declaration parser', function() {
                             13,
                             18,
                             {
-                                memberType: _typed('x', _type('int')),
+                                type: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
                                 isPrivate: false,
@@ -105,7 +104,7 @@ describe('Object declaration parser', function() {
                             13,
                             26,
                             {
-                                memberType: _typed('x', _type('int')),
+                                type: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
                                 isPrivate: true,
@@ -137,7 +136,7 @@ describe('Object declaration parser', function() {
                             13,
                             24,
                             {
-                                memberType: _typed('x', _type('int')),
+                                type: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
                                 isPrivate: false,
@@ -169,7 +168,7 @@ describe('Object declaration parser', function() {
                             13,
                             32,
                             {
-                                memberType: _typed('x', _type('int')),
+                                type: _typed('x', _type('int')),
                                 name: 'x',
                                 value: null,
                                 isPrivate: true,
@@ -202,28 +201,19 @@ describe('Object declaration parser', function() {
                             45,
                             {
                                 name: 'foo',
-                                base: node(
-                                    'Function',
-                                    13,
-                                    45,
+                                returnType: _type('int'),
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [node(
+                                    'Return',
+                                    33,
+                                    44,
                                     {
-                                        returnType: _type('int'),
-                                        name: 'foo',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [node(
-                                            'Return',
-                                            33,
-                                            44,
-                                            {
-                                                value: _int(123),
-                                            }
-                                        )],
-                                        __objectSpecial: 'method',
+                                        value: _int(123),
                                     }
-                                ),
+                                )],
                                 isPrivate: false,
                                 isFinal: false,
                             }
@@ -254,28 +244,19 @@ describe('Object declaration parser', function() {
                             53,
                             {
                                 name: 'foo',
-                                base: node(
-                                    'Function',
-                                    21,
-                                    53,
+                                returnType: _type('int'),
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [node(
+                                    'Return',
+                                    41,
+                                    52,
                                     {
-                                        returnType: _type('int'),
-                                        name: 'foo',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [node(
-                                            'Return',
-                                            41,
-                                            52,
-                                            {
-                                                value: _int(123),
-                                            }
-                                        )],
-                                        __objectSpecial: 'method',
+                                        value: _int(123),
                                     }
-                                ),
+                                )],
                                 isPrivate: true,
                                 isFinal: false,
                             }
@@ -306,28 +287,19 @@ describe('Object declaration parser', function() {
                             51,
                             {
                                 name: 'foo',
-                                base: node(
-                                    'Function',
-                                    19,
-                                    51,
+                                returnType: _type('int'),
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [node(
+                                    'Return',
+                                    39,
+                                    50,
                                     {
-                                        returnType: _type('int'),
-                                        name: 'foo',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [node(
-                                            'Return',
-                                            39,
-                                            50,
-                                            {
-                                                value: _int(123),
-                                            }
-                                        )],
-                                        __objectSpecial: 'method',
+                                        value: _int(123),
                                     }
-                                ),
+                                )],
                                 isPrivate: false,
                                 isFinal: true,
                             }
@@ -358,28 +330,19 @@ describe('Object declaration parser', function() {
                             59,
                             {
                                 name: 'foo',
-                                base: node(
-                                    'Function',
-                                    27,
-                                    59,
+                                returnType: _type('int'),
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [node(
+                                    'Return',
+                                    47,
+                                    58,
                                     {
-                                        returnType: _type('int'),
-                                        name: 'foo',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [node(
-                                            'Return',
-                                            47,
-                                            58,
-                                            {
-                                                value: _int(123),
-                                            }
-                                        )],
-                                        __objectSpecial: 'method',
+                                        value: _int(123),
                                     }
-                                ),
+                                )],
                                 isPrivate: true,
                                 isFinal: true,
                             }
@@ -410,28 +373,19 @@ describe('Object declaration parser', function() {
                             57,
                             {
                                 name: 'foo',
-                                base: node(
-                                    'Function',
-                                    13,
-                                    57,
+                                returnType: _type('int'),
+                                params: [
+                                    _typed('this', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [node(
+                                    'Return',
+                                    45,
+                                    56,
                                     {
-                                        returnType: _type('int'),
-                                        name: 'foo',
-                                        params: [
-                                            _typed('this', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [node(
-                                            'Return',
-                                            45,
-                                            56,
-                                            {
-                                                value: _int(123),
-                                            }
-                                        )],
-                                        __objectSpecial: 'method',
+                                        value: _int(123),
                                     }
-                                ),
+                                )],
                                 isPrivate: false,
                                 isFinal: false,
                             }
@@ -463,21 +417,11 @@ describe('Object declaration parser', function() {
                             13,
                             30,
                             {
-                                base: node(
-                                    'Function',
-                                    13,
-                                    30,
-                                    {
-                                        returnType: null,
-                                        name: 'new',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [],
-                                        __objectSpecial: 'constructor',
-                                    }
-                                ),
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [],
                                 isFinal: false,
                             }
                         ),
@@ -506,21 +450,11 @@ describe('Object declaration parser', function() {
                             13,
                             36,
                             {
-                                base: node(
-                                    'Function',
-                                    19,
-                                    36,
-                                    {
-                                        returnType: null,
-                                        name: 'new',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [],
-                                        __objectSpecial: 'constructor',
-                                    }
-                                ),
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [],
                                 isFinal: true,
                             }
                         ),
@@ -549,21 +483,11 @@ describe('Object declaration parser', function() {
                             13,
                             42,
                             {
-                                base: node(
-                                    'Function',
-                                    13,
-                                    42,
-                                    {
-                                        returnType: null,
-                                        name: 'new',
-                                        params: [
-                                            _typed('this', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [],
-                                        __objectSpecial: 'constructor',
-                                    }
-                                ),
+                                params: [
+                                    _typed('this', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [],
                                 isFinal: false,
                             }
                         ),
@@ -591,28 +515,19 @@ describe('Object declaration parser', function() {
                             45,
                             {
                                 name: 'foo',
-                                base: node(
-                                    'Function',
-                                    13,
-                                    45,
+                                params: [
+                                    _typed('self', _type('foo')),
+                                    _typed('bar', _type('float')),
+                                ],
+                                body: [node(
+                                    'Return',
+                                    33,
+                                    44,
                                     {
-                                        returnType: _type('int'),
-                                        name: 'foo',
-                                        params: [
-                                            _typed('self', _type('foo')),
-                                            _typed('bar', _type('float')),
-                                        ],
-                                        body: [node(
-                                            'Return',
-                                            33,
-                                            44,
-                                            {
-                                                value: _int(123),
-                                            }
-                                        )],
-                                        __objectSpecial: 'method',
+                                        value: _int(123),
                                     }
-                                ),
+                                )],
+                                returnType: _type('int'),
                                 isPrivate: false,
                                 isFinal: false,
                             }
@@ -624,7 +539,7 @@ describe('Object declaration parser', function() {
                             {
                                 value: null,
                                 name: 'zap',
-                                memberType: _typed('x', _type('int')),
+                                type: _typed('x', _type('int')),
                                 isPrivate: false,
                                 isFinal: false,
                             }

@@ -7,12 +7,11 @@ var assert = require('assert');
 var lexer = require('../../src/lexer');
 var parser = require('../../src/parser');
 
-var node = parser.node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('`break` parser', function() {
@@ -35,7 +34,7 @@ describe('`break` parser', function() {
                             }
                         ),
                         condition: node(
-                            'RelativeBinop',
+                            'Binop',
                             11,
                             17,
                             {
@@ -103,7 +102,7 @@ describe('`break` parser', function() {
 
     it('should be invalid outside of loops', function() {
         assert.throws(function() {
-            parser(lexer('break;'));
+            parser(lexer.default('break;'));
         });
     });
 });

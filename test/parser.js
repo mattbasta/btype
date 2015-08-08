@@ -5,7 +5,6 @@ import assert from 'assert';
 
 import lexer from '../src/lexer';
 var parser = require('../src/parser');
-var node = require('../src/parser').node;
 
 var compareTree = require('./parser/_utils').compareTree;
 var _i = require('./parser/_utils')._i;
@@ -13,6 +12,7 @@ var _int = require('./parser/_utils')._int;
 var _root = require('./parser/_utils')._root;
 var _type = require('./parser/_utils')._type;
 var _typed = require('./parser/_utils')._typed;
+var node = require('./parser/_utils').node;
 
 
 describe('Parser', function() {
@@ -142,8 +142,8 @@ describe('Parser', function() {
                                 10,
                                 16,
                                 {
-                                    base: node(
-                                        'CallRaw',
+                                    call: node(
+                                        'Call',
                                         10,
                                         15,
                                         {
@@ -176,8 +176,8 @@ describe('Parser', function() {
                                 4,
                                 10,
                                 {
-                                    base: node(
-                                        'CallRaw',
+                                    call: node(
+                                        'Call',
                                         4,
                                         9,
                                         {
@@ -214,7 +214,7 @@ describe('Parser', function() {
                                 }
                             ),
                             condition: node(
-                                'RelativeBinop',
+                                'Binop',
                                 11,
                                 17,
                                 {
@@ -246,8 +246,8 @@ describe('Parser', function() {
                                 31,
                                 37,
                                 {
-                                    base: node(
-                                        'CallRaw',
+                                    call: node(
+                                        'Call',
                                         31,
                                         36,
                                         {
@@ -281,7 +281,7 @@ describe('Parser', function() {
                                 }
                             ),
                             condition: node(
-                                'RelativeBinop',
+                                'Binop',
                                 11,
                                 17,
                                 {
@@ -296,8 +296,8 @@ describe('Parser', function() {
                                 20,
                                 26,
                                 {
-                                    base: node(
-                                        'CallRaw',
+                                    call: node(
+                                        'Call',
                                         20,
                                         25,
                                         {

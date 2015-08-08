@@ -4,15 +4,11 @@ require('babel/register');
 
 var assert = require('assert');
 
-var lexer = require('../../src/lexer');
-var parser = require('../../src/parser');
-
-var node = parser.node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('Tuple literal parsing', function() {
@@ -32,7 +28,7 @@ describe('Tuple literal parsing', function() {
                             4,
                             11,
                             {
-                                content: [
+                                elements: [
                                     _int(1),
                                     _int(2),
                                 ]

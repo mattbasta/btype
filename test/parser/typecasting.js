@@ -2,14 +2,13 @@
 require('babel/register');
 
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _float = require('./_utils')._float;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
 var _typed = require('./_utils')._typed;
+var node = require('./_utils').node;
 
 
 describe('Typecast parser', function() {
@@ -22,15 +21,15 @@ describe('Typecast parser', function() {
                     0,
                     19,
                     {
-                        identifier: 'x',
-                        declType: _type('int'),
+                        type: _type('int'),
+                        name: 'x',
                         value: node(
                             'TypeCast',
                             8,
                             18,
                             {
-                                left: _float('2.5'),
-                                rightType: _type('int'),
+                                base: _float('2.5'),
+                                target: _type('int'),
                             }
                         ),
                     }
@@ -48,8 +47,8 @@ describe('Typecast parser', function() {
                     0,
                     23,
                     {
-                        identifier: 'x',
-                        declType: _type('int'),
+                        type: _type('int'),
+                        name: 'x',
                         value: node(
                             'Binop',
                             8,
@@ -60,8 +59,8 @@ describe('Typecast parser', function() {
                                     8,
                                     18,
                                     {
-                                        left: _float('2.5'),
-                                        rightType: _type('int'),
+                                        base: _float('2.5'),
+                                        target: _type('int'),
                                     }
                                 ),
                                 operator: '+',

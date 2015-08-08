@@ -298,9 +298,9 @@ describe('transformer', function() {
             var symname = ctx.functions[1].body[0].base.base.name;
 
             assert.equal(ctx.functions[1].params.length, 2, 'A new parameter should have been added');
-            assert.equal(ctx.functions[1].params[0].idType.name, 'outer$fctx', 'The second param should now be the same funcctx');
+            assert.equal(ctx.functions[1].params[0].type.name, 'outer$fctx', 'The second param should now be the same funcctx');
             assert.equal(ctx.functions[1].params[0].name, symname, 'The second param should be what is referenced in the body');
-            assert.equal(ctx.functions[1].params[1].idType.name, 'int', 'The first param should have remained an int');
+            assert.equal(ctx.functions[1].params[1].type.name, 'int', 'The first param should have remained an int');
 
         });
 

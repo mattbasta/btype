@@ -1,9 +1,5 @@
-var nodes = require('./compiler/nodes');
+import * as nodes from './astNodes';
 
-
-function node(name, start, end, args) {
-    return new (nodes[name])(start, end, args);
-}
 
 /**
  * Turns an encoded string into its text content
@@ -32,11 +28,10 @@ function parseString(input) {
  * @return {*} The parsed AST
  */
 module.exports = function parse(lex) {
-    return node(
-        'Root',
-        null,
-        null,
-        {body: parseStatements(lex, 'EOF', true)}
+    return new nodes.RootNode(
+        parseStatements(lex, 'EOF', true),
+        0,
+        lex.pointer
     );
 };
 
@@ -63,8 +58,8 @@ function parseFunctionDeclaration(lex, func) {
     if (lex.accept('(')) {
         // If it's not an empty parameter list, start parsing.
         parameters = parseSignature(lex, true, ')');
-        parameters.forEach(function(p) {
-            if (p.type === 'TypedIdentifier') return;
+        parameters.forEach(p => {
+            if (p instanceof nodes.TypedIdentifierNode) return;
             throw new SyntaxError('Unexpected expression in function prototype: ' + p.toString())
         });
         lex.assert(')');
@@ -74,16 +69,13 @@ function parseFunctionDeclaration(lex, func) {
     var body = parseStatements(lex, '}');
     var end = lex.assert('}');
 
-    return node(
-        'Function',
+    return new nodes.FunctionNode(
+        returnType,
+        identifier,
+        parameters,
+        body,
         func.start,
-        end.end,
-        {
-            returnType: returnType,
-            name: identifier,
-            params: parameters,
-            body: body,
-        }
+        end.end
     );
 }
 
@@ -99,7 +91,7 @@ function parseFunctionExpression(lex, func) {
     if (lex.accept('(')) {
         // If it's not an empty parameter list, start parsing.
         parameters = parseSignature(lex, true, ')');
-        parameters.forEach(function(p) {
+        parameters.forEach(p => {
             if (p.type === 'TypedIdentifier') return;
             throw new SyntaxError('Unexpected expression in function prototype: ' + p.toString())
         });
@@ -110,16 +102,13 @@ function parseFunctionExpression(lex, func) {
     var body = parseStatements(lex, '}');
     var end = lex.assert('}');
 
-    return node(
-        'Function',
+    return new nodes.FunctionNode(
+        returnType,
+        null,
+        parameters,
+        body,
         func.start,
-        end.end,
-        {
-            returnType: returnType,
-            name: null,
-            params: parameters,
-            body: body,
-        }
+        end.end
     );
 }
 
@@ -143,16 +132,7 @@ function parseIf(lex) {
             end = lex.assert('}');
         }
     }
-    return node(
-        'If',
-        head.start,
-        end.end,
-        {
-            condition: condition,
-            consequent: body,
-            alternate: alternate
-        }
-    );
+    return new nodes.IfNode(condition, body, alternate, head.start, end.end);
 }
 function parseReturn(lex) {
     var head = lex.accept('return');
@@ -163,24 +143,14 @@ function parseReturn(lex) {
         value = parseExpression(lex);
         end = lex.assert(';');
     }
-    return node(
-        'Return',
-        head.start,
-        end.end,
-        {value: value}
-    );
+    return new nodes.ReturnNode(value, head.start, end.end);
 }
 function parseExport(lex) {
     var head = lex.accept('export');
     if (!head) return;
     var value = lex.accept('identifier');
     var end = lex.assert(';');
-    return node(
-        'Export',
-        head.start,
-        end.end,
-        {value: value.text}
-    );
+    return new nodes.ExportNode(value.text, head.start, end.end);
 }
 
 function parseImport(lex) {
@@ -192,29 +162,21 @@ function parseImport(lex) {
         var child;
         if (lex.accept('.')) {
             child = lex.assert('identifier');
-            base = node(
-                'Member',
-                base.start,
-                child.end,
-                {
-                    base: base,
-                    child: child.text,
-                }
-            );
+            base = new nodes.MemberNode(base, child.text, base.start, child.end);
             return parseImportBase(lex, base);
         }
         return base;
     }
     value = parseImportBase(lex, value);
-    if (value.type !== 'Symbol' && value.type !== 'Member') {
+    if (!(value instanceof nodes.MemberNode) && value instanceof nodes.MemberNode) {
         throw new SyntaxError('Unexpected import expression');
-    } else if (value.type === 'Member' && value.base.type !== 'Symbol') {
+    } else if (value instanceof nodes.MemberNode && !(value.base instanceof nodes.SymbolNode)) {
         throw new SyntaxError('Cannot import complex expressions');
     }
 
     var base = value;
     var member = null;
-    if (base.type === 'Member') {
+    if (base instanceof nodes.MemberNode) {
         base = value.base;
         member = value.child;
     }
@@ -225,16 +187,7 @@ function parseImport(lex) {
     }
 
     var end = lex.assert(';');
-    return node(
-        'Import',
-        head.start,
-        end.end,
-        {
-            base: base.name,
-            member: member,
-            alias: alias
-        }
-    );
+    return new nodes.ImportNode(base.name, member, alias, head.start, end.end);
 }
 
 var loopDepth = 0;
@@ -249,12 +202,7 @@ function parseWhile(lex) {
     body = parseStatements(lex, '}');
     loopDepth--;
     end = lex.assert('}');
-    return node(
-        'While',
-        head.start,
-        end.end,
-        {condition: condition, body: body}
-    );
+    return new nodes.WhileNode(condition, body, head.start, end.end);
 }
 function parseDoWhile(lex) {
     var head;
@@ -267,12 +215,7 @@ function parseDoWhile(lex) {
     lex.assert('while');
     var condition = parseExpression(lex);
     var end = lex.assert(';');
-    return node(
-        'DoWhile',
-        head.start,
-        end.end,
-        {condition: condition, body: body}
-    );
+    return new nodes.DoWhileNode(condition, body, head.start, end.end);
 }
 function parseFor(lex) {
     var head;
@@ -291,21 +234,20 @@ function parseFor(lex) {
     body = parseStatements(lex, '}');
     loopDepth--;
     end = lex.assert('}');
-    return node(
-        'For',
+    return new nodes.ForNode(
+        assignment,
+        condition,
+        iteration || null,
+        body,
         head.start,
-        end.end,
-        {
-            assignment: assignment,
-            condition: condition,
-            iteration: iteration || null,
-            body: body,
-        }
+        end.end
     );
 }
 function parseDeclaration(lex, type, start, isConst) {
     var origType = type;
-    if (type && (type.type !== 'Type' && type.type !== 'TypeMember')) {
+    if (type &&
+        (!(type instanceof nodes.TypeNode) &&
+         !(type instanceof nodes.TypeMemberNode))) {
         type = parseType(lex, type);
         if (origType.type === 'func') {
             lex.assert(':');
@@ -316,19 +258,26 @@ function parseDeclaration(lex, type, start, isConst) {
     lex.assert('=');
     var value = parseExpression(lex);
     var end = lex.assert(';');
-    return node(
-        isConst ? 'ConstDeclaration' : 'Declaration',
-        type ? type.start : start,
-        end.end,
-        {
-            declType: type || null,
-            identifier: identifier.text,
-            value: value,
-        }
-    );
+    if (isConst) {
+        return new nodes.ConstDeclarationNode(
+            type || null,
+            identifier.text,
+            value,
+            type ? type.start : start,
+            end.end
+        );
+    } else {
+        return new nodes.DeclarationNode(
+            type || null,
+            identifier.text,
+            value,
+            type ? type.start : start,
+            end.end
+        );
+    }
 }
 function parseAssignment(lex, isExpression, base) {
-    if (base && base.type === 'CallRaw') {
+    if (base && base instanceof nodes.CallNode) {
         throw new SyntaxError('Assignment to function call output');
     }
 
@@ -340,26 +289,13 @@ function parseAssignment(lex, isExpression, base) {
 
     lex.assert('=');
     var expression = parseExpression(lex);
-    return node(
-        'Assignment',
-        base.start,
-        expression.end,
-        {base: base, value: expression}
-    );
+    return new nodes.AssignmentNode(base, expression, base.start, expression.end);
 }
 
 function parseTypeCast(lex, base) {
     lex.assert('as');
     var type = parseType(lex);
-    return node(
-        'TypeCast',
-        base.start,
-        type.end,
-        {
-            left: base,
-            rightType: type,
-        }
-    );
+    return new nodes.TypeCastNode(base, type, base.start, type.end);
 }
 
 function parseSignature(lex, typed, endToken, firstParam) {
@@ -384,32 +320,16 @@ function parseCall(lex, base) {
     lex.assert('(');
     var params = parseSignature(lex, false, ')');
     var end = lex.assert(')');
-    return node(
-        'CallRaw',
-        base.start,
-        end.end,
-        {
-            callee: base,
-            params: params,
-        }
-    );
+    return new nodes.CallNode(base, params, base.start, end.end);
 }
 function parseMember(lex, base) {
     lex.assert('.');
     var child = lex.assert('identifier');
-    return node(
-        'Member',
-        base.start,
-        child.end,
-        {
-            base: base,
-            child: child.text,
-        }
-    );
+    return new nodes.MemberNode(base, child.text, base.start, child.end);
 }
 
 // https://github.com/mattbasta/btype/wiki/Operator-Precedence
-var OPERATOR_PRECEDENCE = {
+const OPERATOR_PRECEDENCE = {
     'or': 1,
     'and': 2,
 
@@ -433,56 +353,18 @@ var OPERATOR_PRECEDENCE = {
     '%': 10,
 };
 
-var OPERATOR_NODE = {
-    'or': 'LogicalBinop',
-    'and': 'LogicalBinop',
-    '==': 'EqualityBinop',
-    '!=': 'EqualityBinop',
-    '<': 'RelativeBinop',
-    '>': 'RelativeBinop',
-    '<=': 'RelativeBinop',
-    '>=': 'RelativeBinop',
-    '+': 'Binop',
-    '-': 'Binop',
-    '*': 'Binop',
-    '/': 'Binop',
-    '%': 'Binop',
-
-    '&': 'Binop',
-    '|': 'Binop',
-    '^': 'Binop',
-    '<<': 'Binop',
-    '>>': 'Binop',
-};
 function parseOperator(lex, left, newPrec) {
     var operator = lex.next();
     var precedence = newPrec;
     var right = parseExpression(lex, null, precedence);
-    return node(
-        OPERATOR_NODE[operator.type],
-        left.start,
-        right.end,
-        {
-            left: left,
-            right: right,
-            operator: operator.type
-        }
-    );
+    return new nodes.BinopNode(left, operator.type, right, left.start, right.end);
 }
 
 function parseSubscript(lex, base) {
     lex.assert('[');
     var subscript = parseExpression(lex);
     var end = lex.assert(']');
-    return node(
-        'Subscript',
-        base.start,
-        end.end,
-        {
-            base: base,
-            subscript: subscript,
-        }
-    );
+    return new nodes.SubscriptNode(base, subscript, base.start, end.end);
 }
 
 function parseTuple(lex, base) {
@@ -494,13 +376,7 @@ function parseTuple(lex, base) {
 
     endBracket = lex.assert(']');
 
-    return node(
-        'TupleLiteral',
-        base.start,
-        endBracket.end,
-        {content: content}
-    );
-
+    return new nodes.TupleLiteralNode(content, base.start, endBracket.end);
 }
 
 function parseExpressionModifier(lex, base, precedence) {
@@ -552,12 +428,7 @@ function parseExpressionModifier(lex, base, precedence) {
 }
 function parseSymbol(lex, base) {
     base = base || lex.assert('identifier');
-    return node(
-        'Symbol',
-        base.start,
-        base.end,
-        {name: base.text}
-    );
+    return new nodes.SymbolNode(base.text, base.start, base.end);
 }
 function parseExpression(lex, base, precedence) {
     function parseNext(base, precedence) {
@@ -572,23 +443,11 @@ function parseExpression(lex, base, precedence) {
                     lex.assert(')');
                     lex.assert(':');
                     exprBody = parseExpression(lex);
-                    return node(
-                        'FunctionLambda',
-                        base.start,
-                        exprBody.end,
-                        {
-                            returnType: null,
-                            name: null,
-                            params: [],
-                            body: [
-                                node('Return', {value: exprBody}),
-                            ],
-                        }
-                    );
+                    return new nodes.FunctionLambdaNode([], exprBody, base.start, exprBody.end);
                 }
 
                 parsed = parseExpression(lex);
-                if (parsed.type !== 'Symbol') {
+                if (!(parsed instanceof nodes.SymbolNode)) {
                     lex.assert(')');
                     return parsed;
                 }
@@ -603,100 +462,32 @@ function parseExpression(lex, base, precedence) {
                     return parsed;
                 }
                 exprBody = parseExpression(lex);
-                return node(
-                    'FunctionLambda',
-                    base.start,
-                    exprBody.end,
-                    {
-                        returnType: null,
-                        name: null,
-                        params: args,
-                        body: [
-                            node('Return', {value: exprBody}),
-                        ],
-                    }
-                );
+                return new nodes.FunctionLambdaNode(args, exprBody, base.start, exprBody.end);
             case '[:':
                 return parseTuple(lex, base);
             case 'true':
             case 'false':
-                return node(
-                    'Literal',
-                    base.start,
-                    base.end,
-                    {
-                        litType: 'bool',
-                        value: base.text === 'true'
-                    }
-                );
+                return new nodes.LiteralNode('bool', base.text === 'true', base.start, base.end);
             case 'null':
-                return node(
-                    'Literal',
-                    base.start,
-                    base.end,
-                    {
-                        litType: 'null',
-                        value: null
-                    }
-                );
+                return new nodes.LiteralNode('null', null, base.start, base.end);
             case 'sfloat':
-                return node(
-                    'Literal',
-                    base.start,
-                    base.end,
-                    {
-                        litType: base.type,
-                        value: base.text.substr(0, base.text.length - 1),
-                    }
-                );
+                return new nodes.LiteralNode(base.type, base.text.substr(0, base.text.length - 1), base.start, base.end);
             case 'float':
             case 'int':
-                return node(
-                    'Literal',
-                    base.start,
-                    base.end,
-                    {
-                        litType: base.type,
-                        value: base.text,
-                    }
-                );
+                return new nodes.LiteralNode(base.type, base.text, base.start, base.end);
             case 'str':
-                return node(
-                    'Literal',
-                    base.start,
-                    base.end,
-                    {
-                        litType: base.type,
-                        value: parseString(base.text),
-                    }
-                );
+                return new nodes.LiteralNode(base.type, parseString(base.text), base.start, base.end);
             // Unary operators
             case '!':
             case '~':
                 parsed = parseNext(lex.next(), 4);
-                return node(
-                    'Unary',
-                    base.start,
-                    parsed.end,
-                    {
-                        base: parsed,
-                        operator: base.type,
-                    }
-                );
+                return new nodes.UnaryNode(base.type, parsed, base.start, parsed.end);
             case 'new':
                 parsed = parseType(lex);
                 lex.assert('(');
                 var params = parseSignature(lex, false, ')');
                 var closingParen = lex.assert(')');
-                return node(
-                    'New',
-                    parsed.start,
-                    closingParen.end,
-                    {
-                        newType: parsed,
-                        params: params,
-                    }
-                );
+                return new nodes.NewNode(parsed, params, parsed.start, closingParen.end);
             case 'identifier':
                 return parseSymbol(lex, base);
             case 'func':
@@ -742,40 +533,18 @@ function parseType(lex, base, isAttribute) {
     var output;
 
     if (!attributes.length && lex.peek().type === '.') {
-        output = node(
-            'Symbol',
-            type.start,
-            typeEnd.end,
-            {name: type.text}
-        );
+        output = new nodes.SymbolNode(type.text, type.start, typeEnd.end);
 
         var member;
         while (lex.accept('.')) {
             member = lex.assert('identifier');
-            output = node(
-                'TypeMember',
-                output.start,
-                member.end,
-                {
-                    base: output,
-                    child: member.text,
-                    attributes: [],
-                }
-            );
+            output = new nodes.TypeMemberNode(output, member.text, [], output.start, member.end);
         }
 
         parseAttributes();
         output.attributes = attributes;
     } else {
-        output = node(
-            'Type',
-            type.start,
-            typeEnd.end,
-            {
-                name: type.text,
-                attributes: attributes
-            }
-        );
+        output = new nodes.TypeNode(type.text, attributes, type.start, typeEnd.end);
     }
 
     return output;
@@ -785,12 +554,7 @@ function parseTypedIdentifier(lex, base) {
     var type = parseType(lex, base);
     lex.assert(':');
     var ident = lex.assert('identifier');
-    return node(
-        'TypedIdentifier',
-        type.start,
-        ident.end,
-        {idType: type, name: ident.text}
-    );
+    return new nodes.TypedIdentifierNode(type, ident.text, type.start, ident.end);
 }
 
 function parseExpressionBase(lex) {
@@ -831,24 +595,11 @@ function parseExpressionBase(lex) {
 
     function convertStackToTypeMember(stack) {
         var bottomToken = stack.shift();
-        var bottom = node(
-            'Symbol',
-            bottomToken.start,
-            bottomToken.end,
-            {name: bottomToken.text}
-        );
+        var bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
         var token;
         while (stack.length) {
             token = stack.shift();
-            bottom = node(
-                'TypeMember',
-                bottom.start,
-                token.end,
-                {
-                    base: bottom,
-                    child: token.text,
-                }
-            );
+            bottom = new nodes.TypeMemberNode(bottom, token.text, [], bottom.start, token.end);
         }
 
         return bottom;
@@ -856,24 +607,11 @@ function parseExpressionBase(lex) {
 
     function convertStackToMember(stack) {
         var bottomToken = stack.shift();
-        var bottom = node(
-            'Symbol',
-            bottomToken.start,
-            bottomToken.end,
-            {name: bottomToken.text}
-        );
+        var bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
         var token;
         while (stack.length) {
             token = stack.shift();
-            bottom = node(
-                'Member',
-                bottom.start,
-                token.end,
-                {
-                    base: bottom,
-                    child: token.text,
-                }
-            );
+            bottom = new nodes.MemberNode(bottom, token.text, bottom.start, token.end);
         }
 
         return bottom;
@@ -918,12 +656,8 @@ function parseExpressionBase(lex) {
             temp = convertStackToMember(base);
             temp = parseExpression(lex, temp, 0);
             semicolon = lex.assert(';');
-            if (temp.type === 'CallRaw') {
-                temp = node(
-                    'CallStatement',
-                    temp.start, semicolon.end,
-                    {base: temp}
-                );
+            if (temp instanceof nodes.CallNode) {
+                temp = new nodes.CallStatementNode(temp, temp.start, semicolon.end);
             }
             temp.end = semicolon.end;
             return temp;
@@ -951,12 +685,7 @@ function parseBreak(lex) {
         throw new Error('Cannot use `break` when not within a loop');
     }
     lex.assert(';');
-    return node(
-        'Break',
-        stmt.start,
-        stmt.end,
-        {}
-    );
+    return new nodes.BreakNode(stmt.start, stmt.end);
 }
 function parseContinue(lex) {
     var stmt = lex.accept('continue');
@@ -967,12 +696,7 @@ function parseContinue(lex) {
         throw new Error('Cannot use `continue` when not within a loop');
     }
     lex.assert(';');
-    return node(
-        'Continue',
-        stmt.start,
-        stmt.end,
-        {}
-    );
+    return new nodes.ContinueNode(stmt.start, stmt.end);
 }
 
 function parseOperatorStatement(lex) {
@@ -1020,17 +744,14 @@ function parseOperatorStatement(lex) {
     var body = parseStatements(lex, '}');
     var endBrace = lex.assert('}');
 
-    return node(
-        'OperatorStatement',
+    return new nodes.OperatorStatementNode(
+        returnType,
+        left,
+        binOp,
+        right,
+        body,
         operator.start,
-        endBrace.end,
-        {
-            left: left,
-            right: right,
-            operator: binOp,
-            body: body,
-            returnType: returnType,
-        }
+        endBrace.end
     );
 }
 
@@ -1045,17 +766,14 @@ function parseOperatorStatementSubscript(lex, operator, left) {
     var body = parseStatements(lex, '}');
     var endBrace = lex.assert('}');
 
-    return node(
-        'OperatorStatement',
+    return new nodes.OperatorStatementNode(
+        returnType,
+        left,
+        '[]',
+        right,
+        body,
         operator.start,
-        endBrace.end,
-        {
-            left: left,
-            right: right,
-            operator: '[]',
-            body: body,
-            returnType: returnType,
-        }
+        endBrace.end
     );
 }
 
@@ -1137,48 +855,26 @@ function parseObjectDeclaration(lex) {
             if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
                 methodSignature = parseSignature(lex, true, ')');
             }
-            methodSignature.unshift(methodSelfParam || node(
-                'TypedIdentifier',
-                0,
-                0,
-                {
-                    idType: node(
-                        'Type',
-                        0,
-                        0,
-                        {
-                            name: name.text,
-                            attributes: [],
-                        }
-                    ),
-                    name: 'self',
-                }
-            ));
+            methodSignature.unshift(
+                methodSelfParam || new nodes.TypedIdentifierNode(
+                    new nodes.TypeNode(name.text, [], 0, 0),
+                    'self',
+                    0,
+                    0
+                )
+            );
 
             lex.assert(')');
             lex.assert('{');
             methodBody = parseStatements(lex, '}');
             endBrace = lex.assert('}');
 
-            constructor = node(
-                'ObjectConstructor',
+            constructor = new nodes.ObjectConstructorNode(
+                methodSignature,
+                methodBody,
+                !!isFinal,
                 isFinal ? isFinal.start : constructorBase.start,
-                endBrace.end,
-                {
-                    base: node(
-                        'Function',
-                        constructorBase.start,
-                        endBrace.end,
-                        {
-                            name: 'new',
-                            returnType: null,
-                            params: methodSignature,
-                            body: methodBody,
-                            __objectSpecial: 'constructor',
-                        }
-                    ),
-                    isFinal: !!isFinal,
-                }
+                endBrace.end
             );
 
             continue;
@@ -1186,20 +882,25 @@ function parseObjectDeclaration(lex) {
         } else if (lex.peek().type === 'operator') {
             var tempOpStmt = parseOperatorStatement(lex);
 
-            if (tempOpStmt.left.idType.name !== name.text &&
-                tempOpStmt.right.idType.name !== name.text) {
+            if (tempOpStmt.left.type.name !== name.text &&
+                tempOpStmt.right.type.name !== name.text) {
                 throw new SyntaxError(
                     'Operator overload for ' + name.text + ' of "' + tempOpStmt.operator +
                     '" must include ' + name.text + ' in its declaration.'
                 );
             }
 
-            operatorStatements.push(node(
-                'ObjectOperatorStatement',
-                tempOpStmt.start,
-                tempOpStmt.end,
-                {base: tempOpStmt}
-            ));
+            operatorStatements.push(
+                new nodes.ObjectOperatorStatementNode(
+                    tempOpStmt.returnType,
+                    tempOpStmt.left,
+                    tempOpStmt.operator,
+                    tempOpStmt.right,
+                    tempOpStmt.body,
+                    tempOpStmt.start,
+                    tempOpStmt.end
+                )
+            );
             continue;
         }
 
@@ -1208,28 +909,26 @@ function parseObjectDeclaration(lex) {
         if (lex.peek().text === ':' || lex.peek().text === '<') {
             memberType = parseTypedIdentifier(lex, peekedType);
         }
-        if (members.some(function(member) {return member.name === memberType.name;}) ||
-            methods.some(function(method) {return method.name === memberType.name;})) {
+        if (members.some(m => m.name === memberType.name) ||
+            methods.some(m => m.name === memberType.name)) {
+            console.log(memberType);
+            console.log(members);
+            console.log(methods);
             throw new SyntaxError('Class "' + name.text + '" cannot declare "' + memberType.name + '" more than once.');
         }
 
-        if (memberType.type === 'TypedIdentifier' && lex.accept(';')) {
-            members.push(node(
-                'ObjectMember',
-                isPrivate ?
-                    isPrivate.start :
-                    isFinal ?
-                        isFinal.start :
-                        memberType.start,
-                memberType.end,
-                {
-                    memberType: memberType,
-                    name: memberType.name,
-                    value: null,
-                    isFinal: !!isFinal,
-                    isPrivate: !!isPrivate,
-                }
-            ));
+        if (memberType instanceof nodes.TypedIdentifierNode && lex.accept(';')) {
+            members.push(
+                new nodes.ObjectMemberNode(
+                    memberType,
+                    memberType.name,
+                    null,
+                    !!isFinal,
+                    !!isPrivate,
+                    isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start,
+                    memberType.end
+                )
+            );
             continue;
         } else if (lex.accept('(')) {
             if (lex.accept('[')) {
@@ -1241,55 +940,32 @@ function parseObjectDeclaration(lex) {
             if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
                 methodSignature = parseSignature(lex, true, ')');
             }
-            methodSignature.unshift(methodSelfParam || node(
-                'TypedIdentifier',
-                0,
-                0,
-                {
-                    idType: node(
-                        'Type',
-                        0,
-                        0,
-                        {
-                            name: name.text,
-                            attributes: [],
-                        }
-                    ),
-                    name: 'self',
-                }
-            ));
+            methodSignature.unshift(
+                methodSelfParam || new nodes.TypedIdentifierNode(
+                    new nodes.TypeNode(name.text, [], 0, 0),
+                    'self',
+                    0,
+                    0
+                )
+            );
 
             endBrace = lex.assert(')');
             lex.assert('{');
             methodBody = parseStatements(lex, '}');
             methodEndBrace = lex.assert('}');
 
-            methods.push(node(
-                'ObjectMethod',
-                isPrivate ?
-                    isPrivate.start :
-                    isFinal ?
-                        isFinal.start :
-                        memberType.start,
-                methodEndBrace.end,
-                {
-                    name: memberType.name,
-                    base: node(
-                        'Function',
-                        memberType.start,
-                        methodEndBrace.end,
-                        {
-                            returnType: memberType.type === 'TypedIdentifier' ? memberType.idType : null,
-                            name: memberType.name,
-                            params: methodSignature,
-                            body: methodBody,
-                            __objectSpecial: 'method',
-                        }
-                    ),
-                    isFinal: !!isFinal,
-                    isPrivate: !!isPrivate,
-                }
-            ));
+            methods.push(
+                new nodes.ObjectMethodNode(
+                    memberType instanceof nodes.TypedIdentifierNode ? memberType.type : null,
+                    memberType.name,
+                    methodSignature,
+                    methodBody,
+                    !!isFinal,
+                    !!isPrivate,
+                    isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start,
+                    methodEndBrace.end
+                )
+            );
             continue;
         }
 
@@ -1297,18 +973,15 @@ function parseObjectDeclaration(lex) {
 
     }
 
-    return node(
-        'ObjectDeclaration',
+    return new nodes.ObjectDeclarationNode(
+        name.text,
+        constructor,
+        members,
+        methods,
+        attributes,
+        operatorStatements,
         obj.start,
-        endBrace.end,
-        {
-            name: name.text,
-            objConstructor: constructor,
-            members: members,
-            methods: methods,
-            attributes: attributes,
-            operators: operatorStatements,
-        }
+        endBrace.end
     );
 }
 
@@ -1334,15 +1007,7 @@ function parseSwitchType(lex) {
         cases.push(case_);
     } while (!(end = lex.accept('}')));
 
-    return node(
-        'SwitchType',
-        start.start,
-        end.end,
-        {
-            expr: expr,
-            cases: cases,
-        }
-    );
+    return new nodes.SwitchTypeNode(expr, cases, start.start, end.end);
 }
 
 /**
@@ -1358,16 +1023,7 @@ function parseSwitchTypeCase(lex) {
     var body = parseStatements(lex, '}', false);
 
     var end = lex.assert('}');
-
-    return node(
-        'SwitchTypeCase',
-        start.start,
-        end.end,
-        {
-            caseType: type,
-            body: body,
-        }
-    );
+    return new nodes.SwitchTypeCaseNode(type, body, start.start, end.end);
 }
 
 /**
@@ -1415,5 +1071,3 @@ function parseStatements(lex, endTokens, isRoot) {
     }
     return statements;
 }
-
-module.exports.node = node;

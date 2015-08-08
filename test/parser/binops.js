@@ -4,12 +4,11 @@ require('babel/register');
 
 var assert = require('assert');
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('Binary operator parser', function() {
@@ -118,12 +117,12 @@ describe('Binary operator parser', function() {
                     {
                         base: _i('x'),
                         value: node(
-                            'LogicalBinop',
+                            'Binop',
                             4,
                             42,
                             {
                                 left: node(
-                                    'RelativeBinop',
+                                    'Binop',
                                     4,
                                     15,
                                     {
@@ -142,12 +141,12 @@ describe('Binary operator parser', function() {
                                     }
                                 ),
                                 right: node(
-                                    'LogicalBinop',
+                                    'Binop',
                                     19,
                                     42,
                                     {
                                         left: node(
-                                            'EqualityBinop',
+                                            'Binop',
                                             19,
                                             33,
                                             {
@@ -197,7 +196,7 @@ describe('Binary operator parser', function() {
 
     it('should fail when the file ends mid-expression', function() {
         assert.throws(function() {
-            parser(lexer('x = 1 +'));
+            parser(lexer.default('x = 1 +'));
         });
     });
 });

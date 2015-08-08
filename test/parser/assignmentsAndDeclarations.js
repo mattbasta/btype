@@ -4,12 +4,11 @@ require('babel/register');
 
 var assert = require('assert');
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
+var node = require('./_utils').node;
 
 
 describe('Assignments and declaration parser', function() {
@@ -63,8 +62,8 @@ describe('Assignments and declaration parser', function() {
                     0,
                     10,
                     {
-                        declType: null,
-                        identifier: 'x',
+                        type: null,
+                        name: 'x',
                         value: _i('y')
                     }
                 )
@@ -80,8 +79,8 @@ describe('Assignments and declaration parser', function() {
                     0,
                     10,
                     {
-                        declType: _type('int'),
-                        identifier: 'x',
+                        type: _type('int'),
+                        name: 'x',
                         value: _i('y')
                     }
                 )
@@ -97,8 +96,8 @@ describe('Assignments and declaration parser', function() {
                     0,
                     17,
                     {
-                        declType: _type('func', [null]),
-                        identifier: 'x',
+                        type: _type('func', [null]),
+                        name: 'x',
                         value: _i('y')
                     }
                 )
@@ -116,8 +115,8 @@ describe('Assignments and declaration parser', function() {
                     0,
                     12,
                     {
-                        declType: null,
-                        identifier: 'x',
+                        type: null,
+                        name: 'x',
                         value: _i('y')
                     }
                 )

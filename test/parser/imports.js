@@ -4,11 +4,10 @@ require('babel/register');
 
 var assert = require('assert');
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('Import parser', function() {

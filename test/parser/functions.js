@@ -2,14 +2,13 @@
 require('babel/register');
 
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _int = require('./_utils')._int;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
 var _typed = require('./_utils')._typed;
+var node = require('./_utils').node;
 
 
 describe('Function parser', function() {
@@ -128,8 +127,8 @@ describe('Function parser', function() {
                     0,
                     20,
                     {
-                        declType: _type('func', [null]),
-                        identifier: 'x',
+                        type: _type('func', [null]),
+                        name: 'x',
                         value: node(
                             'Literal',
                             15,
@@ -239,8 +238,8 @@ describe('Function parser', function() {
                     0,
                     33,
                     {
-                        declType: null,
-                        identifier: 'foo',
+                        type: null,
+                        name: 'foo',
                         value: node(
                             'Function',
                             10,
@@ -273,8 +272,8 @@ describe('Function parser', function() {
                     0,
                     31,
                     {
-                        declType: null,
-                        identifier: 'foo',
+                        type: null,
+                        name: 'foo',
                         value: node(
                             'Function',
                             10,
@@ -307,8 +306,8 @@ describe('Function parser', function() {
                     0,
                     27,
                     {
-                        declType: null,
-                        identifier: 'foo',
+                        type: null,
+                        name: 'foo',
                         value: node(
                             'Function',
                             10,
@@ -341,8 +340,8 @@ describe('Function parser', function() {
                     0,
                     25,
                     {
-                        declType: null,
-                        identifier: 'foo',
+                        type: null,
+                        name: 'foo',
                         value: node(
                             'Function',
                             10,
@@ -378,24 +377,15 @@ describe('Function Lambda Parser', function() {
                     0,
                     16,
                     {
-                        declType: null,
-                        identifier: 'x',
+                        type: null,
+                        name: 'x',
                         value: node(
                             'FunctionLambda',
                             8,
                             15,
                             {
-                                returnType: null,
-                                name: null,
                                 params: [],
-                                body: [
-                                    node(
-                                        'Return',
-                                        0,
-                                        0,
-                                        {value: _int(123)}
-                                    )
-                                ]
+                                body: _int(123),
                             }
                         ),
                     }
@@ -412,27 +402,18 @@ describe('Function Lambda Parser', function() {
                     0,
                     20,
                     {
-                        declType: null,
-                        identifier: 'x',
+                        type: null,
+                        name: 'x',
                         value: node(
                             'FunctionLambda',
                             8,
                             19,
                             {
-                                returnType: null,
-                                name: null,
                                 params: [
                                     _i('x'),
                                     _i('y'),
                                 ],
-                                body: [
-                                    node(
-                                        'Return',
-                                        0,
-                                        0,
-                                        {value: _int(123)}
-                                    )
-                                ]
+                                body: _int(123),
                             }
                         ),
                     }

@@ -2,11 +2,10 @@
 require('babel/register');
 
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('Export parser', function() {

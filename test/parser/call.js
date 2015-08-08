@@ -2,11 +2,10 @@
 require('babel/register');
 
 
-var node = require('../../src/parser').node;
-
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
 var _root = require('./_utils')._root;
+var node = require('./_utils').node;
 
 
 describe('Call parser', function() {
@@ -19,8 +18,8 @@ describe('Call parser', function() {
                     0,
                     6,
                     {
-                        base: node(
-                            'CallRaw',
+                        call: node(
+                            'Call',
                             0,
                             5,
                             {
@@ -44,7 +43,7 @@ describe('Call parser', function() {
                     {
                         base: _i('x'),
                         value: node(
-                            'CallRaw',
+                            'Call',
                             4,
                             9,
                             {
@@ -66,8 +65,8 @@ describe('Call parser', function() {
                     0,
                     17,
                     {
-                        base: node(
-                            'CallRaw',
+                        call: node(
+                            'Call',
                             0,
                             16,
                             {
@@ -76,7 +75,7 @@ describe('Call parser', function() {
                                     _i('x'),
                                     _i('y'),
                                     node(
-                                        'CallRaw',
+                                        'Call',
                                         10,
                                         15,
                                         {
@@ -101,13 +100,13 @@ describe('Call parser', function() {
                     0,
                     8,
                     {
-                        base: node(
-                            'CallRaw',
+                        call: node(
+                            'Call',
                             0,
                             7,
                             {
                                 callee: node(
-                                    'CallRaw',
+                                    'Call',
                                     0,
                                     5,
                                     {
