@@ -1,12 +1,24 @@
-import BaseNode from './BaseNode';
+import BaseExpressionNode from './BaseExpressionNode';
 
 
-export default class TypeMemberNode extends BaseNode {
+export default class TypeMemberNode extends BaseExpressionNode {
     constructor(base, child, attributes, start, end) {
         super(start, end);
         this.base = base;
         this.child = child;
         this.attributes = attributes;
+    }
+
+    get id() {
+        return 34;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.base.pack(bitstr);
+        bitstr.writebits(this.attributes.length, 32);
+        this.attributes.forEach(a => a.pack(bitstr));
+        this.packStr(bitstr, this.child);
     }
 
     traverse(cb) {

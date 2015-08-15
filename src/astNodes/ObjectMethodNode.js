@@ -1,16 +1,32 @@
-import BaseNode from './BaseNode';
+import BaseBlockNode from './BaseBlockNode';
 
 
-export default class ObjectMethodNode extends BaseNode {
+export default class ObjectMethodNode extends BaseBlockNode {
     constructor(returnType, name, params, body, isFinal, isPrivate, start, end) {
         super(start, end);
 
+        this.isPrivate = isPrivate;
+        this.isFinal = isFinal;
         this.returnType = returnType;
         this.name = name;
         this.params = params;
         this.body = body;
-        this.isFinal = isFinal;
-        this.isPrivate = isPrivate;
+    }
+
+    get id() {
+        return 22;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        bitstr.writebits(this.params.length, 32);
+        bitstr.writebits(this.isPrivate, 1);
+        bitstr.writebits(this.isFinal, 1);
+        bitstr.writebits(this.returnType ? 1 : 0, 1);
+        if (this.returnType) this.returnType.pack(bitstr);
+        this.packStr(bitstr, this.name);
+        this.params.forEach(p => p.pack(bitstr));
+        this.packBlock(bitstr, 'body');
     }
 
     traverse(cb) {

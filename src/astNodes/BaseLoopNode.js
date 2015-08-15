@@ -1,7 +1,7 @@
-import BaseNode from './BaseNode';
+import BaseBlockNode from './BaseBlockNode';
 
 
-export default class BaseLoopNode extends BaseNode {
+export default class BaseLoopNode extends BaseBlockNode {
     constructor(body, start, end) {
         super(start, end);
         this.body = body;

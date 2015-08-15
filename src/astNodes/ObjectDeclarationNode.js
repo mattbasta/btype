@@ -1,7 +1,7 @@
-import BaseNode from './BaseNode';
+import BaseBlockNode from './BaseBlockNode';
 
 
-export default class ObjectDeclarationNode extends BaseNode {
+export default class ObjectDeclarationNode extends BaseBlockNode {
     constructor(
                 name,
                 objConstructor,
@@ -15,11 +15,26 @@ export default class ObjectDeclarationNode extends BaseNode {
         super(start, end);
 
         this.name = name;
-        this.objConstructor = objConstructor;
-        this.members = members;
-        this.methods = methods;
         this.attributes = attributes;
+        this.members = members;
+        this.objConstructor = objConstructor;
+        this.methods = methods;
         this.operators = operators;
+    }
+
+    get id() {
+        return 20;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.packStr(bitstr, this.name);
+        bitstr.writebits(!!this.objConstructor, 1);
+        this.packBlock(bitstr, 'attributes');
+        if (this.objConstructor) this.objConstructor.pack(bitstr);
+        this.packBlock(bitstr, 'members');
+        this.packBlock(bitstr, 'methods');
+        this.packBlock(bitstr, 'operators');
     }
 
     traverse(cb) {

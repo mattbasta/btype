@@ -1,14 +1,29 @@
-import BaseNode from './BaseNode';
+import BaseBlockNode from './BaseBlockNode';
 
 
-export default class FunctionNode extends BaseNode {
+export default class FunctionNode extends BaseBlockNode {
     constructor(returnType, name, params, body, start, end) {
         super(start, end);
+
+        this.setFlag('DECLARES_SOMETHING');
 
         this.returnType = returnType;
         this.name = name;
         this.params = params;
         this.body = body;
+    }
+
+    get id() {
+        return 13;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        bitstr.writebits(this.returnType ? 1 : 0, 1);
+        if (this.returnType) this.returnType.pack(bitstr);
+        bitstr.writebits(this.params.length, 32);
+        this.params.forEach(p => p.pack(bitstr));
+        this.packBlock(bitstr, 'body');
     }
 
     traverse(cb) {

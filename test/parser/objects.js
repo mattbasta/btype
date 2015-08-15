@@ -1,5 +1,5 @@
 'use strict';
-require('babel/register');
+require('babel/register')({stage: 0});
 
 
 var assert = require('assert');

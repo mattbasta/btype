@@ -1,12 +1,12 @@
 'use strict';
-require('babel/register');
+require('babel/register')({stage: 0});
 
 
 var assert = require('assert');
 
 var context = require('../../src/compiler/context');
-var environment = require('../../src/compiler/environment');
-var lexer = require('../../src/lexer');
+import Environment from '../../src/compiler/environment';
+import lexer from '../../src/lexer';
 var parser = require('../../src/parser');
 var transformer = require('../../src/compiler/transformer');
 
@@ -14,7 +14,7 @@ var transformer = require('../../src/compiler/transformer');
 function getCtx(script, env) {
     if (script instanceof Array) script = script.join('\n');
     return context(
-        env || new environment.Environment(),
+        env || new Environment(),
         parser(lexer.default(script))
     );
 }

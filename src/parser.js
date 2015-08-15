@@ -17,7 +17,7 @@ function parseString(input) {
             case '\\0': return '\0';
             case '\\\\': return '\\';
             default:
-                throw new SyntaxError('Invalid escape code: ' + b);
+                throw new SyntaxError('Invalid escape code "' + b + '"');
         }
     });
 }
@@ -28,11 +28,16 @@ function parseString(input) {
  * @return {*} The parsed AST
  */
 module.exports = function parse(lex) {
-    return new nodes.RootNode(
-        parseStatements(lex, 'EOF', true),
-        0,
-        lex.pointer
-    );
+    try {
+        return new nodes.RootNode(
+            parseStatements(lex, 'EOF', true),
+            0,
+            lex.pointer
+        );
+    } catch (e) {
+        e.message += ' near line ' + lex.currentLine;
+        throw e;
+    }
 };
 
 function parseFunctionDeclaration(lex, func) {
@@ -60,7 +65,7 @@ function parseFunctionDeclaration(lex, func) {
         parameters = parseSignature(lex, true, ')');
         parameters.forEach(p => {
             if (p instanceof nodes.TypedIdentifierNode) return;
-            throw new SyntaxError('Unexpected expression in function prototype: ' + p.toString())
+            throw new SyntaxError('Unexpected expression in function prototype "' + p.toString() + '"')
         });
         lex.assert(')');
     }
@@ -92,8 +97,8 @@ function parseFunctionExpression(lex, func) {
         // If it's not an empty parameter list, start parsing.
         parameters = parseSignature(lex, true, ')');
         parameters.forEach(p => {
-            if (p.type === 'TypedIdentifier') return;
-            throw new SyntaxError('Unexpected expression in function prototype: ' + p.toString())
+            if (p instanceof nodes.TypedIdentifierNode) return;
+            throw new SyntaxError('Unexpected expression in function prototype "' + p.toString() + '"')
         });
         lex.assert(')');
     }
@@ -494,7 +499,7 @@ function parseExpression(lex, base, precedence) {
                 return parseFunctionExpression(lex, base);
             default:
                 if (base.isToken) {
-                    throw new SyntaxError('Invalid token found while parsing expression: "' + base.text + '"\nNear line ' + lex.currentLine);
+                    throw new SyntaxError('Invalid token found while parsing expression: "' + base.text + '"');
                 }
 
                 // This catches complex expressions.
@@ -671,7 +676,7 @@ function parseExpressionBase(lex) {
             temp.end = semicolon.end;
             return temp;
         }
-        throw new SyntaxError('Unexpected token "' + lex.peek().text + '" near line ' + lex.currentLine);
+        throw new SyntaxError('Unexpected token "' + lex.peek().text + '"');
     }
     return accumulate([base]);
 }
@@ -732,7 +737,7 @@ function parseOperatorStatement(lex) {
             break;
 
         default:
-            throw new Error('Overriding invalid operator: ' + lex.peek().text);
+            throw new Error('Overriding invalid operator "' + lex.peek().text + '"');
     }
     var right = parseTypedIdentifier(lex);
 
@@ -784,15 +789,15 @@ function parseObjectDeclaration(lex) {
     var name = lex.assert('identifier');
 
     var attributes = [];
-    var attrIdent;
     if (lex.accept('<')) {
         while (true) {
-            attrIdent = lex.assert('identifier').text;
+            let ident = lex.assert('identifier')
+            let attrIdent = ident.text;
             if (attributes.indexOf(attrIdent) !== -1) {
                 throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
             }
 
-            attributes.push(attrIdent);
+            attributes.push(new nodes.SymbolNode(attrIdent, ident.start, ident.end));
 
             if (lex.accept('>')) {
                 break;
@@ -969,7 +974,7 @@ function parseObjectDeclaration(lex) {
             continue;
         }
 
-        throw new SyntaxError('Unknown token in class definition: ' + lex.peek().text + ' near line ' + lex.peek().line);
+        throw new SyntaxError('Unknown token in class definition "' + lex.peek().text + '"');
 
     }
 

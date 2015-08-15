@@ -1,7 +1,12 @@
-import BaseNode from './BaseNode';
+import BaseStatementNode from './BaseStatementNode';
 
 
-export default class BreakNode extends BaseNode {
+export default class BreakNode extends BaseStatementNode {
+
+    get id() {
+        return 3;
+    }
+
     traverse() {};
 
     toString() {

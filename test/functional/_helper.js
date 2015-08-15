@@ -1,12 +1,13 @@
 'use strict';
-require('babel/register');
+require('babel/register')({stage: 0});
 
 
 import assert from 'assert';
+import child_process from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
-var child_process = require('child_process');
-var fs = require('fs');
-var path = require('path');
+import bitstring from 'bitstring';
 
 var compiler = require('../../src/compiler/compiler');
 var lexer = require('../../src/lexer').default;
@@ -74,6 +75,19 @@ describe('Parity tests', function() {
 
             describe(btPath, function() {
 
+                describe('source transformations', function() {
+                    var parsed = parser(lexer(read));
+
+                    it('should be able to use toString()', function() {
+                        assert.ok(parsed.toString());
+                    });
+                    it('should be packable', function() {
+                        var bitstr = new bitstring();
+                        parsed.pack(bitstr);
+                        assert.ok(bitstr.hex());
+                    });
+                });
+
                 it('formats with debug-tree', function jsFunctionalTestBody() {
                     var output = compile(read, 'debug-tree');
                     assert.ok(output);
@@ -105,44 +119,27 @@ describe('Parity tests', function() {
                         return;
                     }
 
-                    // child_process.exec(
-                    //     path.resolve(process.cwd(), 'bin', 'btype') + ' ' + btPath + ' --target=llvmir | opt -S',
-                    //     function(err, stdout, stderr) {
-                    //         if (err) {
-                    //             done(err);
-                    //         } else if (stderr) {
-                    //             done(new Error(stderr.toString()));
-                    //         } else {
-                    //             runLLI();
-                    //         }
-                    //     }
-                    // );
-                    runLLI();
-
-                    function runLLI() {
-                        var cp = child_process.exec(
-                            path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S -O1 | lli',
-                            function(err, stdout, stderr) {
-                                if (err) {
-                                    failedLLI++;
-                                    console.error(stderr);
-                                    done(err);
-                                } else if (stderr) {
-                                    failedLLI++;
-                                    console.error(stderr);
-                                    done(stderr);
-                                } else {
-                                    succeededLLI++;
-                                    assert.ok(JSON.parse(stdout) == JSON.parse(readExpectation), stdout + ' != ' + readExpectation);
-                                    done();
-                                }
+                    var cp = child_process.exec(
+                        path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S -O1 | lli',
+                        function(err, stdout, stderr) {
+                            if (err) {
+                                failedLLI++;
+                                console.error(stderr);
+                                done(err);
+                            } else if (stderr) {
+                                failedLLI++;
+                                console.error(stderr);
+                                done(stderr);
+                            } else {
+                                succeededLLI++;
+                                assert.ok(JSON.parse(stdout) == JSON.parse(readExpectation), stdout + ' != ' + readExpectation);
+                                done();
                             }
-                        );
+                        }
+                    );
 
-                        cp.stdin.write(getRunnable(read));
-                        cp.stdin.end();
-
-                    }
+                    cp.stdin.write(getRunnable(read));
+                    cp.stdin.end();
 
                     function getRunnable(read) {
                         var parsed = parser(lexer(read));
@@ -187,6 +184,18 @@ describe('Compile tests', function() {
 
 
             describe(btPath, function() {
+                describe('source transformations', function() {
+                    var parsed = parser(lexer(read));
+
+                    it('should be able to use toString()', function() {
+                        assert.ok(parsed.toString());
+                    });
+                    it('should be packable', function() {
+                        var bitstr = new bitstring();
+                        parsed.pack(bitstr);
+                        assert.ok(bitstr.hex());
+                    });
+                });
                 it('compiles to JS', function compileTestBody() {
                     var parsed = parser(lexer(read));
                     var compiled = compiler({

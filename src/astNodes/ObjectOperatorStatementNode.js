@@ -1,7 +1,7 @@
-import BaseNode from './BaseNode';
+import BaseBlockNode from './BaseBlockNode';
 
 
-export default class ObjectOperatorStatementNode extends BaseNode {
+export default class ObjectOperatorStatementNode extends BaseBlockNode {
     constructor(returnType, left, operator, right, body, start, end) {
         super(start, end);
 
@@ -10,6 +10,19 @@ export default class ObjectOperatorStatementNode extends BaseNode {
         this.operator = operator;
         this.right = right;
         this.body = body;
+    }
+
+    get id() {
+        return 23;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.returnType.pack(bitstr);
+        this.packStr(bitstr, this.operator); // TODO: Make this use a table like BinopNode?
+        this.left.pack(bitstr);
+        this.right.pack(bitstr);
+        this.packBlock(bitstr, 'body');
     }
 
     traverse(cb) {

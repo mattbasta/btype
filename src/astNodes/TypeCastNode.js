@@ -1,11 +1,21 @@
-import BaseNode from './BaseNode';
+import BaseExpressionNode from './BaseExpressionNode';
 
 
-export default class TypeCastNode extends BaseNode {
+export default class TypeCastNode extends BaseExpressionNode {
     constructor(base, target, start, end) {
         super(start, end);
         this.base = base;
         this.target = target;
+    }
+
+    get id() {
+        return 32;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.base.pack(bitstr);
+        this.target.pack(bitstr);
     }
 
     traverse(cb) {

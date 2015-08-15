@@ -1,11 +1,21 @@
-import BaseNode from './BaseNode';
+import BaseBlockNode from './BaseBlockNode';
 
 
-export default class SwitchTypeCaseNode extends BaseNode {
+export default class SwitchTypeCaseNode extends BaseBlockNode {
     constructor(type, body, start, end) {
         super(start, end);
         this.type = type;
         this.body = body;
+    }
+
+    get id() {
+        return 28;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.type.pack(bitstr);
+        this.packBlock(bitstr, 'body');
     }
 
     traverse(cb) {

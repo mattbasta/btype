@@ -1,10 +1,20 @@
-import BaseLoopNode from './_loop';
+import BaseLoopNode from './BaseLoopNode';
 
 
 export default class WhileNode extends BaseLoopNode {
     constructor(condition, body, start, end) {
         super(body, start, end);
         this.condition = condition;
+    }
+
+    get id() {
+        return 37;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.condition.pack(bitstr);
+        this.packBlock(bitstr, 'body');
     }
 
     traverse(cb) {

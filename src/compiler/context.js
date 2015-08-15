@@ -2,209 +2,267 @@ var nodes = require('./nodes');
 var traverser = require('./traverser');
 var types = require('./types');
 
+import * as symbols from '../symbols';
 
-/**
- * @constructor
- * @param {Environment} env
- * @param {*} scope
- * @param {Context|null} parent
- * @param {boolean} [privileged]
- */
-function Context(env, scope, parent, privileged) {
-    // Null by default, since most contexts don't represent a file.
-    this.filename = null;
 
-    // Notes whether the context has access to private types
-    this.privileged = privileged || false;
+class BaseContext {
+    /**
+     * @param {Environment} env
+     * @param {*} scope
+     * @param {boolean} [privileged]
+     */
+    constructor(env, scope, privileged) {
+        // Create a reference from the corresponding node back to this context.
+        scope[symbols.CONTEXT] = this;
 
-    // A reference to the containing environment.
-    this.env = env;
-    // a reference to an AST node that this context corresponds to.
-    this.scope = scope;
-    // Create a reference from the corresponding node back to this context.
-    scope.__context = this;
-    // `null` or a reference to the parent context of this context.
-    this.parent = parent || null;
-    // A collection of functions directly within this context.
-    this.functions = [];
-    // A mapping of assigned names to function nodes.
-    this.functionDeclarations = {};
+        // A reference to the containing environment.
+        this.env = env;
+        // a reference to an AST node that this context corresponds to.
+        this.scope = scope;
+        // Notes whether the context has access to private types
+        this.privileged = privileged || false;
 
-    // A mapping of user-provided names to object declaration prototypes
-    this.prototypes = {};
-    // A mapping of serialized prototype names of constructed prototypes to the cloned object declaration
-    this.constructedPrototypes = {};
-    // A mapping of serialized prototype names of constructed prototypes to their respective types
-    this.constructedPrototypeTypes = {};
+        // A collection of functions directly within this context.
+        this.functions = new Set();
+        // A mapping of assigned names to function nodes.
+        this.functionDeclarations = new Map();
 
-    // A mapping of user-provided names to assigned names.
-    this.nameMap = {};
-    // A mapping of assigned names to types.
-    this.typeMap = {};
-    // A mapping of assigned names to booleans indicating whether the name is a function.
-    this.isFuncMap = {};
+        // A mapping of user-provided names to assigned names.
+        this.nameMap = new Map();
+        // A mapping of assigned names to types.
+        this.typeMap = new Map();
+        // A mapping of assigned names to booleans indicating whether the name is a function.
+        this.isFuncMap = new Map();
 
-    // Boolean representing whether the context accesses the global scope.
-    this.accessesGlobalScope = false;
-    // Boolean representing whether the context access its lexical scope.
-    this.accessesLexicalScope = false;
-
-    // Boolean representing whether the context is side effect-free.
-    this.sideEffectFree = true;
-
-    // A mapping of given names for types in this context to assigned names
-    this.typeNameMap = parent ? parent.typeNameMap : {};  // Actual types are stored in the environment
-
-    // A mapping of assigned names of referenced variables to the contexts
-    // that contain the definition of those variables.
-    this.lexicalLookups = {};
-    // A set of assigned names that the context modifies in the lexical scope.
-    this.lexicalModifications = {};
-    // A mapping of user provided names of exported members to their assigned names.
-    this.exports = {};
-    // A mapping of user provided names of exported types to their prototypes.
-    this.exportPrototypes = {};
-    // `null` or a reference to a Function node that is necessary to be run on
-    // initialization.
-    this.initializer = null;
-}
-
-/**
- * Adds a variable to the context
- * @param {string} varName
- * @param {*} type
- * @param {string} [assignedName]
- * @return {string} The assigned name of the var
- */
-Context.prototype.addVar = function addVar(varName, type, assignedName) {
-    if (varName in this.nameMap) {
-        throw new Error('Cannot redeclare symbol in context: ' + varName);
     }
 
-    assignedName = this.nameMap[varName] = assignedName || this.env.namer();
-    this.typeMap[assignedName] = type;
-    return assignedName;
-};
+    /**
+     * Adds a variable to the context
+     * @param {string} varName
+     * @param {*} type
+     * @param {string} [assignedName]
+     * @return {string} The assigned name of the var
+     */
+    addVar(varName, type, assignedName) {
+        if (this.nameMap.has(varName)) {
+            throw new Error('Cannot redeclare symbol in context: ' + varName);
+        }
 
-/**
- * Retrieves the name of the variable with the given name varName
- * @param  {string} varName
- * @return {string} The assigned name of the variable
- */
-Context.prototype.lookupVar = function lookupVar(varName) {
-    if (varName in this.nameMap) {
-        return this;
-    } else if (this.parent) {
-        return this.parent.lookupVar(varName);
-    } else {
-        throw new ReferenceError('Reference to undefined variable "' + varName + '"');
+        assignedName = assignedName || this.env.namer();
+        this.nameMap.set(varName, assignedName);
+        this.typeMap.set(assignedName, type);
+        return assignedName;
     }
-};
 
-/**
- * Looks up the function declaration node with the assigned name assignedName
- * @param  {string} assignedName
- * @return {*|null}
- */
-Context.prototype.lookupFunctionByName = function lookupFunctionByName(assignedName) {
-    if (assignedName in this.functionDeclarations) {
-        return this.functionDeclarations[assignedName];
-    } else if (this.parent) {
-        return this.parent.lookupFunctionByName(assignedName);
-    }
-    return null;
-};
-
-/**
- * Registers an object declaration as a prototye
- * @param  {string} givenTypeName
- * @param  {*} type
- * @return {void}
- */
-Context.prototype.registerPrototype = function registerPrototype(givenTypeName, type) {
-    if (this.prototypes.hasOwnProperty(givenTypeName)) {
-        throw new TypeError('Cannot declare object more than once: ' + givenTypeName);
-    }
-    this.prototypes[givenTypeName] = type;
-};
-
-Context.prototype.registerType = function registerType(givenTypeName, type, assignedName) {
-    assignedName = assignedName || this.env.namer();
-    type.__assignedName = assignedName;
-    this.typeNameMap[givenTypeName] = assignedName;
-    this.env.registerType(assignedName, type, this);
-};
-
-Context.prototype.serializePrototypeName = function serializePrototypeName(name, attributes) {
-    return name + '<' + attributes.map(function(a) {
+    serializePrototypeName(name, attributes) {
         // We don't need to recursively use serializePrototypeName because at
         // this point, the constructor would have already been built if the
         // type needs to go through the construction process.
-        return a.flatTypeName();
-    }).join(',') + '>';
+        return name + '<' + attributes.map(a => a.flatTypeName()).join(',') + '>';
+    }
+
+}
+
+export class RootContext extends BaseContext {
+
+    constructor(env, scope, privileged) {
+        super(env, scope, privileged);
+
+        // Null by default, since most contexts don't represent a file.
+        this.filename = null;
+
+        // A mapping of user-provided names to object declaration prototypes
+        this.prototypes = new Map();
+        // A mapping of serialized prototype names of constructed prototypes to the cloned object declaration
+        this.constructedPrototypes = new Map();
+        // A mapping of serialized prototype names of constructed prototypes to their respective types
+        this.constructedPrototypeTypes = new Map();
+
+        // A mapping of given names for types in this context to assigned names
+        this.typeNameMap = new Map();  // Actual types are stored in the environment
+
+        // A mapping of user provided names of exported members to their assigned names.
+        this.exports = new Map();
+        // A mapping of user provided names of exported types to their prototypes.
+        this.exportPrototypes = new Map();
+
+        // `null` or a reference to a Function node that is necessary to be run on
+        // initialization.
+        this.initializer = null;
+    }
+
+    /**
+     * Retrieves the name of the variable with the given name varName
+     * @param  {string} varName
+     * @return {string} The assigned name of the variable
+     */
+    lookupVar(varName) {
+        if (this.nameMap.has(varName)) {
+            return this;
+        } else {
+            throw new ReferenceError('Reference to undefined variable "' + varName + '"');
+        }
+    }
+
+    /**
+     * Looks up the function declaration node with the assigned name assignedName
+     * @param  {string} assignedName
+     * @return {*|null}
+     */
+    lookupFunctionByName(assignedName) {
+        if (this.functionDeclarations.has(assignedName)) {
+            return this.functionDeclarations.get(assignedName);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Registers an object declaration as a prototye
+     * @param  {string} givenTypeName
+     * @param  {*} type
+     * @return {void}
+     */
+    registerPrototype(givenTypeName, type) {
+        if (this.prototypes.has(givenTypeName)) {
+            throw new TypeError('Cannot declare object more than once: ' + givenTypeName);
+        }
+        this.prototypes.set(givenTypeName, type);
+    }
+
+    registerType(givenTypeName, type, assignedName) {
+        assignedName = assignedName || this.env.namer();
+        type[symbols.ASSIGNED_NAME] = assignedName;
+        this.typeNameMap.set(givenTypeName, assignedName);
+        this.env.registerType(assignedName, type, this);
+    }
+
+    resolveType(typeName, attributes) {
+        if (this.prototypes.has(typeName)) {
+            return this.resolvePrototype(typeName, attributes);
+        }
+
+        if (this.typeNameMap.has(typeName)) {
+            return this.env.typeMap[this.typeNameMap[typeName]];
+        }
+
+        // There are no primitives that use attributes.
+        return types.resolve(typeName, this.privileged);
+    }
+
+    resolvePrototype(typeName, attributes) {
+        var serName = this.serializePrototypeName(typeName, attributes);
+        // If we've already seen the constructed version of this prototype,
+        // return it directly.
+        if (this.constructedPrototypes.has(serName)) {
+            return this.constructedPrototypeTypes.get(serName);
+        }
+
+        // Create a new instance of the object declaration
+        var clonedProto = this.prototypes.get(typeName).clone();
+        clonedProto[symbols.ASSIGNED_NAME] = this.env.namer();
+        // Rewrite the declaration to use the provided attributes
+        clonedProto.rewriteAttributes(attributes);
+        // Record a copy of the constructed declaration
+        this.constructedPrototypes.set(serName, clonedProto);
+        // Record the incomplete type, which will get fully populated below.
+        this.constructedPrototypeTypes.set(serName, clonedProto.getIncompleteType(this));
+
+        clonedProto[symbols.IS_CONSTRUCTED] = true;
+
+        // Generate contexts for the declaration
+        var fakeRoot = new nodes.Root({body: [clonedProto]});
+        generateContext(this.env, fakeRoot, null, this, false);
+
+        // Mark each methods as having come from the cloned prototype.
+        // This is used for visibility testing.
+        if (clonedProto.objConstructor) {
+            clonedProto.objConstructor.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = clonedProto;
+        }
+        clonedProto.methods.forEach(m => {
+            m.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = clonedProto;
+        });
+
+        // Finally, get the type of the newly constructed declaration and
+        // register it for use.
+        var typeToRegister = clonedProto.getType(this);
+        typeToRegister[symbols.ASSIGNED_NAME] = clonedProto[symbols.ASSIGNED_NAME];
+        this.env.registerType(typeToRegister[symbols.ASSIGNED_NAME], typeToRegister, this);
+        this.scope.body.push(clonedProto.translate(this, true));
+
+        return typeToRegister;
+    }
 };
 
-Context.prototype.resolveType = function resolveType(typeName, attributes) {
+export class Context extends BaseContext {
 
-    if (this.prototypes.hasOwnProperty(typeName)) {
-        var resolved = this.resolvePrototype(typeName, attributes);
-        return resolved;
+    constructor(env, scope, parent, privileged) {
+        super(env, scope, privileged);
+
+        // A reference to the parent context of this context.
+        this.parent = parent;
+
+        // A mapping of assigned names of referenced variables to the contexts
+        // that contain the definition of those variables.
+        this.lexicalLookups = {};
+        // A set of assigned names that the context modifies in the lexical scope.
+        this.lexicalModifications = {};
+
+        // Boolean representing whether the context accesses the global scope.
+        this.accessesGlobalScope = false;
+        // Boolean representing whether the context access its lexical scope.
+        this.accessesLexicalScope = false;
+
+        // Boolean representing whether the context is side effect-free.
+        this.sideEffectFree = true;
+
+        this.typeNameMap = parent.typeNameMap;
     }
 
-    if (typeName in this.typeNameMap) {
-        return this.env.typeMap[this.typeNameMap[typeName]];
+    /**
+     * Retrieves the name of the variable with the given name varName
+     * @param  {string} varName
+     * @return {string} The assigned name of the variable
+     */
+    lookupVar(varName) {
+        if (this.nameMap.has(varName)) {
+            return this;
+        } else {
+            return this.parent.lookupVar(varName);
+        }
     }
 
-    if (this.parent) {
-        return this.parent.resolveType(typeName, attributes);
+    /**
+     * Looks up the function declaration node with the assigned name assignedName
+     * @param  {string} assignedName
+     * @return {*|null}
+     */
+    lookupFunctionByName(assignedName) {
+        if (this.functionDeclarations.has(assignedName)) {
+            return this.functionDeclarations.get(assignedName);
+        } else {
+            return this.parent.lookupFunctionByName(assignedName);
+        }
     }
 
-    // There are no primitives that use attributes.
-    return types.resolve(typeName, this.privileged);
+    registerPrototype(...args) {
+        this.parent.registerPrototype(...args);
+    }
+
+    registerType(...args) {
+        this.parent.registerType(...args);
+    }
+
+    resolveType(...args) {
+        this.parent.resolveType(...args);
+    }
+
+    resolvePrototype(...args) {
+        this.parent.resolvePrototype(...args);
+    }
+
 };
 
-Context.prototype.resolvePrototype = function resolvePrototype(typeName, attributes) {
-    var serName = this.serializePrototypeName(typeName, attributes);
-    // If we've already seen the constructed version of this prototype,
-    // return it directly.
-    if (serName in this.constructedPrototypes) {
-        return this.constructedPrototypeTypes[serName];
-    }
-
-    // Create a new instance of the object declaration
-    var clonedProto = this.prototypes[typeName].clone();
-    clonedProto.__assignedName = this.env.namer();
-    // Rewrite the declaration to use the provided attributes
-    clonedProto.rewriteAttributes(attributes);
-    // Record a copy of the constructed declaration
-    this.constructedPrototypes[serName] = clonedProto;
-    // Record the incomplete type, which will get fully populated below.
-    this.constructedPrototypeTypes[serName] = clonedProto.getIncompleteType(this);
-
-    clonedProto.__isConstructed = true;
-
-    // Generate contexts for the declaration
-    var fakeRoot = new nodes.Root({body: [clonedProto]});
-    generateContext(this.env, fakeRoot, null, this, false);
-
-    // Mark each methods as having come from the cloned prototype.
-    // This is used for visibility testing.
-    if (clonedProto.objConstructor) {
-        clonedProto.objConstructor.base.__context.__basePrototype = clonedProto;
-    }
-    clonedProto.methods.forEach(function(mem) {
-        mem.base.__context.__basePrototype = clonedProto;
-    });
-
-    // Finally, get the type of the newly constructed declaration and
-    // register it for use.
-    var typeToRegister = clonedProto.getType(this);
-    typeToRegister.__assignedName = clonedProto.__assignedName;
-    this.env.registerType(typeToRegister.__assignedName, typeToRegister, this);
-    this.scope.body.push(clonedProto.translate(this, true));
-
-    return typeToRegister;
-};
 
 var generateContext = module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
     if (!rootContext) {
@@ -228,10 +286,10 @@ var generateContext = module.exports = function generateContext(env, tree, filen
         var assignedName;
         var newContext;
 
-        node.__context = contexts[0];
+        node[symbols.CONTEXT] = contexts[0];
         switch (node.type) {
             case 'Import':
-                var imp = env.import(node, rootContext);
+                var imp = env.doImport(node, rootContext);
                 var impName = node.base;
                 if (node.member) {
                     impName = node.member;
@@ -251,17 +309,17 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                 }
 
                 // Mark the function as a variable containing a function type.
-                assignedName = contexts[0].addVar(node.name, node.getType(contexts[0]), node.__assignedName);
+                assignedName = contexts[0].addVar(node.name, node.getType(contexts[0]), node[symbols.ASSIGNED_NAME]);
                 contexts[0].functionDeclarations[assignedName] = node;
                 contexts[0].isFuncMap[assignedName] = true;
-                node.__assignedName = assignedName;
+                node[symbols.ASSIGNED_NAME] = assignedName;
 
                 node.__firstClass = false;
 
                 newContext = new Context(env, node, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
                 node.params.forEach(function(param) {
-                    param.__assignedName = newContext.addVar(param.name, param.getType(newContext));
+                    param[symbols.ASSIGNED_NAME] = newContext.addVar(param.name, param.getType(newContext));
                 });
 
                 innerFunctions[0].push(node);
@@ -271,16 +329,16 @@ var generateContext = module.exports = function generateContext(env, tree, filen
             case 'ObjectConstructor':
             case 'ObjectMethod':
                 contexts[0].functions.push(node.base);
-                assignedName = node.__assignedName || node.base.__assignedName || env.namer();
+                assignedName = node[symbols.ASSIGNED_NAME] || node.base[symbols.ASSIGNED_NAME] || env.namer();
                 contexts[0].functionDeclarations[assignedName] = node.base;
                 contexts[0].isFuncMap[assignedName] = true;
-                node.__assignedName = node.base.__assignedName = assignedName;
+                node[symbols.ASSIGNED_NAME] = node.base[symbols.ASSIGNED_NAME] = assignedName;
                 node.base.__firstClass = false;
 
                 newContext = new Context(env, node.base, contexts[0]);
                 // Add all the parameters of the nested function to the new scope.
                 node.base.params.forEach(function contextPreTraverseParamIter(param) {
-                    param.__assignedName = newContext.addVar(param.name, param.getType(newContext));
+                    param[symbols.ASSIGNED_NAME] = newContext.addVar(param.name, param.getType(newContext));
                 });
 
                 innerFunctions[0].push(node.base);
@@ -310,7 +368,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
                 } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
                     // Ignore calls from a nested function to itself (recursion)
-                    if (node.__isFunc && node.__refName === contexts[0].scope.__assignedName) return;
+                    if (node.__isFunc && node.__refName === contexts[0].scope[symbols.ASSIGNED_NAME]) return;
 
                     // Otherwise the lookup is lexical and needs to be marked as such.
 
@@ -324,7 +382,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
             case 'ObjectDeclaration':
                 // Ignore nodes that have already been constructed.
-                if (node.__isConstructed) return;
+                if (node[symbols.IS_CONSTRUCTED]) return;
                 // Register the prototype
                 contexts[0].registerPrototype(node.name, node);
                 // We don't want to create contexts for the contents of an
@@ -379,7 +437,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
             case 'ConstDeclaration':
             case 'Declaration':
-                node.__assignedName = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
+                node[symbols.ASSIGNED_NAME] = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
                 return;
 
             case 'Export':
@@ -389,26 +447,26 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                 try {
                     ctx = contexts[0].lookupVar(node.value);
                     refName = ctx.nameMap[node.value];
-                    node.__assignedName = rootContext.exports[node.value] = refName;
+                    node[symbols.ASSIGNED_NAME] = rootContext.exports[node.value] = refName;
                 } catch(e) {
                     var protoObj = contexts[0].prototypes[node.value];
                     if (!protoObj) {
                         throw new ReferenceError('Undefined function or type "' + node.value + '" being exported');
                     }
-                    node.__assignedName = rootContext.exportPrototypes[node.value] = refName;
+                    node[symbols.ASSIGNED_NAME] = rootContext.exportPrototypes[node.value] = refName;
                 }
 
                 return;
 
             case 'ObjectDeclaration':
-                if (!node.__isConstructed) return;
+                if (!node[symbols.IS_CONSTRUCTED]) return;
 
                 var objType = node.getType(contexts[0]);
                 if (node.objConstructor) {
-                    objType.objConstructor = node.objConstructor.base.__assignedName;
+                    objType.objConstructor = node.objConstructor.base[symbols.ASSIGNED_NAME];
                 }
                 node.methods.forEach(function(method) {
-                    objType.methods[method.name] = method.base.__assignedName;
+                    objType.methods[method.name] = method.base[symbols.ASSIGNED_NAME];
                 });
                 return;
         }
@@ -418,7 +476,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
         innerFunctions.unshift([]);
         traverser.traverse(tree, preTraverseContext, postTraverseContext);
         innerFunctions.shift().forEach(function contextInnerFunctionIterator(node) {
-            contexts.unshift(node.__context);
+            contexts.unshift(node[symbols.CONTEXT]);
             doTraverse(node);
             contexts.shift();
         });
@@ -442,14 +500,14 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                 '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
         }
 
-        node.__assignedName = rootContext.env.namer();
+        node[symbols.ASSIGNED_NAME] = rootContext.env.namer();
 
-        rootContext.env.registeredOperators[leftType][rightType][node.operator] = node.__assignedName;
-        rootContext.env.registeredOperatorReturns[node.__assignedName] = node.returnType.getType(rootContext);
+        rootContext.env.registeredOperators[leftType][rightType][node.operator] = node[symbols.ASSIGNED_NAME];
+        rootContext.env.registeredOperatorReturns[node[symbols.ASSIGNED_NAME]] = node.returnType.getType(rootContext);
 
-        node.registerWithContext(node.__context, rootContext);
+        node.registerWithContext(node[symbols.CONTEXT], rootContext);
 
-        contexts.unshift(node.__context);
+        contexts.unshift(node[symbols.CONTEXT]);
         doTraverse(node);
         contexts.shift();
 
@@ -462,6 +520,3 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
     return rootContext;
 };
-
-
-module.exports.Context = Context;

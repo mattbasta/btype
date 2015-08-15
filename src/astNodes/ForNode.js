@@ -1,4 +1,4 @@
-import BaseLoopNode from './_loop';
+import BaseLoopNode from './BaseLoopNode';
 
 
 export default class ForNode extends BaseLoopNode {
@@ -7,6 +7,19 @@ export default class ForNode extends BaseLoopNode {
         this.assignment = assignment;
         this.condition = condition;
         this.iteration = iteration;
+    }
+
+    get id() {
+        return 11;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.assignment.pack(bitstr);
+        this.condition.pack(bitstr);
+        bitstr.writebits(this.iteration ? 1 : 0, 1);
+        if (this.iteration) this.iteration.pack(bitstr);
+        this.packBlock(bitstr, 'body');
     }
 
     traverse(cb) {

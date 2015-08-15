@@ -8,6 +8,16 @@ export default class TypedIdentifierNode extends BaseNode {
         this.name = name;
     }
 
+    get id() {
+        return 33;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        this.type.pack(bitstr);
+        this.packStr(bitstr, this.name);
+    }
+
     traverse(cb) {
         cb(this.type, 'type');
     }

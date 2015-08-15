@@ -1,8 +1,8 @@
-var environment = require('./environment');
+import Environment from './environment';
 
 
 function buildEnv(options) {
-    var env = new environment.Environment(options.filename, options.config);
+    var env = new Environment(options.filename, options.config);
     var ctx = env.loadFile(options.filename, options.tree);
     env.markRequested(ctx);
 

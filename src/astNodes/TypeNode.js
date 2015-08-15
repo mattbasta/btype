@@ -8,6 +8,17 @@ export default class TypeNode extends BaseNode {
         this.attributes = attributes;
     }
 
+    get id() {
+        return 35;
+    }
+
+    pack(bitstr) {
+        super.pack(bitstr);
+        bitstr.writebits(this.attributes.length, 32);
+        this.attributes.forEach(a => a.pack(bitstr));
+        this.packStr(bitstr, this.name);
+    }
+
     traverse(cb) {
         this.attributes.forEach(a => cb(a, 'attributes'));
     }

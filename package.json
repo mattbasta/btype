@@ -16,6 +16,7 @@
     "mocha": "~1.15.1"
   },
   "dependencies": {
+    "bitstring": "^1.0.0",
     "escodegen": "^1.4.2",
     "esprima": "^1.1.1",
     "minimist": "^1.1.0"
