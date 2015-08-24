@@ -1,1 +1,1 @@
-SyntaxError: Class "foo" cannot declare "x" more than once.
+SyntaxError: Class "foo" cannot declare "x" more than once. near line 3

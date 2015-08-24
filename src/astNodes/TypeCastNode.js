@@ -1,4 +1,6 @@
 import BaseExpressionNode from './BaseExpressionNode';
+import TypeCastHLIR from '../hlirNodes/TypeCastHLIR';
+import * as symbols from '../symbols';
 
 
 export default class TypeCastNode extends BaseExpressionNode {
@@ -29,4 +31,14 @@ export default class TypeCastNode extends BaseExpressionNode {
             this.target.toString() +
             ')';
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        return new TypeCastHLIR(
+            this.base[symbols.FMAKEHLIR](builder),
+            this.target[symbols.FMAKEHLIR](builder),
+            this.start,
+            this.end
+        )
+    }
+
 };

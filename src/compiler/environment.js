@@ -8,10 +8,11 @@ import RootContext from './context';
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
 import lexer from '../lexer';
-var namer = require('./namer');
+import NamerFactory from './namer';
 var specialModules = require('./specialModules/__directory');
+import * as symbols from '../symbols';
 var transformer = require('./transformer');
-var types = require('./types');
+import Module from './types/Module';
 
 
 const LOWEST_ORDER = argv.minblocksize || 16;
@@ -26,43 +27,43 @@ const ENV_VARS = {
 
 
 export default class Environment {
-    construct(name, config) {
+    constructor(name, config) {
         this.name = name ? name.trim() : '';
         this.config = new Map(config);
 
-        this.namer = namer();
+        this.namer = NamerFactory();
         this.foreigns = [];
         this.included = [];
         this.requested = null;
-        this.modules = {};
-        this.inits = [];
+        this.modules = new Map();
+        this.inits = []; // Ordered list of things to initialize
 
         // Mapping of assigned type names to types
-        this.typeMap = {};
+        this.typeMap = new Map();
         // Mapping of assigned type names to host contexts
-        this.typeContextMap = {};
+        this.typeContextMap = new Map();
         // Set of types
-        this.types = [];
+        this.types = new Set();
         // Mapping of stringified constructed types to constructed types
-        this.constructedTypeMap = {};
+        this.constructedTypeMap = new Map();
 
         // Mapping of module identifiers to the associated module types.
-        this.moduleTypeMap = {};
+        this.moduleTypeMap = new Map();
 
-        this.moduleCache = {};
+        this.moduleCache = new Map();
 
-        this.funcList = {};  // Mapping of func list assigned names to arrays of func assigned names
-        this.funcListTypeMap = {};  // Mapping of serialized func types to names of func lists
-        this.funcListReverseTypeMap = {};  // Mapping of func list assigned names to func types
+        this.funcList = new Map();  // Mapping of func list assigned names to arrays of func assigned names
+        this.funcListTypeMap = new Map();  // Mapping of serialized func types to names of func lists
+        this.funcListReverseTypeMap = new Map();  // Mapping of func list assigned names to func types
 
         // Map of left type names to map of right type names to map of operators to
         // operator statement assigned names
-        this.registeredOperators = {}
+        this.registeredOperators = new Map();
         // Map of operator statement assigned names to their return types
-        this.registeredOperatorReturns = {}
+        this.registeredOperatorReturns = new Map();
 
         // Mapping of string literal text to a global name for the string
-        this.registeredStringLiterals = {};
+        this.registeredStringLiterals = new Map();
     }
 
     setConfig(name, value) {
@@ -75,14 +76,16 @@ export default class Environment {
 
 
     loadFile(filename, tree, privileged) {
-        if (filename in this.moduleCache) return this.moduleCache[filename];
+        if (this.moduleCache.has(filename)) {
+            return this.moduleCache.get(filename);
+        }
 
         if (!tree) {
             var parser = require('../parser');
             tree = parser(lexer(fs.readFileSync(filename).toString()));
         }
 
-        var ctx = new RootContext(this, tree, privileged);
+        var ctx = tree[symbols.FMAKEHLIR](this, privileged);
 
         // Perform inline type checking.
         tree.validateTypes(ctx);
@@ -102,7 +105,7 @@ export default class Environment {
         constantFold(ctx);
 
         this.addContext(ctx);
-        this.moduleCache[filename] = ctx;
+        this.moduleCache.set(filename, ctx);
         return ctx;
     }
 
@@ -136,32 +139,34 @@ export default class Environment {
             // Handle the case of special modules
             if (!importNode.member && specialModules.isSpecialModule(importNode.base)) {
                 var mod = specialModules.getConstructor(importNode.base).get(this);
-                return this.moduleTypeMap[target] = new types.Module(mod);
+                return this.moduleTypeMap.set(target, new Module(mod));
             }
             throw new Error('Could not find imported module: ' + target);
         }
 
-        if (target in this.moduleTypeMap) {
-            return this.moduleTypeMap[target];
+        if (this.moduleTypeMap.has(target)) {
+            return this.moduleTypeMap.get(target);
         }
 
         var importedContext = this.loadFile(target, null, isStdlib);
-        return this.moduleTypeMap[target] = new types.Module(importedContext);
+        var mod = new Module(importedContext);
+        this.moduleTypeMap.set(target, mod);
+        return mod;
     }
 
     addModule(module, context) {
-        this.modules[module] = context;
+        this.modules.set(module, context);
     }
 
     addContext(context) {
-        this.included.push(context);
+        this.included.add(context);
     }
 
     registerType(assignedName, type, context) {
-        type.__assignedName = assignedName || this.namer();
-        this.typeMap[assignedName] = type;
-        this.typeContextMap[assignedName] = context;
-        this.types.push(type);
+        type[symbols.ASSIGNED_NAME] = assignedName || this.namer();
+        this.typeMap.set(assignedName, type);
+        this.typeContextMap.set(assignedName, context);
+        this.types.add(type);
     }
 
     markRequested(context) {
@@ -170,29 +175,30 @@ export default class Environment {
 
     getFuncListName(funcType, noAdd) {
         var fts = funcType.toString();
-        if (!(fts in this.funcListTypeMap) && !noAdd) {
-            var name = this.funcListTypeMap[fts] = this.namer();
-            this.funcListReverseTypeMap[name] = funcType;
-            this.funcList[name] = [];
+        if (!this.funcListTypeMap.has(fts) && !noAdd) {
+            var name = this.namer();
+            this.funcListTypeMap.set(fts, name);
+            this.funcListReverseTypeMap.set(name, funcType);
+            this.funcList.set(name, []);
         }
-        return this.funcListTypeMap[fts];
+        return this.funcListTypeMap.get(fts);
     }
 
     registerFunc(funcNode) {
         // If the function was already registered, return the cached index.
-        if ('__funclistIndex' in funcNode) return funcNode.__funclistIndex;
+        if (symbols.FUNCLIST_IDX in funcNode) return funcNode[symbols.FUNCLIST_IDX];
 
         // Get the function's type and use that to determine the table.
-        var ft = funcNode.getType(funcNode.__context);
+        var ft = funcNode.getType(funcNode[symbols.CONTEXT]);
         var funcList = this.getFuncListName(ft);
         // If the table doesn't exist yet, create it.
-        if (!(funcList in this.funcList)) this.funcList[funcList] = [];
+        if (!this.funcList.has(funcList)) this.funcList.set(funcList, []);
         // Add the function's assigned name to the table.
-        this.funcList[funcList].push(funcNode.__assignedName);
+        this.funcList.get(funcList).push(funcNode[symbols.ASSIGNED_NAME]);
 
         // Cache and return the function's index in the table.
-        funcNode.__funcList = funcList;
-        return funcNode.__funclistIndex = this.funcList[funcList].length - 1;
+        funcNode[symbols.FUNCLIST] = funcList;
+        return funcNode[symbols.FUNCLIST_IDX] = this.funcList.get(funcList).length - 1;
     }
 
     addInit(stmt) {
@@ -209,8 +215,8 @@ export default class Environment {
 
     findFunctionByAssignedName(assignedName) {
         var temp;
-        for (var i = 0; i < this.included.length; i++) {
-            if (temp = this.included[i].lookupFunctionByName(assignedName)) {
+        for (var i of this.included) {
+            if (temp = i.lookupFunctionByName(assignedName)) {
                 return temp;
             }
         }
@@ -218,9 +224,11 @@ export default class Environment {
     }
 
     getStrLiteralIdentifier(text) {
-        if (text in this.registeredStringLiterals) {
-            return this.registeredStringLiterals[text];
+        if (this.registeredStringLiterals.has(text)) {
+            return this.registeredStringLiterals.get(text);
         }
-        return this.registeredStringLiterals[text] = this.namer();
+        var name = this.namer();
+        this.registeredStringLiterals.set(text, name);
+        return name;
     }
 }

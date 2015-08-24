@@ -1,4 +1,6 @@
 import BaseLoopNode from './BaseLoopNode';
+import LoopHLIR from '../hlirNodes/LoopHLIR';
+import * as symbols from '../symbols';
 
 
 export default class ForNode extends BaseLoopNode {
@@ -38,4 +40,27 @@ export default class ForNode extends BaseLoopNode {
             this.body.map(e => e.toString()).join('') +
             '}\n';
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var assignmentNode = this.assignment[symbols.FMAKEHLIR](builder);
+        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+
+        var node = new LoopHLIR(conditionNode, this.start, this.end);
+
+        var body = this[symbols.FMAKEHLIRBLOCK](builder, this.body);
+        if (this.iteration) {
+            var iterNode = this.iteration[symbols.FMAKEHLIR](builder);
+            if (!Array.isArray(iterNode)) {
+                iterNode = [iterNode];
+            }
+            body = body.concat(iterNode);
+        }
+        node.setBody(body);
+
+        return [
+            assignmentNode,
+            node,
+        ];
+    }
+
 };

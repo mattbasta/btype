@@ -1,4 +1,6 @@
 import BaseStatementNode from './BaseStatementNode';
+import ReturnHLIR from '../hlirNodes/ReturnHLIR';
+import * as symbols from '../symbols';
 
 
 export default class ReturnNode extends BaseStatementNode {
@@ -30,4 +32,15 @@ export default class ReturnNode extends BaseStatementNode {
             return 'return;\n';
         }
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var returnType = builder.peekCtx().scope.returnType.resolveType(builder.peekCtx());
+
+        var node = new ReturnHLIR(
+            this.value ? this.value[symbols.FMAKEHLIR](builder, returnType) : null,
+            this.start,
+            this.end
+        );
+    }
+
 };

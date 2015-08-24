@@ -1,1 +1,1 @@
-SyntaxError: Cannot declare attribute multiple times for the same object declaration
+TypeError: Cannot read property 'typeNameMap' of null

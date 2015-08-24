@@ -1,11 +1,13 @@
 import BaseNode from './BaseNode';
+import TypeHLIR from '../hlirNodes/TypeHLIR';
+import * as symbols from '../symbols';
 
 
 export default class TypeNode extends BaseNode {
     constructor(name, attributes, start, end) {
         super(start, end);
         this.name = name;
-        this.attributes = attributes;
+        this.attributes = attributes || [];
     }
 
     get id() {
@@ -26,5 +28,14 @@ export default class TypeNode extends BaseNode {
     toString() {
         return this.name +
             (this.attributes.length ? '<' + this.attributes.map(a => a.toString()).join('') + '>' : '');
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        return new TypeHLIR(
+            this.name,
+            this.attributes.map(a => a[symbols.FMAKEHLIR](builder)),
+            this.start,
+            this.end
+        )
     }
 };

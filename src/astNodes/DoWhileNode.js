@@ -1,4 +1,6 @@
 import BaseLoopNode from './BaseLoopNode';
+import DoWhileHLIR from '../hlirNodes/DoWhileHLIR';
+import * as symbols from '../symbols';
 
 
 export default class DoWhileNode extends BaseLoopNode {
@@ -27,4 +29,13 @@ export default class DoWhileNode extends BaseLoopNode {
             this.body.map(e => e.toString()).join('') +
             '} while (' + this.condition.toString() + ');\n';
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+        var node = new DoWhileHLIR(conditionNode, this.start, this.end);
+        node.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
+
+        return node;
+    }
+
 };

@@ -1,6 +1,6 @@
 exports.Array = require('./types/Array');
-exports.Func = require('./types/Func');
-exports.Module = require('./types/Module');
+import Func from './types/Func';
+import Module from './types/Module';
 exports.Primitive = require('./types/Primitive');
 exports.String = require('./types/String');
 exports.Struct = require('./types/Struct');
@@ -12,6 +12,7 @@ var public_ = exports.publicTypes = {
     'float': new exports.Primitive('float', 'float64'),
     'sfloat': new exports.Primitive('sfloat', 'float32'),
     'bool': new exports.Primitive('bool', 'uint8'),
+    'str': new exports.String(),
 };
 
 
@@ -20,9 +21,7 @@ var private_ = exports.privateTypes = {
     'uint': new exports.Primitive('uint', 'uint32')
 };
 
-public_.str = new exports.String();
-
-exports.resolve = function(typeName, privileged) {
+export function resolve(typeName, privileged) {
     if (typeName in public_) return public_[typeName];
     if (typeName in private_ && privileged) return private_[typeName];
     return null;

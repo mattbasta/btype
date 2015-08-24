@@ -1,4 +1,6 @@
 import BaseLoopNode from './BaseLoopNode';
+import LoopHLIR from '../hlirNodes/LoopHLIR';
+import * as symbols from '../symbols';
 
 
 export default class WhileNode extends BaseLoopNode {
@@ -27,4 +29,13 @@ export default class WhileNode extends BaseLoopNode {
             this.body.map(e => e.toString()).join('') +
             '}\n';
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+        var node = new LoopHLIR(conditionNode, this.start, this.end);
+        node.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
+
+        return node;
+    }
+
 };

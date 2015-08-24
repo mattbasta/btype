@@ -1,1 +1,1 @@
-SyntaxError: Operator overload for Foo of "+" must include Foo in its declaration.
+SyntaxError: Operator overload for Foo of "+" must include Foo in its declaration. near line 5

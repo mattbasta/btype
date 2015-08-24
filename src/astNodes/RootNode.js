@@ -1,5 +1,8 @@
 import BaseBlockNode from './BaseBlockNode';
-import RootContext from '../compiler/context';
+import {RootContext} from '../compiler/context';
+import ContextBuilder from '../contextBuilder';
+import RootHLIR from '../hlirNodes/RootHLIR';
+import * as symbols from '../symbols';
 
 
 export default class RootNode extends BaseBlockNode {
@@ -23,18 +26,20 @@ export default class RootNode extends BaseBlockNode {
         });
     }
 
-    /**
-     * Builds a context object for the AST tree
-     * @param  {Environment} env
-     * @param  {bool} [privileged]
-     * @return {BaseCotnext}
-     */
-    buildContext(env, privileged) {
-        var root = new RootContext(env, this, privileged || false);
-        return root;
+    toString() {
+        return this.body.map(e => e.toString()).join('');
     }
 
-    toString() {
-        return this.body.map(e => e.toString()).join('') + '\n# EOF\n';
+    [symbols.FMAKEHLIR](env, privileged) {
+        var builder = new ContextBuilder(env, privileged);
+        var rootHLIR = new RootHLIR(this.start, this.end);
+        var rootCtx = new RootContext(env, rootHLIR, privileged);
+
+        builder.pushCtx(rootCtx);
+        this[symbols.FMAKEHLIRBLOCK](builder, this.body);
+        builder.popCtx();
+
+        return rootHLIR;
     }
+
 };

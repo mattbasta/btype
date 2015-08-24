@@ -188,7 +188,7 @@ function parseImport(lex) {
 
     var alias = null;
     if (lex.accept('as')) {
-        alias = parseSymbol(lex);
+        alias = parseSymbol(lex).name;
     }
 
     var end = lex.assert(';');
@@ -797,7 +797,7 @@ function parseObjectDeclaration(lex) {
                 throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
             }
 
-            attributes.push(new nodes.SymbolNode(attrIdent, ident.start, ident.end));
+            attributes.push(new nodes.TypeNode(attrIdent, null, ident.start, ident.end));
 
             if (lex.accept('>')) {
                 break;

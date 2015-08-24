@@ -31,8 +31,8 @@ class BaseContext {
         this.nameMap = new Map();
         // A mapping of assigned names to types.
         this.typeMap = new Map();
-        // A mapping of assigned names to booleans indicating whether the name is a function.
-        this.isFuncMap = new Map();
+        // A set of assigned names indicating whether the name is a function.
+        this.isFuncSet = new Set();
 
     }
 
@@ -204,9 +204,9 @@ export class Context extends BaseContext {
 
         // A mapping of assigned names of referenced variables to the contexts
         // that contain the definition of those variables.
-        this.lexicalLookups = {};
+        this.lexicalLookups = new Map();
         // A set of assigned names that the context modifies in the lexical scope.
-        this.lexicalModifications = {};
+        this.lexicalModifications = new Set();
 
         // Boolean representing whether the context accesses the global scope.
         this.accessesGlobalScope = false;
@@ -264,7 +264,7 @@ export class Context extends BaseContext {
 };
 
 
-var generateContext = module.exports = function generateContext(env, tree, filename, rootContext, privileged) {
+function generateContext(env, tree, filename, rootContext, privileged) {
     if (!rootContext) {
         rootContext = new Context(env, tree, null, privileged);
         if (filename) {
@@ -288,44 +288,6 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
         node[symbols.CONTEXT] = contexts[0];
         switch (node.type) {
-            case 'Import':
-                var imp = env.doImport(node, rootContext);
-                var impName = node.base;
-                if (node.member) {
-                    impName = node.member;
-                }
-                if (node.alias) {
-                    impName = node.alias.name;
-                }
-                contexts[0].addVar(impName, imp);
-                return;
-
-            case 'Function':
-                // Remember the function in the function hierarchy.
-                contexts[0].functions.push(node);
-
-                if (!node.name) {
-                    node.name = env.namer();
-                }
-
-                // Mark the function as a variable containing a function type.
-                assignedName = contexts[0].addVar(node.name, node.getType(contexts[0]), node[symbols.ASSIGNED_NAME]);
-                contexts[0].functionDeclarations[assignedName] = node;
-                contexts[0].isFuncMap[assignedName] = true;
-                node[symbols.ASSIGNED_NAME] = assignedName;
-
-                node.__firstClass = false;
-
-                newContext = new Context(env, node, contexts[0]);
-                // Add all the parameters of the nested function to the new scope.
-                node.params.forEach(function(param) {
-                    param[symbols.ASSIGNED_NAME] = newContext.addVar(param.name, param.getType(newContext));
-                });
-
-                innerFunctions[0].push(node);
-
-                return false; // `false` to block the traverser from going deeper.
-
             case 'ObjectConstructor':
             case 'ObjectMethod':
                 contexts[0].functions.push(node.base);
@@ -355,31 +317,6 @@ var generateContext = module.exports = function generateContext(env, tree, filen
                 operatorOverloads.push(node);
                 return false;
 
-            case 'Symbol':
-                node.__refContext = contexts[0].lookupVar(node.name);
-                node.__refName = node.__refContext.nameMap[node.name];
-                node.__refType = node.__refContext.typeMap[node.__refName];
-                node.__isFunc = node.__refContext.isFuncMap[node.__refName];
-
-                if (node.__refContext === rootContext && contexts.length > 1) {
-                    // If the context referenced is the global scope, mark the
-                    // context as accessing global scope.
-                    contexts[0].accessesGlobalScope = true;
-
-                } else if (node.__refContext !== contexts[0] && node.__refContext !== rootContext) {
-                    // Ignore calls from a nested function to itself (recursion)
-                    if (node.__isFunc && node.__refName === contexts[0].scope[symbols.ASSIGNED_NAME]) return;
-
-                    // Otherwise the lookup is lexical and needs to be marked as such.
-
-                    for (var i = 0; i < contexts.length && contexts[i] !== node.__refContext; i++) {
-                        contexts[i].accessesLexicalScope = true;
-                        contexts[i].lexicalLookups[node.__refName] = node.__refContext;
-                    }
-                }
-
-                return;
-
             case 'ObjectDeclaration':
                 // Ignore nodes that have already been constructed.
                 if (node[symbols.IS_CONSTRUCTED]) return;
@@ -394,69 +331,7 @@ var generateContext = module.exports = function generateContext(env, tree, filen
 
     function postTraverseContext(node) {
         switch (node.type) {
-            case 'Assignment':
-                if (node.base.type === 'Symbol' && node.base.__refContext.isFuncMap[node.base.__refName]) {
-                    throw new Error('Cannot assign values to function declarations');
-                }
 
-                function follow(node, called) {
-                    switch (node.type) {
-                        // x = foo;
-                        case 'Symbol':
-                            // Assignments to symbols outside the current scope
-                            // makes the function NOT side effect-free.
-                            if (!called &&
-                                node.__refContext !== rootContext &&
-                                node.__refContext !== contexts[0]) {
-
-                                var i = 0;
-                                while (contexts[i] && contexts[i] !== node.__refContext) {
-                                    contexts[i].lexicalModifications[node.__refName] = true;
-                                    contexts[i].sideEffectFree = false;
-                                    i++;
-                                }
-                            }
-                            return true;
-                        // x.y = foo;
-                        case 'Member':
-                            return follow(node.base, called);
-                        // x().y = foo;
-                        case 'CallRaw':
-                            return follow(node.callee, true);
-                    }
-                    return false;
-                }
-
-                // Determine whether the current context is side effect-free.
-                var hasSideEffects = follow(node.base);
-
-                if (hasSideEffects) {
-                    contexts[0].sideEffectFree = false;
-                }
-                return;
-
-            case 'ConstDeclaration':
-            case 'Declaration':
-                node[symbols.ASSIGNED_NAME] = contexts[0].addVar(node.identifier, (node.declType || node.value).getType(contexts[0]));
-                return;
-
-            case 'Export':
-                var ctx;
-                var refName;
-
-                try {
-                    ctx = contexts[0].lookupVar(node.value);
-                    refName = ctx.nameMap[node.value];
-                    node[symbols.ASSIGNED_NAME] = rootContext.exports[node.value] = refName;
-                } catch(e) {
-                    var protoObj = contexts[0].prototypes[node.value];
-                    if (!protoObj) {
-                        throw new ReferenceError('Undefined function or type "' + node.value + '" being exported');
-                    }
-                    node[symbols.ASSIGNED_NAME] = rootContext.exportPrototypes[node.value] = refName;
-                }
-
-                return;
 
             case 'ObjectDeclaration':
                 if (!node[symbols.IS_CONSTRUCTED]) return;

@@ -1,4 +1,5 @@
 import BaseStatementNode from './BaseStatementNode';
+import * as symbols from '../symbols';
 
 export default class BaseBlockNode extends BaseStatementNode {
 
@@ -11,6 +12,12 @@ export default class BaseBlockNode extends BaseStatementNode {
         bitstr.writebits(1, 1);
         bitstr.writebits(prop.length, 32);
         prop.forEach(p => p.pack(bitstr));
+    }
+
+    [symbols.FMAKEHLIRBLOCK](builder, arr) {
+        return arr.map(a => a[symbols.FMAKEHLIR](builder))
+                  .map(a => Array.isArray(a) ? a : [a])
+                  .reduce((a, b) => a.concat(b), []);
     }
 
 };

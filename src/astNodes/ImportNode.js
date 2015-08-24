@@ -1,4 +1,6 @@
 import BaseStatementNode from './BaseStatementNode';
+import ImportHLIR from '../hlirNodes/ImportHLIR';
+import * as symbols from '../symbols';
 
 
 export default class ImportNode extends BaseStatementNode {
@@ -30,4 +32,19 @@ export default class ImportNode extends BaseStatementNode {
             (this.alias ? ' as ' + this.alias : '') +
             ';\n';
     }
+
+
+    [symbols.FMAKEHLIR](builder) {
+        var node = new ImportHLIR(this.base, this.member, this.alias, this.start, this.end);
+
+        var imp = builder.env.doImport(node, builder.peekCtx());
+        var impName = this.base;
+        if (this.member) impName = this.member;
+        if (this.alias) impName = this.alias;
+
+        builder.peekCtx().addVar(impName, imp);
+
+        return node;
+    }
+
 };

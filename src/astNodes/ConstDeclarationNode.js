@@ -1,4 +1,6 @@
 import BaseStatementNode from './BaseStatementNode';
+import DeclarationHLIR from '../hlirNodes/DeclarationHLIR';
+import * as symbols from '../symbols';
 
 
 export default class ConstDeclarationNode extends BaseStatementNode {
@@ -43,4 +45,19 @@ export default class ConstDeclarationNode extends BaseStatementNode {
         out += ';';
         return out;
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var typeNode = this.type ? this.type[symbols.FMAKEHLIR](builder) : null;
+        var valueNode = this.value[symbols.FMAKEHLIR](builder, typeNode.resolveType(builder.peekCtx()));
+
+        var node = new DeclarationHLIR(typeNode, this.name, valueNode);
+        node.setConst(true);
+
+        var ctx = builder.peekCtx();
+        var assignedName = ctx.addVar(this.name, (typeNode || valueNode).resolveType(ctx));
+        node[symbols.ASSIGNED_NAME] = assignedName;
+
+        return node;
+    }
+
 };

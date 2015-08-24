@@ -15,7 +15,7 @@ function getCtx(script, env) {
     if (script instanceof Array) script = script.join('\n');
     return context(
         env || new Environment(),
-        parser(lexer.default(script))
+        parser(lexer(script))
     );
 }
 

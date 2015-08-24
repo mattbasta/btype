@@ -1,8 +1,10 @@
-var context = require('../context');
+import RootNode from '../../astNodes/RootNode';
 import lexer from '../../lexer';
-var nodes = require('../nodes');
 var parser = require('../../parser');
 var types = require('../types');
+import Func from '../types/Func';
+import * as symbols from '../../symbols';
+
 
 var MathRaw = [
     'func int:abs(int:i) {}',
@@ -22,108 +24,112 @@ var MathRaw = [
     'func float:getNaN() {}',
 ].join('\n');
 
-function StdlibType(env, name, raw) {
-    this._type = '_stdlib';
-    this.name = name;
 
-    raw = context(env, parser(lexer(raw)));
+const RAW = Symbol('raw');
 
-    this.equals = function(x) {
+class BaseForeignType {
+    equals(x) {
         return false;
-    };
+    }
 
-    this.flatTypeName = this.toString = this.flatTypeName = function() {
+    flatTypeName() {
         return 'foreign';
-    };
+    }
 
-    this.hasMember = function(name) {
-        return name in raw.nameMap;
-    };
+    toString() {
+        return 'foreign';
+    }
 
-    this.getMemberType = function(name) {
-        return raw.typeMap[raw.nameMap[name]];
-    };
+    hasMember() {
+        return true;
+    }
 
-    this.hasMethod = function() {return false;};
-    this.isSubscriptable = function() {return false;};
+    hasMethod() {
+        return false;
+    }
+    isSubscriptable() {
+        return false;
+    }
 }
 
-function ForeignType(env) {
-    this._type = '_foreign';
 
-    this.equals = function(x) {
-        return false;
-    };
+class StdlibType extends BaseForeignType {
+    constructor(env, name, raw) {
+        super();
+        this.name = name;
+        var parsed = parser(lexer(raw));
+        this[RAW] = parsed[symbols.FMAKEHLIR](env, true)[symbols.CONTEXT];
 
-    this.flatTypeName = this.toString = this.flatTypeName = function() {
-        return 'foreign';
-    };
+        this._type = '_stdlib';
+    }
 
-    this.hasMember = function(name) {
-        return true;
-    };
+    hasMember(name) {
+        return this[RAW].nameMap.has(name);
+    }
 
-    this.getMemberType = function(name) {
-        return new CurriedForeignType(env, name, []);
-    };
+    getMemberType(name) {
+        return this[RAW].typeMap.has(this[RAW].nameMap.get(name));
+    }
+}
 
-    this.hasMethod = function() {return false;};
-    this.isSubscriptable = function() {return false;};
+class ForeignType extends BaseForeignType {
+    constructor(env) {
+        super();
+        this.env = env;
+
+        this._type = '_foreign';
+    }
+
+    getMemberType(name) {
+        return new CurriedForeignType(this.env, name, []);
+    }
 
 }
 
-function CurriedForeignType(env, funcName, typeChain) {
-    this._type = '_foreign_curry';
+class CurriedForeignType extends BaseForeignType {
+    constructor(env, funcName, typeChain) {
+        super();
+        this.funcName = funcName;
+        this.typeChain = typeChain;
 
-    this.equals = function(x) {
-        return false;
-    };
+        this._type = '_foreign_curry';
+    }
 
-    this.flatTypeName = this.toString = this.flatTypeName = function() {
-        return 'foreign';
-    };
-
-    this.hasMember = function(name) {
-        return true;
-    };
-
-    this.getMemberType = function(name) {
+    getMemberType(name) {
         switch (name) {
             case 'int':
             case 'float':
             case 'bool':
             case 'str':
             case '_null':
-                return new CurriedForeignType(env, funcName, typeChain.concat([name]));
+                return new CurriedForeignType(env, this.funcName, this.typeChain.concat([name]));
         }
 
         var returnType = null;
-        if (typeChain[0] !== '_null') {
-            returnType = types.resolve(typeChain[0]);
+        if (this.typeChain[0] !== '_null') {
+            returnType = types.resolve(this.typeChain[0]);
         }
-        return new types.Func(returnType, typeChain.slice(1).map(types.resolve));
-    };
+        return new Func(returnType, this.typeChain.slice(1).map(types.resolve));
+    }
 
-    this.getReturnType = function() {
-        if (typeChain[0] === '_null') return null;
-        return types.resolve(typeChain[0]);
-    };
+    getReturnType() {
+        if (this.typeChain[0] === '_null') return null;
+        return types.resolve(this.typeChain[0]);
+    }
 
-    this.getArgs = function() {
-        return typeChain.slice(1).map(types.resolve);
-    };
-
-    this.hasMethod = function() {return false;};
-    this.isSubscriptable = function() {return false;};
+    getArgs() {
+        return this.typeChain.slice(1).map(types.resolve);
+    }
 
 }
 
 
 exports.get = function(env) {
-    var ctx = new context.Context(env, new nodes.Root({body: []}));
+    var fakeRoot = new RootNode([], 0, 0);
+    var ctx = fakeRoot[symbols.FMAKEHLIR](env, true)[symbols.CONTEXT];
 
-    ctx.exports.Math = ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw));
-    ctx.exports.external = ctx.addVar('external', new ForeignType(env));
+    ctx.exports.set('Math', ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw)));
+    ctx.exports.set('external', ctx.addVar('external', new ForeignType(env)));
 
     return ctx;
 };

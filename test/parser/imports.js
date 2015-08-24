@@ -22,7 +22,7 @@ describe('Import parser', function() {
                     {
                         base: 'foo',
                         member: null,
-                        alias: null
+                        alias: null,
                     }
                 )
             ])
@@ -39,7 +39,7 @@ describe('Import parser', function() {
                     {
                         base: 'foo',
                         member: 'bar',
-                        alias: null
+                        alias: null,
                     }
                 )
             ])
@@ -56,7 +56,7 @@ describe('Import parser', function() {
                     {
                         base: 'foo',
                         member: null,
-                        alias: _i('bar')
+                        alias: 'bar',
                     }
                 )
             ])
@@ -73,7 +73,7 @@ describe('Import parser', function() {
                     {
                         base: 'foo',
                         member: 'bar',
-                        alias: _i('zap')
+                        alias: 'zap',
                     }
                 )
             ])

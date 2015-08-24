@@ -1,7 +1,7 @@
 const CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const NUMCHARS = CHARS.length;
 
-module.exports = function NamerFactory() {
+export default function NamerFactory() {
     var count = 0;
     return function Namer() {
         var name = CHARS[count % NUMCHARS];

@@ -1,4 +1,7 @@
 import BaseBlockNode from './BaseBlockNode';
+import Context from '../compiler/context';
+import FunctionHLIR from '../hlirNodes/FunctionHLIR';
+import * as symbols from '../symbols';
 
 
 export default class FunctionNode extends BaseBlockNode {
@@ -40,6 +43,40 @@ export default class FunctionNode extends BaseBlockNode {
             ') {\n' +
             this.body.map(s => s.toString()).join('') +
             '}\n';
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        var returnTypeNode = this.returnType ? this.returnType[symbols.FMAKEHLIR](builder) : null;
+        var paramNodes = this.params.map(p => {
+            return p[symbols.FMAKEHLIR](builder);
+        });
+
+        var name = this.name || builder.env.namer();
+
+        var node = new FunctionHLIR(
+            returnTypeNode,
+            name,
+            paramNodes,
+            bodyNodes,
+            this.start,
+            this.end
+        );
+        var ctx = builder.peekCtx();
+        ctx.functions.add(node);
+        var assignedName = ctx.adVar(node.name, node.resolveType(), node[symbols.ASSIGNED_NAME]);
+        ctx.functionDeclarations.set(assignedName, node);
+        ctx.isFuncSet.add(assignedName);
+
+        node[symbols.IS_FIRSTCLASS] = false;
+
+        var newCtx = new Context(builder.env, node, ctx, builder.privileged);
+        paramNodes.forEach(pn => {
+            pn[symbols.ASSIGNED_NAME] = newCtx.addVar(pn.name, pn.resolveType(newCtx));
+        });
+
+        builder.addFunc(this, node);
+
+        return node;
     }
 
 };

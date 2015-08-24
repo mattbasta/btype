@@ -45,7 +45,7 @@ describe('Object declaration parser', function() {
                     19,
                     {
                         name: 'foo',
-                        attributes: ['x', 'y'],
+                        attributes: [_type('x'), _type('y')],
                         members: [],
                         methods: [],
                         objConstructor: null,
