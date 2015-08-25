@@ -1,4 +1,6 @@
 import BaseStatementNode from './BaseStatementNode';
+import CallStatementHLIR from '../hlirNodes/CallStatementHLIR';
+import * as symbols from '../symbols';
 
 
 export default class CallStatementNode extends BaseStatementNode {
@@ -23,4 +25,10 @@ export default class CallStatementNode extends BaseStatementNode {
     toString() {
         return this.call.toString();
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var callNode = this.call[symbols.FMAKEHLIR](builder);
+        return new CallStatementHLIR(callNode, this.start, this.end);
+    }
+
 };

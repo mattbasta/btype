@@ -1,7 +1,7 @@
-import BaseHLIR from './BaseHLIR';
+import BaseExpressionHLIR from './BaseExpressionHLIR';
 
 
-export default class TypeCastHLIR extends BaseHLIR {
+export default class TypeCastHLIR extends BaseExpressionHLIR {
 
     constructor(base, target, start, end) {
         super(start, end);

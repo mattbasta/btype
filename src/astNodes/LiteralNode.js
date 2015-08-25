@@ -1,4 +1,6 @@
 import BaseExpressionNode from './BaseExpressionNode';
+import LiteralHLIR from '../hlirNodes/LiteralHLIR';
+import * as symbols from '../symbols';
 
 
 export default class LiteralNode extends BaseExpressionNode {
@@ -41,4 +43,9 @@ export default class LiteralNode extends BaseExpressionNode {
     toString() {
         return this.value === null ? 'null' : this.value.toString();
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        return new LiteralHLIR(this.litType, this.value, this.start, this.end);
+    }
+
 };

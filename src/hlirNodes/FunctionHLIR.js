@@ -1,8 +1,8 @@
-import BaseHLIR from './BaseHLIR';
+import BaseExpressionHLIR from './BaseExpressionHLIR';
 import Func from '../compiler/types/Func';
 
 
-export default class FunctionHLIR extends BaseHLIR {
+export default class FunctionHLIR extends BaseExpressionHLIR {
 
     constructor(returnType, name, params, start, end) {
         super(start, end);
