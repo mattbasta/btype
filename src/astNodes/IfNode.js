@@ -1,4 +1,6 @@
 import BaseBlockNode from './BaseBlockNode';
+import IfHLIR from '../hlirNodes/IfHLIR';
+import * as symbols from '../symbols';
 
 
 export default class IfNode extends BaseBlockNode {
@@ -40,4 +42,16 @@ export default class IfNode extends BaseBlockNode {
             ) +
             '\n';
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+        var consequentBlock = this[symbols.FMAKEHLIRBLOCK](builder, this.consequent);
+        var alternateBlock = null;
+        if (this.alternate) {
+            alternateBlock = this[symbols.FMAKEHLIRBLOCK](builder, this.alternate);
+        }
+
+        return new IfHLIR(conditionNode, consequentBlock, alternateBlock);
+    }
+
 };

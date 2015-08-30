@@ -1,4 +1,5 @@
 import BaseBlockNode from './BaseBlockNode';
+import * as symbols from '../symbols';
 
 
 export default class SwitchTypeCaseNode extends BaseBlockNode {
@@ -27,5 +28,13 @@ export default class SwitchTypeCaseNode extends BaseBlockNode {
         return 'case ' + this.type.toString() + ' {\n' +
             this.body.map(s => s.toString()).join('') +
             '}\n';
+    }
+
+    [symbols.FMAKEHLIR](builder, expectedType) {
+        var type = this.type[symbols.FMAKEHLIR](builder).resolveType(builder.peekCtx());
+        if (!type.equals(expectedType)) {
+            return [];
+        }
+        return this[symbols.FMAKEHLIRBLOCK](builder, this.body);
     }
 };

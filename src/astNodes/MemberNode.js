@@ -1,4 +1,6 @@
 import BaseExpressionNode from './BaseExpressionNode';
+import MemberHLIR from '../hlirNodes/MemberHLIR';
+import * as symbols from '../symbols';
 
 
 export default class MemberNode extends BaseExpressionNode {
@@ -25,6 +27,15 @@ export default class MemberNode extends BaseExpressionNode {
 
     toString() {
         return this.base.toString() + '.' + this.child;
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        return new MemberHLIR(
+            this.base[symbols.FMAKEHLIR](builder),
+            this.child,
+            this.start,
+            this.end
+        );
     }
 
 };

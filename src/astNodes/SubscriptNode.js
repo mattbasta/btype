@@ -1,4 +1,6 @@
 import BaseExpressionNode from './BaseExpressionNode';
+import SubscriptHLIR from '../hlirNodes/SubscriptHLIR';
+import * as symbols from '../symbols';
 
 
 export default class SubscriptNode extends BaseExpressionNode {
@@ -26,6 +28,13 @@ export default class SubscriptNode extends BaseExpressionNode {
 
     toString() {
         return this.base.toString() + '[' + this.childExpr.toString() + ']';
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        var baseNode = this.base[symbols.FMAKEHLIR](builder);
+        var childExprNode = this.childExpr[symbols.FMAKEHLIR](builder);
+
+        return new SubscriptHLIR(baseNode, childExprNode, this.start, this.end);
     }
 
 };

@@ -47,9 +47,7 @@ export default class FunctionNode extends BaseBlockNode {
 
     [symbols.FMAKEHLIR](builder) {
         var returnTypeNode = this.returnType ? this.returnType[symbols.FMAKEHLIR](builder) : null;
-        var paramNodes = this.params.map(p => {
-            return p[symbols.FMAKEHLIR](builder);
-        });
+        var paramNodes = this.params.map(p => p[symbols.FMAKEHLIR](builder));
 
         var name = this.name || builder.env.namer();
 
@@ -63,7 +61,7 @@ export default class FunctionNode extends BaseBlockNode {
         );
         var ctx = builder.peekCtx();
         ctx.functions.add(node);
-        var assignedName = ctx.adVar(node.name, node.resolveType(), node[symbols.ASSIGNED_NAME]);
+        var assignedName = ctx.addVar(node.name, node.resolveType(), node[symbols.ASSIGNED_NAME]);
         ctx.functionDeclarations.set(assignedName, node);
         ctx.isFuncSet.add(assignedName);
 

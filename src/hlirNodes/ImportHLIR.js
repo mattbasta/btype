@@ -10,4 +10,6 @@ export default class ImportHLIR extends BaseHLIR {
         this.alias = alias;
     }
 
+    settleTypes() {}
+
 };

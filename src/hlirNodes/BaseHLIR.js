@@ -5,4 +5,10 @@ export default class BaseHLIR {
         this.end = end;
     }
 
+    settleTypes() {}
+
+    get TypeError(error) {
+        return new TypeError(error + ' (' + this.start + ':' + this.end + ')');
+    }
+
 };

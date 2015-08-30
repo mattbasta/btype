@@ -85,7 +85,9 @@ export default class Environment {
             tree = parser(lexer(fs.readFileSync(filename).toString()));
         }
 
-        var ctx = tree[symbols.FMAKEHLIR](this, privileged);
+        var rootNode = tree[symbols.FMAKEHLIR](this, privileged);
+        rootNode.settleTypes();
+        var ctx = rootNode[symbols.CONTEXT];
 
         // Perform inline type checking.
         tree.validateTypes(ctx);

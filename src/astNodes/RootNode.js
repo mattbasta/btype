@@ -36,7 +36,7 @@ export default class RootNode extends BaseBlockNode {
         var rootCtx = new RootContext(env, rootHLIR, privileged);
 
         builder.pushCtx(rootCtx);
-        this[symbols.FMAKEHLIRBLOCK](builder, this.body);
+        rootHLIR.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
         builder.popCtx();
 
         return rootHLIR;

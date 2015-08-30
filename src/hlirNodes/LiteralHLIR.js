@@ -1,4 +1,5 @@
 import BaseExpressionHLIR from './BaseExpressionHLIR';
+import {resolve} from '../compiler/types';
 
 
 export default class LiteralHLIR extends BaseExpressionHLIR {
@@ -7,6 +8,10 @@ export default class LiteralHLIR extends BaseExpressionHLIR {
         super(start, end);
         this.litType = litType;
         this.value = value;
+    }
+
+    resolveType() {
+        return resolve(this.litType, true);
     }
 
 };

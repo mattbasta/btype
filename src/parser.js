@@ -947,7 +947,12 @@ function parseObjectDeclaration(lex) {
             }
             methodSignature.unshift(
                 methodSelfParam || new nodes.TypedIdentifierNode(
-                    new nodes.TypeNode(name.text, [], 0, 0),
+                    new nodes.TypeNode(
+                        name.text,
+                        attributes.map(a => new nodes.TypeNode(a, [], 0, 0)),
+                        0,
+                        0
+                    ),
                     'self',
                     0,
                     0

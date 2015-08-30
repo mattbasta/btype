@@ -9,4 +9,8 @@ export default class TypedIdentifierHLIR extends BaseHLIR {
         this.type = type;
     }
 
+    resolveType(ctx) {
+        return this.type.resolveType(ctx);
+    }
+
 };

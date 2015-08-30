@@ -9,4 +9,13 @@ export default class TypeCastHLIR extends BaseExpressionHLIR {
         this.target = target;
     }
 
+    resolveType(ctx, expectedType) {
+        this.base.resolveType(ctx);
+        var targetType = this.target.resolveType(ctx);
+        if (expectedType && !expectedType.equals(baseType)) {
+            throw this.TypeError(baseType + ' was found where ' + expectedType + ' was expected');
+        }
+        return targetType;
+    }
+
 };

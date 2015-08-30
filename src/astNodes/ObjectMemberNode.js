@@ -1,4 +1,6 @@
 import BaseBlockNode from './BaseBlockNode';
+import ObjectMemberHLIR from '../hlirNodes/ObjectMemberHLIR';
+import * as symbols from '../symbols';
 
 
 export default class ObjectMemberNode extends BaseBlockNode {
@@ -41,6 +43,18 @@ export default class ObjectMemberNode extends BaseBlockNode {
             this.name +
             (this.value ? ' = ' + this.value.toString() : '') +
             ';\n';
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        return new ObjectMemberHLIR(
+            this.type[symbols.FMAKEHLIR](builder),
+            this.name,
+            this.value ? this.value[symbols.FMAKEHLIR](builder) : null,
+            this.isPrivate,
+            this.isFinal,
+            this.start,
+            this.end
+        );
     }
 
 };

@@ -34,6 +34,9 @@ class BaseContext {
         // A set of assigned names indicating whether the name is a function.
         this.isFuncSet = new Set();
 
+        // Map of type aliases to their types
+        this.typeDefs = new Map();
+
     }
 
     /**
@@ -62,6 +65,7 @@ class BaseContext {
     }
 
 }
+
 
 export class RootContext extends BaseContext {
 
@@ -118,9 +122,9 @@ export class RootContext extends BaseContext {
     }
 
     /**
-     * Registers an object declaration as a prototye
+     * Registers an object declaration as a prototype
      * @param  {string} givenTypeName
-     * @param  {*} type
+     * @param  {*} type The AST node of the object
      * @return {void}
      */
     registerPrototype(givenTypeName, type) {
@@ -158,41 +162,35 @@ export class RootContext extends BaseContext {
             return this.constructedPrototypeTypes.get(serName);
         }
 
-        // Create a new instance of the object declaration
-        var clonedProto = this.prototypes.get(typeName).clone();
-        clonedProto[symbols.ASSIGNED_NAME] = this.env.namer();
-        // Rewrite the declaration to use the provided attributes
-        clonedProto.rewriteAttributes(attributes);
+        var astNode = this.prototypes.get(typeName);
+        var hlirNode = astNode[symbols.FCONSTRUCT]();
+
+        var type = hlirNode.resolveType(this);
+
         // Record a copy of the constructed declaration
-        this.constructedPrototypes.set(serName, clonedProto);
+        this.constructedPrototypes.set(serName, hlirNode);
         // Record the incomplete type, which will get fully populated below.
-        this.constructedPrototypeTypes.set(serName, clonedProto.getIncompleteType(this));
-
-        clonedProto[symbols.IS_CONSTRUCTED] = true;
-
-        // Generate contexts for the declaration
-        var fakeRoot = new nodes.Root({body: [clonedProto]});
-        generateContext(this.env, fakeRoot, null, this, false);
+        this.constructedPrototypeTypes.set(serName, type);
 
         // Mark each methods as having come from the cloned prototype.
         // This is used for visibility testing.
         if (clonedProto.objConstructor) {
-            clonedProto.objConstructor.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = clonedProto;
+            clonedProto.objConstructor.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         }
         clonedProto.methods.forEach(m => {
-            m.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = clonedProto;
+            m.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         });
 
         // Finally, get the type of the newly constructed declaration and
         // register it for use.
-        var typeToRegister = clonedProto.getType(this);
-        typeToRegister[symbols.ASSIGNED_NAME] = clonedProto[symbols.ASSIGNED_NAME];
-        this.env.registerType(typeToRegister[symbols.ASSIGNED_NAME], typeToRegister, this);
-        this.scope.body.push(clonedProto.translate(this, true));
+        type[symbols.ASSIGNED_NAME] = hlirNode[symbols.ASSIGNED_NAME];
+        this.env.registerType(type[symbols.ASSIGNED_NAME], type, this);
+        this.scope.body.push(hlirNode);
 
-        return typeToRegister;
+        return type;
     }
 };
+
 
 export class Context extends BaseContext {
 
@@ -253,8 +251,11 @@ export class Context extends BaseContext {
         this.parent.registerType(...args);
     }
 
-    resolveType(...args) {
-        this.parent.resolveType(...args);
+    resolveType(typeName, attributes) {
+        if (this.typeDefs.has(typeName) && !attributes.length) {
+            return this.typeDefs.get(typeName);
+        }
+        this.parent.resolveType(typeName, attributes);
     }
 
     resolvePrototype(...args) {
@@ -288,28 +289,6 @@ function generateContext(env, tree, filename, rootContext, privileged) {
 
         node[symbols.CONTEXT] = contexts[0];
         switch (node.type) {
-            case 'ObjectConstructor':
-            case 'ObjectMethod':
-                contexts[0].functions.push(node.base);
-                assignedName = node[symbols.ASSIGNED_NAME] || node.base[symbols.ASSIGNED_NAME] || env.namer();
-                contexts[0].functionDeclarations[assignedName] = node.base;
-                contexts[0].isFuncMap[assignedName] = true;
-                node[symbols.ASSIGNED_NAME] = node.base[symbols.ASSIGNED_NAME] = assignedName;
-                node.base.__firstClass = false;
-
-                newContext = new Context(env, node.base, contexts[0]);
-                // Add all the parameters of the nested function to the new scope.
-                node.base.params.forEach(function contextPreTraverseParamIter(param) {
-                    param[symbols.ASSIGNED_NAME] = newContext.addVar(param.name, param.getType(newContext));
-                });
-
-                innerFunctions[0].push(node.base);
-
-                // Mark the types as being methods
-                node.getType(contexts[0]).__isObjectMethod = true;
-
-                return false;
-
             case 'OperatorStatement':
                 if (operatorOverloads.indexOf(node) !== -1) {
                     return false;
@@ -317,22 +296,11 @@ function generateContext(env, tree, filename, rootContext, privileged) {
                 operatorOverloads.push(node);
                 return false;
 
-            case 'ObjectDeclaration':
-                // Ignore nodes that have already been constructed.
-                if (node[symbols.IS_CONSTRUCTED]) return;
-                // Register the prototype
-                contexts[0].registerPrototype(node.name, node);
-                // We don't want to create contexts for the contents of an
-                // un-constructed object declaration.
-                return false;
-
         }
     }
 
     function postTraverseContext(node) {
         switch (node.type) {
-
-
             case 'ObjectDeclaration':
                 if (!node[symbols.IS_CONSTRUCTED]) return;
 

@@ -14,8 +14,8 @@ export default class BaseBlockNode extends BaseStatementNode {
         prop.forEach(p => p.pack(bitstr));
     }
 
-    [symbols.FMAKEHLIRBLOCK](builder, arr) {
-        return arr.map(a => a[symbols.FMAKEHLIR](builder))
+    [symbols.FMAKEHLIRBLOCK](builder, arr, expectedType) {
+        return arr.map(a => a[symbols.FMAKEHLIR](builder, expectedType))
                   .map(a => Array.isArray(a) ? a : [a])
                   .reduce((a, b) => a.concat(b), []);
     }

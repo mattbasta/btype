@@ -1,5 +1,11 @@
 import BaseBlockNode from './BaseBlockNode';
+import {Context} from '../compiler/context';
+import ContextBuilder from '../contextBuilder';
+import ObjectDeclarationHLIR from '../hlirNodes/ObjectDeclarationHLIR';
+import * as symbols from '../symbols';
 
+
+const IS_MADE = Symbol();
 
 export default class ObjectDeclarationNode extends BaseBlockNode {
     constructor(
@@ -51,6 +57,68 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
             this.methods.map(m => m.toString()).join('') +
             this.operators.map(o => o.toString()).join('') +
             '}\n';
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        builder.peekCtx().registerPrototype(this.name, this);
+        this[IS_MADE] = true;
+        return [];
+    }
+
+    [symbols.FCONSTRUCT](rootCtx, attributes) {
+        if (!this[IS_MADE]) {
+            throw new Error('FCONSTRUCT called prematurely');
+        }
+
+        if (attributes.length !== this.attributes.length) {
+            let passedAttrs = '<' + attributes.map(a => a.toString()).join(', ') + '>';
+            let currentAttrs = '<' + this.attributes.join(', ') + '>';
+            throw this.TypeError(
+                'Expected ' + this.attributes.length + ' attribute(s) (' + currentAttrs + ') ' +
+                'but got ' + attributes.length + ' attribute(s) (' + passedAttrs + ') for ' +
+                this.name
+            );
+        }
+
+        var mappedAttributes = new Map();
+        this.attributes.forEach((a, i) => {
+            mappedAttributes.set(a, attributes[i]);
+        });
+
+        var node = new ObjectDeclarationHLIR(
+            this.name,
+            mappedAttributes
+        );
+
+        var builder = new contextBuilder(rootCtx.env, rootCtx.privileged);
+        builder.pushCtx(rootCtx);
+
+        var ctx = new Context(rootCtx.env, node, rootCtx, rootCtx.privileged);
+        builder.pushCtx(ctx);
+
+        mappedAttributes.forEach((type, name) => {
+            ctx.typeDefs.set(name, type);
+        });
+
+        if (this.objConstructor) {
+            node.setConstructor(
+                this.objConstructor[symbols.FMAKEHLIR](builder)
+            );
+        }
+        node.setMethods(
+            this.methods.map(m => m[symbols.FMAKEHLIR](builder))
+        );
+        node.setMembers(
+            this.members.map(m => m[symbols.FMAKEHLIR](builder))
+        );
+        node.setOperatorStatements(
+            this.operators.map(o => o[symbols.FMAKEHLIR](builder))
+        );
+
+        this[symbols.ASSIGNED_NAME] = rootCtx.env.namer();
+        node[symbols.IS_CONSTRUCTED] = true;
+
+        return node;
     }
 
 };

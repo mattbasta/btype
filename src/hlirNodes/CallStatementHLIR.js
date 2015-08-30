@@ -8,4 +8,8 @@ export default class CallStatementHLIR extends BaseHLIR {
         this.call = call;
     }
 
+    settleTypes(ctx) {
+        this.call.resolveType(ctx);
+    }
+
 };

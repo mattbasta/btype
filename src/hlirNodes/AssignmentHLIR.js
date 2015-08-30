@@ -9,4 +9,12 @@ export default class AssignmentHLIR extends BaseHLIR {
         this.value = value;
     }
 
+    settleTypes(ctx) {
+        var baseType = this.base.resolveType(ctx);
+        var valueType = this.value.resolveType(ctx, baseType);
+        if (!baseType.equals(valueType)) {
+            throw new TypeError('Attempted to assign ' + valueType + ' to variable declared as ' + baseType);
+        }
+    }
+
 };

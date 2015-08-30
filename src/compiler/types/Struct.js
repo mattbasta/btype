@@ -1,130 +1,120 @@
-var types = require('../types');
 var utils = require('./_utils');
+import * as symbols from '../../symbols';
 
 
-function Struct(name, contentsTypeMap) {
-    this.typeName = name;
-    this.contentsTypeMap = contentsTypeMap;
+const LAYOUT_CACHE = Symbol();
+const ORDERED_LAYOUT_CACHE = Symbol();
+const LAYOUT_INDICES_CACHE = Symbol();
 
-    this.objConstructor = null;
-    this.methods = {} // Mapping of given names to assigned names
+export default class Struct {
+    constructor(name, contentsTypeMap) {
+        this.typeName = name;
+        this.contentsTypeMap = contentsTypeMap;
 
-    this.privateMembers = {}; // Set of assigned names that are marked as private
-    this.finalMembers = {}; // Set of assigned names that are marked as final
+        this.objConstructor = null;
+        this.methods = new Map();
+        this.privateMembers = new Set();
+        this.finalMembers = new Set();
 
-    // WARNING! This must not do any processing on contentsTypeMap as part of
-    // this constructor. All processing must be done by methods. This is to
-    // facilitate lazily constructed structs, which are necessary for self-
-    // referencing and cyclic type dependencies.
+        // WARNING! This must not do any processing on contentsTypeMap as part of
+        // this constructor. All processing must be done by methods. This is to
+        // facilitate lazily constructed structs, which are necessary for self-
+        // referencing and cyclic type dependencies.
 
-    function getLayout() {
-        var keys = Object.keys(contentsTypeMap);
-        keys.sort(function(a, b) {
-            return utils.memberSize(a) < utils.memberSize(b);
-        });
-        return keys;
+
+        this._type = 'struct';
     }
 
-    var cachedLayout;
-    this.getLayout = function() {
-        if (cachedLayout) return cachedLayout;
-        var layout = getLayout();
-        var offsets = {};
+    getLayout() {
+        if (this[LAYOUT_CACHE]) return this[LAYOUT_CACHE];
+        var offsets = {}; // TODO: make this a map?
         var i = 0;
-        layout.forEach(function(key) {
-            var size = utils.memberSize(this.contentsTypeMap[key]);
+        this.contentsTypeMap.forEach((value, key) => {
+            var size = utils.memberSize(value);
             offsets[key] = i;
             i += size;
-        }, this);
-        return cachedLayout = offsets;
-    };
-
-    var cachedOrderedLayout;
-    this.getOrderedLayout = function() {
-        if (cachedOrderedLayout) return cachedOrderedLayout;
-        var order = getLayout().map(function(member) {
-            return contentsTypeMap[member];
         });
-        return cachedOrderedLayout = order;
-    };
+        return this[LAYOUT_CACHE] = offsets;
+    }
 
-    var cachedLayoutIndices;
-    this.getLayoutIndex = function(name) {
-        if (cachedLayoutIndices) return cachedLayoutIndices[name];
+    getOrderedLayout() {
+        if (this[ORDERED_LAYOUT_CACHE]) return this[ORDERED_LAYOUT_CACHE];
+        var keys = Array.from(this.contentsTypeMap.keys());
+        keys.sort((a, b) => {
+            return utils.memberSize(this.contentsTypeMap.get(a)) < utils.memberSize(this.contentsTypeMap.get(b));
+        });
+        var order = keys.map(m => this.contentsTypeMap.get(m));
+        return this[ORDERED_LAYOUT_CACHE] = order;
+    }
+
+    getLayoutIndex(name) {
+        if (this[LAYOUT_INDICES_CACHE]) return this[LAYOUT_INDICES_CACHE].get(name);
         var layout = getLayout();
-        var indices = {};
-        layout.forEach(function(key, i) {
-            indices[key] = i;
-        });
-        return (cachedLayoutIndices = indices)[name];
-    };
-
-}
-
-Struct.prototype._type = 'struct';
-
-Struct.prototype.getSize = function getSize() {
-    var sum = 0;
-    for (var key in this.contentsTypeMap) {
-        sum += utils.memberSize(this.contentsTypeMap[key]);
+        var indices = this[LAYOUT_INDICES_CACHE] = new Map();
+        this.getOrderedLayout().forEach((key, i) => indices.set(key, i));
+        return indices.get(name);
     }
-    return sum;
-};
 
-Struct.prototype.equals = function equals(x) {
-    // Ignore null types.
-    if (!x) return false;
-    // If we have an assigned name, compare that.
-    if (this.__assignedName === x.__assignedName) return true;
-    // If the other one isn't a struct or has a different name, fail.
-    if (!(x instanceof Struct && this.typeName === x.typeName)) return false;
-    // If the number of members is not the same, fail.
-    if (Object.keys(this.contentsTypeMap).length !== Object.keys(x.contentsTypeMap).length) return false;
-    // Test each member for equality.
-    for (var key in this.contentsTypeMap) {
-        // If the member is not in the other struct, fail.
-        if (!(key in x.contentsTypeMap)) return false;
-        // If the member is the same type, fail.
-        if (!this.contentsTypeMap[key].equals(x.contentsTypeMap[key])) return false;
+    getSize() {
+        var sum = 0;
+        this.contentsTypeMap.forEach(v => sum += utils.memberSize(v));
+        return sum;
     }
-    return true;
-};
 
-Struct.prototype.toString = function toString() {
-    return this.typeName;
-};
-
-Struct.prototype.flatTypeName = function flatTypeName() {
-    if (!this.__assignedName) {
-        throw new TypeError('Cannot get struct type (' + this.typeName + ') before assigned name is generated');
+    equals(x) {
+        // Ignore null types.
+        if (!x) return false;
+        // If we have an assigned name, compare that.
+        if (this[symbols.ASSIGNED_NAME] === x[symbols.ASSIGNED_NAME]) return true;
+        // If the other one isn't a struct or has a different name, fail.
+        if (!(x instanceof Struct && this.typeName === x.typeName)) return false;
+        // If the number of members is not the same, fail.
+        if (this.contentsTypeMap.size !== x.contentsTypeMap.size) return false;
+        // Test each member for equality.
+        for (var key of this.contentsTypeMap.keys()) {
+            // If the member is not in the other struct, fail.
+            if (!x.contentsTypeMap.has(key)) return false;
+            // If the member is the same type, fail.
+            if (!this.contentsTypeMap.get(key).equals(x.contentsTypeMap.get(key))) return false;
+        }
+        return true;
     }
-    return 'struct$' + this.__assignedName;
-};
 
-Struct.prototype.hasMethod = function hasMethod(name) {
-    return name in this.methods;
-};
+    toString() {
+        return this.typeName;
+    }
 
-Struct.prototype.getMethod = function getMethod(name) {
-    return this.methods[name];
-};
+    flatTypeName() {
+        if (!this[symbols.ASSIGNED_NAME]) {
+            throw new TypeError('Cannot get struct type (' + this.typeName + ') before assigned name is generated');
+        }
+        return 'struct$' + this[symbols.ASSIGNED_NAME];
+    }
 
-Struct.prototype.getMethodType = function getMethodType(name, ctx) {
-    var temp = ctx.lookupFunctionByName(this.getMethod(name)).getType(ctx);
-    temp.__isMethod = true;
-    return temp;
-};
+    hasMethod() {
+        return this.methods.has(name);
+    }
 
-Struct.prototype.hasMember = function hasMember(name) {
-    return name in this.contentsTypeMap;
-};
+    getMethod(name) {
+        return this.methods.get(name);
+    }
 
-Struct.prototype.getMemberType = function getMemberType(name) {
-    return this.contentsTypeMap[name];
-};
+    getMethodType(name, ctx) {
+        var temp = ctx.lookupFunctionByName(this.getMethod(name)).resolveType(ctx);
+        temp[symbols.IS_METHOD] = true;
+        return temp;
+    }
 
-Struct.prototype.isSubscriptable = function isSubscriptable() {
-    return false;
-};
+    hasMember(name) {
+        return this.contentsTypeMap.has(name);
+    }
 
-module.exports = Struct;
+    getMemberType(name) {
+        return this.contentsTypeMap.get(name);
+    }
+
+    isSubscriptable() {
+        return false;
+    }
+
+};
