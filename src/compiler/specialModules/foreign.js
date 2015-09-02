@@ -68,7 +68,7 @@ class StdlibType extends BaseForeignType {
     }
 
     getMemberType(name) {
-        return this[RAW].typeMap.has(this[RAW].nameMap.get(name));
+        return this[RAW].typeMap.get(this[RAW].nameMap.get(name));
     }
 }
 

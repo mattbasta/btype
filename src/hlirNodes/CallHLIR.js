@@ -12,6 +12,7 @@ export default class CallHLIR extends BaseExpressionHLIR {
     resolveType(ctx, expectedReturn) {
         var baseType = this.callee.resolveType(ctx);
         if (baseType._type !== 'func') {
+            console.log(this.callee);
             throw this.TypeError('Cannot call non-func type: ' + baseType);
         }
         if (baseType.args.length !== this.params.length) {
