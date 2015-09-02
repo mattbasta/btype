@@ -1,9 +1,14 @@
 import BaseExpressionNode from './BaseExpressionNode';
+import NegateHLIR from '../hlirNodes/NegateHLIR';
+import TwosComplementHLIR from '../hlirNodes/TwosComplementHLIR';
+import * as symbols from '../symbols';
 
 
+const OP_NEGATE = '!';
+const OP_TWOSCOMPLEMENT = '~';
 const UNARY_OPS = [
-    '!',
-    '~',
+    OP_NEGATE,
+    OP_TWOSCOMPLEMENT,
 ];
 
 export default class UnaryNode extends BaseExpressionNode {
@@ -30,4 +35,13 @@ export default class UnaryNode extends BaseExpressionNode {
     toString() {
         return this.operator + this.base;
     }
+
+    [symbols.FMAKEHLIR](builder) {
+        return new (this.operator === OP_NEGATE ? NegateHLIR : TwosComplementHLIR)(
+            this.base[symbols.FMAKEHLIR](builder),
+            this.start,
+            this.end
+        );
+    }
+
 };
