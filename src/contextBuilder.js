@@ -1,3 +1,6 @@
+import * as symbols from './symbols';
+
+
 export default class ContextBuilder {
     constructor(env, privileged) {
         this.env = env;
@@ -5,6 +8,7 @@ export default class ContextBuilder {
 
         this.contextStack = [];
         this.functionStack = [];
+        this.opOverloads = new Set();
     }
 
     pushCtx(ctx) {
@@ -31,6 +35,21 @@ export default class ContextBuilder {
 
     getFuncs() {
         return this.functionStack[this.functionStack.length - 1];
+    }
+
+    addOpOverload(oo) {
+        this.opOverloads.add(oo);
+    }
+
+    getOpOverloads() {
+        return this.opOverloads;
+    }
+
+    processFuncs() {
+        this.getFuncs().forEach(f => {
+            let [ast, hlir] = f;
+            ast[symbols.FCONSTRUCT](this, hlir);
+        });
     }
 
 };

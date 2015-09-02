@@ -138,12 +138,14 @@ export default class Environment {
 
         // Test to see whether the file exists in the stdlib
         if (!fs.existsSync(target)) {
-            // Handle the case of special modules
-            if (!importNode.member && specialModules.isSpecialModule(importNode.base)) {
-                var mod = specialModules.getConstructor(importNode.base).get(this);
-                return this.moduleTypeMap.set(target, new Module(mod));
+            if (importNode.member || !specialModules.isSpecialModule(importNode.base)) {
+                throw new Error('Could not find imported module: ' + target);
             }
-            throw new Error('Could not find imported module: ' + target);
+            // Handle the case of special modules
+            let mod = specialModules.getConstructor(importNode.base).get(this);
+            let modType = new Module(mod);
+            this.moduleTypeMap.set(target, modType);
+            return modType;
         }
 
         if (this.moduleTypeMap.has(target)) {

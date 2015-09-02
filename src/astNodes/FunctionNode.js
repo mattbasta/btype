@@ -1,5 +1,5 @@
 import BaseBlockNode from './BaseBlockNode';
-import Context from '../compiler/context';
+import {Context} from '../compiler/context';
 import FunctionHLIR from '../hlirNodes/FunctionHLIR';
 import * as symbols from '../symbols';
 
@@ -55,13 +55,12 @@ export default class FunctionNode extends BaseBlockNode {
             returnTypeNode,
             name,
             paramNodes,
-            bodyNodes,
             this.start,
             this.end
         );
         var ctx = builder.peekCtx();
         ctx.functions.add(node);
-        var assignedName = ctx.addVar(node.name, node.resolveType(), node[symbols.ASSIGNED_NAME]);
+        var assignedName = ctx.addVar(node.name, node.resolveType(ctx), node[symbols.ASSIGNED_NAME]);
         ctx.functionDeclarations.set(assignedName, node);
         ctx.isFuncSet.add(assignedName);
 
@@ -75,6 +74,13 @@ export default class FunctionNode extends BaseBlockNode {
         builder.addFunc(this, node);
 
         return node;
+    }
+
+    [symbols.FCONSTRUCT](builder, hlir) {
+        builder.pushCtx(hlir[symbols.CONTEXT]);
+        hlir.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
+        builder.processFuncs();
+        builder.popCtx();
     }
 
 };

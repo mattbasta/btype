@@ -34,13 +34,24 @@ export default class ReturnNode extends BaseStatementNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var returnType = builder.peekCtx().scope.returnType.resolveType(builder.peekCtx());
+        var returnType = null;
+        if (builder.peekCtx().scope.returnType) {
+            returnType = builder.peekCtx().scope.returnType.resolveType(builder.peekCtx());
+        }
 
-        var node = new ReturnHLIR(
-            this.value ? this.value[symbols.FMAKEHLIR](builder, returnType) : null,
-            this.start,
-            this.end
-        );
+        var valueNode = null;
+        if (this.value) {
+            if (!returnType) {
+                throw this.TypeError('Value returned where void return was expected');
+            }
+            valueNode = this.value[symbols.FMAKEHLIR](builder, returnType);
+            let valueType = valueNode.resolveType(builder.peekCtx());
+            if (returnType && !valueType.equals(returnType)) {
+                throw this.TypeError('Attempted to return ' + valueType + ' where ' + returnType + ' was expected');
+            }
+        }
+
+        return new ReturnHLIR(valueNode, this.start, this.end);
     }
 
 };

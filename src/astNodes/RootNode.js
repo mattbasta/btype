@@ -37,6 +37,9 @@ export default class RootNode extends BaseBlockNode {
 
         builder.pushCtx(rootCtx);
         rootHLIR.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
+
+        builder.processFuncs();
+
         builder.popCtx();
 
         return rootHLIR;

@@ -1,4 +1,5 @@
 import BaseBlockNode from './BaseBlockNode';
+import * as symbols from '../symbols';
 
 
 export default class OperatorStatementNode extends BaseBlockNode {
@@ -40,6 +41,14 @@ export default class OperatorStatementNode extends BaseBlockNode {
             this.returnType.toString() + ' {\n' +
             this.body.map(s => s.toString()).join('') +
             '}\n';
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        builder.addOpOverload(this);
+    }
+
+    [symbols.FCONSTRUCT](ctx) {
+        //
     }
 
 };

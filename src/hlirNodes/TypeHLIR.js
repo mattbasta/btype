@@ -1,8 +1,8 @@
 import BaseHLIR from './BaseHLIR';
-import Func form '../compiler/types/Func';
-import Array as Array_ form '../compiler/types/Array';
-import Tuple form '../compiler/types/Tuple';
-import {resolve} form '../compiler/types';
+import Func from '../compiler/types/Func';
+import {Array as Array_} from '../compiler/types/Array';
+import Tuple from '../compiler/types/Tuple';
+import {resolve} from '../compiler/types';
 
 
 const TYPE_CACHE = Symbol();

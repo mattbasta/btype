@@ -300,19 +300,6 @@ function generateContext(env, tree, filename, rootContext, privileged) {
     }
 
     function postTraverseContext(node) {
-        switch (node.type) {
-            case 'ObjectDeclaration':
-                if (!node[symbols.IS_CONSTRUCTED]) return;
-
-                var objType = node.getType(contexts[0]);
-                if (node.objConstructor) {
-                    objType.objConstructor = node.objConstructor.base[symbols.ASSIGNED_NAME];
-                }
-                node.methods.forEach(function(method) {
-                    objType.methods[method.name] = method.base[symbols.ASSIGNED_NAME];
-                });
-                return;
-        }
     }
 
     function doTraverse(tree) {

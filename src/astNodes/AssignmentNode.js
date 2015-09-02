@@ -44,11 +44,12 @@ export default class AssignmentNode extends BaseStatementNode {
             throw new TypeError('Cannot assign values to function declarations');
         }
 
+        var baseType = baseNode.resolveType(builder.peekCtx());
         if (builder.peekCtx().sideEffectFree) {
-            this[HAS_SIDEEFFECTS](builder, baseNode);
+            this[HAS_SIDEEFFECTS](builder, baseType);
         }
 
-        var valueNode = this.value[symbols.FMAKEHLIR](builder, baseNode.resolveType(builder.peekCtx()));
+        var valueNode = this.value[symbols.FMAKEHLIR](builder, baseType);
 
         return new AssignmentHLIR(baseNode, valueNode, this.start, this.end);
     }

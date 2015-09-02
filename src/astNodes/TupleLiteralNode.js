@@ -45,10 +45,10 @@ export default class TupleLiteralNode extends BaseExpressionNode {
             assumedTypes = expectedType.contentsTypeArr;
         }
         return new TupleLiteralHLIR(
-            this.elements.map((e, i) => e[symbols.FMAKEHLIR](builder, assumedTypes[i]),
+            this.elements.map((e, i) => e[symbols.FMAKEHLIR](builder, assumedTypes[i])),
             this.start,
             this.end
-        )
+        );
     }
 
 };

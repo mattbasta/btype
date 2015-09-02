@@ -7,8 +7,8 @@ export default class BaseHLIR {
 
     settleTypes() {}
 
-    get TypeError(error) {
-        return new TypeError(error + ' (' + this.start + ':' + this.end + ')');
+    get TypeError() {
+        return error => new TypeError(error + ' (' + this.start + ':' + this.end + ')');
     }
 
 };
