@@ -8,11 +8,11 @@ import RootContext from './context';
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
 import lexer from '../lexer';
+import Module from './types/Module';
 import NamerFactory from './namer';
 var specialModules = require('./specialModules/__directory');
 import * as symbols from '../symbols';
-var transformer = require('./transformer');
-import Module from './types/Module';
+import transform from './transformer';
 
 
 const LOWEST_ORDER = argv.minblocksize || 16;
@@ -81,22 +81,16 @@ export default class Environment {
         }
 
         if (!tree) {
-            var parser = require('../parser');
+            let parser = require('../parser');
             tree = parser(lexer(fs.readFileSync(filename).toString()));
         }
 
         var rootNode = tree[symbols.FMAKEHLIR](this, privileged);
-        rootNode.settleTypes();
         var ctx = rootNode[symbols.CONTEXT];
-
-        // Perform inline type checking.
-        tree.validateTypes(ctx);
-
-        // Convert the tree into its functional form
-        tree = tree.translate(ctx);
+        rootNode.settleTypes(ctx);
 
         // Flatten lexical scope
-        transformer(ctx);
+        transform(ctx);
         // Flatten complex expressions
         flattener(ctx);
 
@@ -180,7 +174,7 @@ export default class Environment {
     getFuncListName(funcType, noAdd) {
         var fts = funcType.toString();
         if (!this.funcListTypeMap.has(fts) && !noAdd) {
-            var name = this.namer();
+            let name = this.namer();
             this.funcListTypeMap.set(fts, name);
             this.funcListReverseTypeMap.set(name, funcType);
             this.funcList.set(name, []);

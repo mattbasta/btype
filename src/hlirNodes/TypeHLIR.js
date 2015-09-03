@@ -39,4 +39,8 @@ export default class TypeHLIR extends BaseHLIR {
         return this[TYPE_CACHE];
     }
 
+    forceType(type) {
+        this[TYPE_CACHE] = type;
+    }
+
 };

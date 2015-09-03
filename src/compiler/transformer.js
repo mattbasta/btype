@@ -1,8 +1,18 @@
-var functionContexts = require('./functionContexts');
-var nodes = require('./nodes');
-var traverser = require('./traverser');
-var types = require('./types');
+import CallHLIR from '../hlirNodes/CallHLIR';
+import DeclarationHLIR from '../hlirNodes/DeclarationHLIR';
+import ExportHLIR from '../hlirNodes/ExportHLIR';
+import Func from './types/Func';
+import FunctionHLIR from '../hlirNodes/FunctionHLIR';
+import NewHLIR from '../hlirNodes/NewHLIR';
+import SymbolHLIR from '../hlirNodes/SymbolHLIR';
+import * as symbols from '../symbols';
+import TypeHLIR from '../hlirNodes/TypeHLIR';
 
+
+const TRANSFORM_ENCOUNTERED_CTXS = Symbol();
+const TRANSFORMED = Symbol();
+const MAPPING = Symbol();
+const CTX_TYPEMAPPING = Symbol();
 
 /*
 See the following URL for details on the implementation of this file:
@@ -15,20 +25,15 @@ Some notes about transformation:
 
 function markFirstClassFunctions(context) {
     var stack = [];
-    traverser.traverse(
-        context.scope,
-        function(node, marker) {
-            if (!node) return false;
+    context.scope.iterate(
+        (node, marker) => {
+            if (!(node instanceof SymbolHLIR)) {
 
-            // Ignore non-Symbol nodes but keep them in the stack.
-            if (node.type !== 'Symbol') {
-
-                // Mark function expressions directly.
-                if (node.type === 'Function') {
+                if (node instanceof FunctionHLIR) {
                     if (marker === 'body') return;
                     if (marker === 'consequent') return;
                     if (marker === 'alternate') return;
-                    node.__firstClass = true;
+                    node[symbols.IS_FIRSTCLASS] = true;
                 }
 
                 stack.unshift(node);
@@ -36,27 +41,25 @@ function markFirstClassFunctions(context) {
             }
 
             // Ignore symbols that don't point to functions.
-            if (!(node.__refType instanceof types.Func)) return false;
+            if (!(node[symbols.REFTYPE] instanceof Func)) return false;
 
             // Ignore symbols that are the callees of Call nodes. Calling a
             // declared function doesn't make the function first-class.
-            if (stack[0].type === 'CallRaw' && marker === 'callee') return false;
+            if (stack[0] instanceof CallHLIR && marker === 'callee') return false;
 
             // Ignore symbols that are the base of Export nodes.
-            if (stack[0].type === 'Export') return false;
+            if (stack[0] instanceof ExportHLIR) return false;
 
             // If it's falsey, it means that it's a variable declaration of
             // type `func`, not a function declaration.
-            if (!node.__refContext.isFuncMap[node.__refName]) return false;
+            if (!node[symbols.REFCONTEXT].isFuncMap.has(node[symbols.REFNAME])) return false;
 
-            node.__refContext.functionDeclarations[node.__refName].__firstClass = true;
+            node[symbols.REFCONTEXT].functionDeclarations.get(node[symbols.REFNAME])[symbols.IS_FIRSTCLASS] = true;
 
             // There's nothing left to do with a symbol, so hard return.
             return false;
         },
-        function(node) {
-            stack.shift(node);
-        }
+        node => stack.shift(node)
     );
 }
 
@@ -69,77 +72,63 @@ function removeItem(array, item) {
     }
     return array;
 }
-function removeElement(obj, val) {
-    var out = {};
-    for (var k in obj) {
-        if (obj[k] === val) continue;
-        out[k] = obj[k];
-    }
-    return out;
-}
 
 function updateSymbolReferences(funcNode, tree, rootContext, refType) {
-    var targetContext = funcNode.__context.parent;
-    traverser.findAll(tree, function(node) {
-        if (!node) return false;
-        // Target every Symbol that references the function that's passed
-        // (lives in the function's parent's context and references the
-        // function's name).
-        return node.type === 'Symbol' &&
-            node.__refContext === targetContext &&
-            node.name === funcNode.name;
-    }).forEach(function(symbol) {
-        // Update the symbol's reference context to the root context.
-        symbol.__refContext = rootContext;
-        // If one is provided, do the same for the refType
-        if (refType) {
-            symbol.__refType = refType;
+    var targetContext = funcNode[symbols.CONTEXT].parent;
+    tree.iterate(node => {
+        if (node instanceof SymbolHLIR &&
+            node[symbols.REFCONTEXT] === targetContext &&
+            node.name === funcNode.name) {
+
+            // Update the symbol's reference context to the root context.
+            node[symbols.REFCONTEXT] = rootContext;
+            // If one is provided, do the same for the refType
+            if (refType) {
+                node[symbols.REFTYPE] = refType;
+            }
         }
     });
 }
 
 function willFunctionNeedContext(ctx) {
-    return ctx.functions.some(function(func) {
-        return func.__context.accessesLexicalScope;
-    });
+    return Array.from(ctx.functions.entries()).some(f => f[symbols.CONTEXT].accessesLexicalScope);
 }
 
 function getFunctionContext(ctx, name) {
-    var mapping = {};
+    var mapping = new Map();
     // Find the lexical lookups in each descendant context and put them into a mapping
-    traverser.traverse(ctx.scope, function(node) {
-        if (!node || node.type !== 'Function') return;
+    ctx.scope.iterate(node => {
+        if (!(node instanceof FunctionHLIR)) return;
         if (node.sideEffectFree) return false;
 
-        for (var lookup in node.__context.lexicalLookups) {
-            if (lookup in mapping) continue;
-            if (node.__context.lexicalLookups[lookup] === ctx) {
-                mapping[lookup] = ctx.typeMap[lookup];
+        for (var lookup of node[symbols.CONTEXT].lexicalLookups.keys()) {
+            if (mapping.has(lookup)) continue;
+            if (node[symbols.CONTEXT].lexicalLookups.get(lookup) === ctx) {
+                mapping.set(lookup, ctx.typeMap.get(lookup));
             }
         }
     });
 
 
     var funcctxTypeName = (ctx.scope.name || 'anon') + '$fctx';
-    var funcctxType = functionContexts.newFuncCtx(funcctxTypeName, mapping, ctx);
+    var wrappedType = TypeHLIR(funcctxTypeName, [], ctx.scope.start, ctx.scope.end);
 
-    var wrappedType = new nodes.Type({
-        attributes: [],
-        name: funcctxTypeName,
-    });
-
-    var funcctx = new nodes.Declaration({
-        __context: ctx,
-        declType: wrappedType,
-        identifier: name,
-        __assignedName: name,
-        value: new nodes.New({
-            newType: wrappedType,
-            params: [],
-        }),
-    });
-    funcctx.__mapping = mapping;
-    funcctx.__ctxTypeNode = wrappedType;
+    var funcctx = new DeclarationHLIR(
+        wrappedType,
+        name,
+        new NewHLIR(
+            wrappedType,
+            [],
+            ctx.scope.start,
+            ctx.scope.end
+        ),
+        ctx.scope.start,
+        ctx.scope.end
+    );
+    funcctx[symbols.CONTEXT] = ctx;
+    funcctx[symbols.ASSIGNED_NAME] = name;
+    funcctx[MAPPING] = mapping;
+    funcctx[CTX_TYPEMAPPING] = wrappedType;
 
     return funcctx;
 }
@@ -149,44 +138,44 @@ function processRoot(rootContext) {
     // function expressions into function references.
     var stack = [];
     var funcsToAppend = [];
-    traverser.traverse(rootContext.scope, function(node, member) {
-        if (node.type !== 'Function') {
+    rootContext.scope.iterate((node, member) => {
+        if (!(node instanceof FunctionHLIR)) {
             stack.unshift(node);
             return;
         }
 
         // Ignore non-expression functions
-        if (member === 'body' ||
-            stack[0] instanceof nodes.ObjectConstructor ||
-            stack[0] instanceof nodes.ObjectMethod) {
+        if (member === 'body' || stack[0][symbols.IS_METHOD]) {
             return false;
         }
 
         funcsToAppend.push(node);
 
-        stack[0][member] = new nodes.FunctionReference({
-            base: new nodes.Symbol({
-                name: node.name || node.__assignedName,
-                __refContext: rootContext,
-                __refType: node.getType(rootContext),
-                __refName: node.__assignedName,
-                __isFunc: true,
-            }),
-            ctx: null,
-        });
+        var funcType = node.resolveType(rootContext);
+        var freftype = new TypeHLIR('func', [], node.start, node.end);
+        freftype.forceType(funcType);
+
+        var refSym = new SymbolHLIR(node.name || node[symbols.ASSIGNED_NAME], node.start, node.end);
+        refSym[symbols.REFCONTEXT] = rootContext;
+        refSym[symbols.REFTYPE] = funcType;
+        refSym[symbols.REFNAME] = node[symbols.ASSIGNED_NAME];
+
+        stack[0][member] = new NewHLIR(
+            frefType,
+            [refSym]
+            node.start,
+            node.end
+        );
         return false;
 
-    }, function() {
-        stack.shift();
-    });
+    }, () => stack.shift());
 
     rootContext.scope.body = rootContext.scope.body.concat(funcsToAppend);
 
 }
 
-function processContext(rootContext, ctx, tree) {
-    rootContext.__transformEncounteredContexts = rootContext.__transformEncounteredContexts || [];
-    var encounteredContexts = rootContext.__transformEncounteredContexts;
+function processContext(rootCtx, ctx, tree) {
+    var encounteredContexts = rootCtx[TRANSFORM_ENCOUNTERED_CTXS] = rootCtx[TRANSFORM_ENCOUNTERED_CTXS] || new Set();
 
     // This function runs from the outermost scope to the innermost scope.
     // Though that may be counterintuitive, the result should ultimately be
@@ -196,24 +185,20 @@ function processContext(rootContext, ctx, tree) {
     // contains other nested functions, the efficacy of class 1
     // transformations is not decreased.
 
-    if (ctx !== rootContext) {
+    if (ctx !== rootCtx) {
         // Process this individual context's function.
         tree = tree || ctx.scope;
-        processFunc(rootContext, tree, ctx);
+        processFunc(rootCtx, tree, ctx);
         processCallNodes(tree, ctx);
 
         // Don't count encountered contexts twice.
-        if (encounteredContexts.indexOf(ctx) === -1) {
-            encounteredContexts.push(ctx);
-        }
+        encounteredContexts.add(ctx);
     }
 
-    ctx.__transformed = true;
+    ctx[TRANSFORMED] = true;
 
     // Iterate over each child context.
-    ctx.functions.forEach(function(funcNode) {
-        processContext(rootContext, funcNode.__context);
-    });
+    ctx.functions.forEach(funcNode => processContext(rootCtx, funcNode[symbols.CONTEXT]));
 
 }
 
@@ -249,7 +234,7 @@ function processFunc(rootContext, node, context) {
         funcctx = getFunctionContext(context, ctxName);
         context.__funcctx = funcctx;
 
-        ctxMapping = funcctx.__mapping;
+        ctxMapping = funcctx[MAPPING];
         node.body.unshift(funcctx);
 
         ctxType = funcctx.declType.getType(context);
@@ -280,14 +265,14 @@ function processFunc(rootContext, node, context) {
             }
 
             if (node.type === 'Declaration' &&
-                node.__assignedName in ctxMapping) {
+                node[symbols.ASSIGNED_NAME] in ctxMapping) {
                 // Delete the node.
                 return function(node) {
                     return new nodes.Assignment(
                         node.start,
                         node.end,
                         {
-                            base: getReference(node.__assignedName),
+                            base: getReference(node[symbols.ASSIGNED_NAME]),
                             value: node.value,
                         }
                     );
@@ -328,7 +313,7 @@ function processFunc(rootContext, node, context) {
             }
 
             node.params.unshift(new nodes.TypedIdentifier({
-                idType: funcctx.__ctxTypeNode,
+                idType: funcctx[CTX_TYPEMAPPING],
                 name: ctxName,
                 __assignedName: ctxName,
                 __context: ctx,
@@ -341,9 +326,8 @@ function processFunc(rootContext, node, context) {
         // Remove all of the converted variables from the `typeMap` and
         // `nameMap` fields.
         for (var name in ctxMapping) {
-            delete context.nameMap[name];
-            delete context.typeMap[name];
-            context.nameMap = removeElement(context.nameMap, name);
+            context.nameMap.delete(name);
+            context.typeMap.delete(name);
         }
 
         // Finally, find all of the calls to the functions and add the appropriate
@@ -382,7 +366,7 @@ function processFunc(rootContext, node, context) {
                                 name: type.typeName || type._type,
                             }),
                             identifier: iterNode.name,
-                            __assignedName: iterNode.__assignedName,
+                            __assignedName: iterNode[symbols.ASSIGNED_NAME],
                             value: new nodes.FunctionReference({
                                 base: iterNode,
                                 ctx: getContextReference(),
@@ -454,23 +438,21 @@ function upliftContext(rootContext, ctx) {
     if (ctxparent === rootContext) return;
 
     var node = ctx.scope;
-    rootContext.functions.push(node);
+    rootContext.functions.add(node);
+    ctxparent.functions.delete(node);
 
-    ctxparent.functions = removeItem(ctxparent.functions, node);
-    delete ctxparent.nameMap[node.name];
-    delete ctxparent.typeMap[node.__assignedName];
-    delete ctxparent.isFuncMap[node.__assignedName];
-    updateSymbolReferences(node, ctxparent.scope, rootContext, node.getType(rootContext));
+    ctxparent.nameMap.delete(node.name);
+    ctxparent.typeMap.delete(node[symbols.ASSIGNED_NAME]);
+    ctxparent.isFuncSet.delete(node[symbols.ASSIGNED_NAME]);
+    updateSymbolReferences(node, ctxparent.scope, rootContext, node.resolveType(rootContext));
     ctxparent.accessesGlobalScope = true;
 
     // Replace the function itself with a symbol rather than a direct reference
     // or nothing if it is defined as a declaration.
     var stack = [ctxparent.scope];
     var newName;
-    var oldName = node.__assignedName;
-    traverser.traverse(ctxparent.scope, function(iterNode, marker) {
-        if (!iterNode) return false;
-
+    var oldName = node[symbols.ASSIGNED_NAME];
+    ctxparent.scope.iterate((iterNode, marker) => {
         // If you encounter someting other than the function, ignore it and
         // push it to the stack.
         if (iterNode !== node) {
@@ -480,59 +462,60 @@ function upliftContext(rootContext, ctx) {
 
         // Figure out how to replace the element in its parent.
         marker = marker || 'body';
-        if (stack[0][marker] instanceof Array) {
+        if (Array.isArray(stack[0][marker])) {
             // If it's an array member in the parent, use `removeItem` to
             // remove it.
             stack[0][marker] = removeItem(stack[0][marker], iterNode);
         } else {
             // Otherwise, replace the function with a symbol referencing the
             // function.
-            stack[0][marker] = new nodes.Symbol({
-                name: node.name,
-                __refContext: rootContext,
-                __refType: node.getType(ctxparent),
-                __refName: node.__assignedName + '$$origFunc$',
-                __refIndex: node.__funclistIndex,
-                __isFunc: true,
-            });
+            let newSymbol = stack[0][marker] = new SymbolHLIR(
+                node.name,
+                node.start,
+                node.end
+            );
+            newSymbol[symbols.REFCONTEXT] = rootContext;
+            newSymbol[symbols.REFTYPE] = node.resolveType(ctxparent);
+            newSymbol[symbols.REFNAME] = node[symbols.ASSIGNED_NAME] + '$$origFunc$';
+            newSymbol[symbols.REFINDEX] = node[FUNCLIST_IDX];
+            newSymbol[symbols.IS_FUNC] = true;
         }
         return false;
-    }, function(iterNode) {
-        if (!iterNode) return false;
-        stack.shift();
-    });
+
+    }, iterNode => stack.shift());
 
     rootContext.scope.body.push(node);
-    var oldName = node.__assignedName;
-    var newName = node.__assignedName += '$$origFunc$';
+    var oldName = node[symbols.ASSIGNED_NAME];
+    var newName = node[symbols.ASSIGNED_NAME] += '$$origFunc$';
 
     // Replace the old assigned name with the new one within the uplifted
     // function.
-    traverser.traverse(node, function(x) {
-        if (x.type !== 'Symbol') return;
-        if (x.__refName !== oldName) return;
-        x.__refName = newName;
+    node.iterate(x => {
+        if (!(x instanceof SymbolHLIR)) return;
+        if (x[symbols.REFNAME] !== oldName) return;
+        x[symbols.REFNAME] = newName;
     });
 
     // Replace the old function name in the old parent context.
     var stack = [];
-    traverser.traverse(ctxparent.scope, function(x) {
-        if (x.type !== 'Symbol') {
-            stack.unshift(x);
-            return;
-        }
-        if (!stack[0]) return;
-        if (stack[0].type !== 'CallDecl') return;
-        if (x.__refName !== oldName) return;
-        x.__refName = newName;
-        x.__refContext = rootContext;
-    }, function() {
-        stack.shift();
-    });
+    ctxparent.scope.iterate(
+        x => {
+            if (!(x instanceof SymbolHLIR)) {
+                stack.unshift(x);
+                return;
+            }
+            if (!stack[0]) return;
+            if (!(stack[0] instanceof CallHLIR)) return;
+            if (x[symbols.REFNAME] !== oldName) return;
+            x[symbols.REFNAME] = newName;
+            x[symbols.REFCONTEXT] = rootContext;
+        },
+        () => stack.shift()
+    );
 
     // If the function is in a function table, update it there as well.
-    if (node.__funcList) {
-        rootContext.env.funcList[node.__funcList][node.__funclistIndex] = newName;
+    if (node[symbols.FUNCLIST]) {
+        rootContext.env.funcList.get(node[symbols.FUNCLIST]).set(node[symbols.FUNCLIST_IDX], newName);
     }
 
 
@@ -541,20 +524,15 @@ function upliftContext(rootContext, ctx) {
     // assignment, and context generation has completed.
 }
 
-var transform = module.exports = function(rootContext) {
-
+export default function transform(rootCtx) {
     // First mark all first class functions as such.
-    markFirstClassFunctions(rootContext);
+    markFirstClassFunctions(rootCtx);
 
     // Traverse down into the context tree and process each context in turn.
     // This uses depth-first search.
-    processContext(rootContext, rootContext);
-    processRoot(rootContext);
+    processContext(rootCtx, rootCtx);
+    processRoot(rootCtx);
 
     // Perform all uplifting at the end.
-    rootContext.__transformEncounteredContexts.forEach(upliftContext.bind(null, rootContext));
+    rootCtx[TRANSFORM_ENCOUNTERED_CTXS].forEach(upliftContext.bind(null, rootCtx));
 };
-
-transform.getFunctionContext = getFunctionContext;
-transform.willFunctionNeedContext = willFunctionNeedContext;
-transform.markFirstClassFunctions = markFirstClassFunctions;

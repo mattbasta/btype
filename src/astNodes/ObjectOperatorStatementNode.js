@@ -1,4 +1,6 @@
 import BaseBlockNode from './BaseBlockNode';
+import OperatorStatementNode from './OperatorStatementNode';
+import * as symbols from '../symbols';
 
 
 export default class ObjectOperatorStatementNode extends BaseBlockNode {
@@ -40,6 +42,16 @@ export default class ObjectOperatorStatementNode extends BaseBlockNode {
             this.returnType.toString() + ' {\n' +
             this.body.map(s => s.toString()).join('') +
             '}\n';
+    }
+
+    [symbols.FMAKEHLIR](builder) {
+        builder.addOpOverload(this);
+    }
+
+    [symbols.FCONSTRUCT](ctx) {
+        var out = OperatorStatementNode.prototype[symbols.FCONSTRUCT].call(this, ctx);
+        out[symbols.IS_OBJOPSTMT] = true;
+        return out;
     }
 
 };
