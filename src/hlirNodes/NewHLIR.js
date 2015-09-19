@@ -47,3 +47,9 @@ export default class NewHLIR extends BaseExpressionHLIR {
     }
 
 };
+
+NewHLIR.asFuncRef = function asFuncRef(base, args, start, end) {
+    var fr = new NewHLIR(base, args, start, end);
+    fr[symbols.IS_FUNCREF] = true;
+    return fr;
+};

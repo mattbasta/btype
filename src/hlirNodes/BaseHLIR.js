@@ -1,11 +1,16 @@
+const BODY_FIELDS = new Set(['body', 'consequent', 'alternate']);
+
+
 export default class BaseHLIR {
 
-    constructor(start, end) {
+    constructor(start = 0, end = 0) {
         this.start = start;
         this.end = end;
     }
 
-    settleTypes() {}
+    settleTypes() {
+        throw new Error('not implemented');
+    }
 
     get TypeError() {
         return error => new TypeError(error + ' (' + this.start + ':' + this.end + ')');
@@ -24,14 +29,27 @@ export default class BaseHLIR {
             }
         });
     }
+    traverseBodies(cb) {
+        Object.keys(this)
+            .filter(BODY_FIELDS.has.bind(BODY_FIELDS))
+            .filter(k => Array.isArray(this[k]))
+            .forEach(k => cb(this[k]));
+    }
 
 
     iterate(cb, afterCB) {
         this.traverse((node, memeber) => {
-            if (!node) return;
             var ret = cb(node, member);
             if (ret === false) return;
             node.iterate(callback, afterCB);
+            if (afterCB) afterCB(node, member);
+        });
+    }
+    iterateBodies(cb, afterCB) {
+        this.traverseBodies((node, memeber) => {
+            var ret = cb(node, member);
+            if (ret === false) return;
+            node.iterateBodies(callback, afterCB);
             if (afterCB) afterCB(node, member);
         });
     }
@@ -40,6 +58,40 @@ export default class BaseHLIR {
         cb(this, null);
         this.iterate(cb, afterCB);
         if (afterCB) afterCB(this, null);
+    }
+
+    findAndReplace(filter, preTraverse, beforeCB, afterCB) {
+        this.iterate((node, member) => {
+            if (beforeCB) beforeCB(node, member);
+            if (preTraverse) {
+                node.findAndReplace(filter, preTraverse, beforeCB, afterCB);
+            }
+            var replacer;
+            if (filter && (replacer = filter(node, member))) {
+                this.substitute((sNode, member) => {
+                    if (node !== sNode) return sNode;
+                    return replacer(sNode, member);
+                });
+            }
+            if (!preTraverse) {
+                node.findAndReplace(filter, preTraverse, beforeCB, afterCB);
+            }
+            if (afterCB) afterCB(node, member);
+        });
+    }
+
+    substitute(cb) {
+        Object.keys(this).forEach(k => {
+            if (k === 'start' || k === 'end') return;
+            var val = this[k];
+            if (Array.isArray(val) && val.some(x => typeof x === 'object')) {
+                this[k] = val.map(e => cb(e, k)).filter(e => e);
+            } else if (typeof val !== 'object') {
+                return;
+            } else {
+                this[k] = cb(val, k) || val;
+            }
+        });
     }
 
 };

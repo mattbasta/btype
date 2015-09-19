@@ -1,59 +1,55 @@
-var nodes = require('../nodes');
-var traverser = require('../traverser');
+import BinopArithmeticHLIR from '../../hlirNodes/BinopArithmeticHLIR';
+import BinopBitwiseHLIR from '../../hlirNodes/BinopBitwiseHLIR';
+import BinopEqualityHLIR from '../../hlirNodes/BinopEqualityHLIR';
+import BinopLogicalHLIR from '../../hlirNodes/BinopLogicalHLIR';
+import FunctionHLIR from '../../hlirNodes/FunctionHLIR';
+import LiteralHLIR from '../../hlirNodes/LiteralHLIR';
+import ObjectDeclarationHLIR from '../../hlirNodes/ObjectDeclarationHLIR';
+import * as symbols from '../../symbols';
 
 
-module.exports = function constantFold(ctx) {
+export default function constantFold(ctx) {
     var ctxStack = [ctx];
 
     // We use this to ignore nodes in the AST. There's no clean way to perform
     // a find and replace while ignoring nodes.
     var blocked = 0;
 
-    traverser.findAndReplace(
-        ctx.scope,
-        function constantFoldFilter(node) {
-
+    ctx.scope.findAndReplace(
+        node => {
             if (blocked) return;
-
-            switch (node.type) {
-                case 'Binop':
-                case 'EqualityBinop':
-                case 'RelativeBinop':
-                case 'LogicalBinop':
-                    return foldBinop(node, ctxStack[0]);
-
-                default:
-                    return;
+            if (node instanceof BinopArithmeticHLIR ||
+                node instanceof BinopBitwiseHLIR ||
+                node instanceof BinopEqualityHLIR ||
+                node instanceof BinopLogicalHLIR) {
+                return foldBinop(node, ctxStack[0]);
             }
         },
         true, // true for pretraversal
-        function constantFoldBefore(node) {
-            if (node.type === 'Function') {
+        node => {
+            if (node instanceof FunctionHLIR) {
                 ctxStack.unshift(node.__context);
-            } else if (node.type === 'ObjectDeclaration' && !node.__isConstructed) {
+            } else if (node instanceof ObjectDeclarationHLIR && !node[symbols.IS_CONSTRUCTED]) {
                 blocked++;
             }
         },
-        function constantFoldAfter(node) {
-            if (node.type === 'Function') {
+        node => {
+            if (node instanceof FunctionHLIR) {
                 ctxStack.shift();
-            } else if (node.type === 'ObjectDeclaration' && !node.__isConstructed) {
+            } else if (node instanceof ObjectDeclarationHLIR && !node[symbols.IS_CONSTRUCTED]) {
                 blocked--;
             }
         }
     );
 };
 
-
-var binopTypes = ['Binop', 'EqualityBinop', 'LogicalBinop', 'RelativeBinop'];
-var relBinops = ['<', '>', '<=', '>='];
-var eqBinops = ['==', '!='];
+const BINOP_TYPES = new Set([BinopArithmeticHLIR, BinopBitwiseHLIR, BinopEqualityHLIR, BinopLogicalHLIR]);
 
 function foldBinop(node, ctx) {
     var env = ctx.env;
 
-    var leftType = node.left.getType(ctx);
-    var rightType = node.right.getType(ctx);
+    var leftType = node.left.resolveType(ctx);
+    var rightType = node.right.resolveType(ctx);
 
     // Don't constant fold if the two aren't the same type.
     if (!leftType.equals(rightType)) return;
@@ -70,142 +66,133 @@ function foldBinop(node, ctx) {
         env.registeredOperators[leftTypeString][rightTypeString][node.operator]) return;
 
     var nodeLeftType = node.left.type;
-    var nodeLeftBinop = binopTypes.indexOf(nodeLeftType) !== -1;
+    var nodeLeftBinop = BINOP_TYPES.has(node.left.constructor) !== -1;
     var nodeLeftBinopNotOverloaded = nodeLeftBinop && !node.left.isOverloaded(ctx);
     var nodeRightType = node.right.type;
-    var nodeRightBinop = binopTypes.indexOf(nodeRightType) !== -1;
+    var nodeRightBinop = BINOP_TYPES.has(node.right.constructor) !== -1;
     var nodeRightBinopNotOverloaded = nodeRightBinop && !node.right.isOverloaded(ctx);
 
-    if (nodeLeftType === 'Literal') {
+    if (node.left instanceof LiteralHLIR) {
 
         // Short-circuiting with bools
         if (leftType.typeName === 'bool') {
-            if (node.operator === 'and' && !node.left.value) return function() {return node.right;};
-            if (node.operator === 'or' && node.left.value) return function() {return node.right;};
+            if (node.operator === 'and' && !node.left.value) return () => node.right;
+            if (node.operator === 'or' && node.left.value) return () => node.right;
         }
 
         if (nodeRightType === 'Literal') {
             // Avoid folding into a special floating point value
             if (node.operator === '/' && parseFloat(node.right.value) === 0) {
-                return function() {
-                    return node;
-                };
+                return () => node;
             }
 
-            return function() {
-                return combine(node.left, node.right, leftType.typeName, node.operator);
-            };
-
+            return () => combine(node.left, node.right, leftType.typeName, node.operator);
         }
 
         if (!nodeRightBinopNotOverloaded) return;
 
-        if (node.right.left.type === 'Literal' &&
+        if (node.right.left instanceof LiteralHLIR &&
             ['+', '*'].indexOf(node.operator) !== -1 &&
             node.operator === node.right.operator) {
 
             // X + (Y + Z) -> (X + Y) + Z
             // X * (Y * Z) -> (X * Y) * Z
 
-            return function() {
-                return new nodes.Binop({
-                    left: combine(node.left, node.right.left, leftType.typeName, node.operator),
-                    operator: node.operator,
-                    right: node.right.right,
-                });
-            };
+            return () => new BinopArithmeticHLIR(
+                combine(node.left, node.right.left, leftType.typeName, node.operator),
+                node.operator,
+                node.right.right,
+                node.left.start,
+                node.right.end
+            );
 
-        } else if (node.right.right.type === 'Literal' &&
+        } else if (node.right.right instanceof LiteralHLIR &&
                    ['+', '*'].indexOf(node.operator) !== -1 &&
                    node.operator === node.right.operator) {
 
             // X + (Y + Z) -> (X + Z) + Y
             // X * (Y * Z) -> (X * Z) * Y
 
-            return function() {
-                return new nodes.Binop({
-                    left: combine(node.left, node.right.right, leftType.typeName, node.operator),
-                    operator: node.operator,
-                    right: node.right.left,
-                });
-            };
+            return () => new BinopArithmeticHLIR(
+                combine(node.left, node.right.right, leftType.typeName, node.operator),
+                node.operator,
+                node.right.left,
+                node.left.start,
+                node.right.end
+            );
 
-        } else if (node.right.left.type === 'Literal' &&
+        } else if (node.right.left instanceof LiteralHLIR &&
                    node.operator === '/' &&
                    node.right.operator === '*') {
 
             // X / (Y * Z) -> (X / Y) / Z
 
-            return function() {
-                return new nodes.Binop({
-                    left: combine(node.left, node.right.left, leftType.typeName, '/'),
-                    operator: '/',
-                    right: node.right.right,
-                });
-            };
+            return () => new BinopArithmeticHLIR(
+                combine(node.left, node.right.left, leftType.typeName, '/'),
+                node.operator,
+                node.right.right,
+                node.left.start,
+                node.right.end
+            );
         }
 
-    } else if (nodeRightType === 'Literal') {
+    } else if (node.right instanceof LiteralHLIR) {
 
         // Short-circuiting with bools
         if (rightType.typeName === 'bool') {
-            if (node.operator === 'and' && !node.right.value) return function() {return node.right;}; // returns `false`
-            if (node.operator === 'or' && node.right.value) return function() {return node.left;};
+            if (node.operator === 'and' && !node.right.value) return () => node.right; // returns `false`
+            if (node.operator === 'or' && node.right.value) return () => node.left;
         }
 
         if (!nodeLeftBinopNotOverloaded) return;
 
-        if (node.left.left.type === 'Literal' &&
+        if (node.left.left instanceof LiteralHLIR &&
             ['+', '*'].indexOf(node.operator) !== -1 &&
             node.operator === node.left.operator) {
 
             // (X * Y) * Z -> Y * (X * Z)
             // (X + Y) + Z -> Y + (X + Z)
 
-            return function() {
-                return new nodes.Binop({
-                    left: node.left.right,
-                    operator: node.operator,
-                    right: combine(node.left.left, node.right, leftType.typeName, node.operator),
-                });
-            };
+            return () => new BinopArithmeticHLIR(
+                node.left.right,
+                node.operator,
+                combine(node.left.left, node.right, leftType.typeName, node.operator),
+                node.left.start,
+                node.right.end
+            );
 
-        } else if (node.left.right.type === 'Literal' &&
+        } else if (node.left.right instanceof LiteralHLIR &&
             ['+', '*'].indexOf(node.operator) !== -1 &&
             node.operator === node.left.operator) {
 
             // (X * Y) * Z -> X * (Y * Z)
             // (X + Y) + Z -> X + (Y + Z)
 
-            return function() {
-                return new nodes.Binop({
-                    left: node.left.left,
-                    operator: node.operator,
-                    right: combine(node.left.right, node.right, leftType.typeName, node.operator),
-                });
-            };
+            return () => new BinopArithmeticHLIR(
+                node.left.left,
+                node.operator,
+                combine(node.left.right, node.right, leftType.typeName, node.operator),
+                node.left.start,
+                node.right.end
+            );
 
-        } else if (node.left.right.type === 'Literal' &&
+        } else if (node.left.right instanceof LiteralHLIR &&
                    node.operator === '/' &&
                    node.left.operator === '/') {
 
             // (X / Y) / Z -> X / (Y * Z)
 
-            return function() {
-                return new nodes.Binop({
-                    left: node.left.left,
-                    operator: '/',
-                    right: combine(node.left.right, node.right, leftType.typeName, '*'),
-                });
-            };
+            return () => new BinopArithmeticHLIR(
+                node.left.left,
+                node.operator,
+                combine(node.left.right, node.right, leftType.typeName, '*'),
+                node.left.start,
+                node.right.end
+            );
         }
 
     }
 
-}
-
-function newLit(body) {
-    return new nodes.Literal(body);
 }
 
 function uintRange(value) {
@@ -215,6 +202,7 @@ function uintRange(value) {
 }
 
 function combine(left, right, leftType, operator) {
+    // TODO: Pass a start and end here
 
     var leftParsed;
     var rightParsed;
@@ -224,82 +212,82 @@ function combine(left, right, leftType, operator) {
             leftParsed = parseInt(left.value, 10);
             rightParsed = parseInt(right.value, 10);
             switch (operator) {
-                case '+': return newLit({litType: 'int', value: (leftParsed + rightParsed) + ''});
-                case '-': return newLit({litType: 'int', value: (leftParsed - rightParsed) + ''});
-                case '*': return newLit({litType: 'int', value: (leftParsed * rightParsed) + ''});
-                case '/': return newLit({litType: 'int', value: (leftParsed / rightParsed | 0) + ''});
-                case '%': return newLit({litType: 'int', value: (leftParsed % rightParsed) + ''});
-                case '&': return newLit({litType: 'int', value: (leftParsed & rightParsed) + ''});
-                case '|': return newLit({litType: 'int', value: (leftParsed | rightParsed) + ''});
-                case '^': return newLit({litType: 'int', value: (leftParsed ^ rightParsed) + ''});
-                case '<<': return newLit({litType: 'int', value: (leftParsed << rightParsed) + ''});
-                case '>>': return newLit({litType: 'int', value: (leftParsed >> rightParsed) + ''});
-                case 'and': return newLit({litType: 'bool', value: leftParsed !== 0 && rightParsed !== 0});
-                case 'or': return newLit({litType: 'bool', value: leftParsed !== 0 || rightParsed !== 0});
-                case '<': return newLit({litType: 'bool', value: leftParsed < rightParsed});
-                case '<=': return newLit({litType: 'bool', value: leftParsed <= rightParsed});
-                case '>': return newLit({litType: 'bool', value: leftParsed > rightParsed});
-                case '>=': return newLit({litType: 'bool', value: leftParsed >= rightParsed});
-                case '==': return newLit({litType: 'bool', value: leftParsed === rightParsed});
-                case '!=': return newLit({litType: 'bool', value: leftParsed !== rightParsed});
+                case '+': return new LiteralHLIR('int', (leftParsed + rightParsed) + '', 0, 0);
+                case '-': return new LiteralHLIR('int', (leftParsed - rightParsed) + '', 0, 0);
+                case '*': return new LiteralHLIR('int', (leftParsed * rightParsed) + '', 0, 0);
+                case '/': return new LiteralHLIR('int', (leftParsed / rightParsed | 0) + '', 0, 0);
+                case '%': return new LiteralHLIR('int', (leftParsed % rightParsed) + '', 0, 0);
+                case '&': return new LiteralHLIR('int', (leftParsed & rightParsed) + '', 0, 0);
+                case '|': return new LiteralHLIR('int', (leftParsed | rightParsed) + '', 0, 0);
+                case '^': return new LiteralHLIR('int', (leftParsed ^ rightParsed) + '', 0, 0);
+                case '<<': return new LiteralHLIR('int', (leftParsed << rightParsed) + '', 0, 0);
+                case '>>': return new LiteralHLIR('int', (leftParsed >> rightParsed) + '', 0, 0);
+                case 'and': return new LiteralHLIR('bool', leftParsed !== 0 && rightParsed !== 0, 0, 0);
+                case 'or': return new LiteralHLIR('bool', leftParsed !== 0 || rightParsed !== 0, 0, 0);
+                case '<': return new LiteralHLIR('bool', leftParsed < rightParsed, 0, 0);
+                case '<=': return new LiteralHLIR('bool', leftParsed <= rightParsed, 0, 0);
+                case '>': return new LiteralHLIR('bool', leftParsed > rightParsed, 0, 0);
+                case '>=': return new LiteralHLIR('bool', leftParsed >= rightParsed, 0, 0);
+                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
+                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
             }
 
         case 'uint':
             leftParsed = parseInt(left.value, 10);
             rightParsed = parseInt(right.value, 10);
             switch (operator) {
-                case '+': return newLit({litType: 'uint', value: uintRange(leftParsed + rightParsed) + ''});
-                case '-': return newLit({litType: 'uint', value: uintRange(leftParsed - rightParsed) + ''});
-                case '*': return newLit({litType: 'uint', value: uintRange(leftParsed * rightParsed) + ''});
-                case '/': return newLit({litType: 'uint', value: uintRange(leftParsed / rightParsed | 0) + ''});
-                case '%': return newLit({litType: 'uint', value: uintRange(leftParsed % rightParsed) + ''});
-                case '&': return newLit({litType: 'uint', value: uintRange(leftParsed & rightParsed) + ''});
-                case '|': return newLit({litType: 'uint', value: uintRange(leftParsed | rightParsed) + ''});
-                case '^': return newLit({litType: 'uint', value: uintRange(leftParsed ^ rightParsed) + ''});
-                case '<<': return newLit({litType: 'uint', value: uintRange(leftParsed << rightParsed) + ''});
-                case '>>': return newLit({litType: 'uint', value: uintRange(leftParsed >> rightParsed) + ''});
-                case 'and': return newLit({litType: 'bool', value: leftParsed !== 0 && rightParsed !== 0});
-                case 'or': return newLit({litType: 'bool', value: leftParsed !== 0 || rightParsed !== 0});
-                case '<': return newLit({litType: 'bool', value: leftParsed < rightParsed});
-                case '<=': return newLit({litType: 'bool', value: leftParsed <= rightParsed});
-                case '>': return newLit({litType: 'bool', value: leftParsed > rightParsed});
-                case '>=': return newLit({litType: 'bool', value: leftParsed >= rightParsed});
-                case '==': return newLit({litType: 'bool', value: leftParsed === rightParsed});
-                case '!=': return newLit({litType: 'bool', value: leftParsed !== rightParsed});
+                case '+': return new LiteralHLIR('uint', uintRange(leftParsed + rightParsed) + '', 0, 0);
+                case '-': return new LiteralHLIR('uint', uintRange(leftParsed - rightParsed) + '', 0, 0);
+                case '*': return new LiteralHLIR('uint', uintRange(leftParsed * rightParsed) + '', 0, 0);
+                case '/': return new LiteralHLIR('uint', uintRange(leftParsed / rightParsed | 0) + '', 0, 0);
+                case '%': return new LiteralHLIR('uint', uintRange(leftParsed % rightParsed) + '', 0, 0);
+                case '&': return new LiteralHLIR('uint', uintRange(leftParsed & rightParsed) + '', 0, 0);
+                case '|': return new LiteralHLIR('uint', uintRange(leftParsed | rightParsed) + '', 0, 0);
+                case '^': return new LiteralHLIR('uint', uintRange(leftParsed ^ rightParsed) + '', 0, 0);
+                case '<<': return new LiteralHLIR('uint', uintRange(leftParsed << rightParsed) + '', 0, 0);
+                case '>>': return new LiteralHLIR('uint', uintRange(leftParsed >> rightParsed) + '', 0, 0);
+                case 'and': return new LiteralHLIR('bool', leftParsed !== 0 && rightParsed !== 0, 0, 0);
+                case 'or': return new LiteralHLIR('bool', leftParsed !== 0 || rightParsed !== 0, 0, 0);
+                case '<': return new LiteralHLIR('bool', leftParsed < rightParsed, 0, 0);
+                case '<=': return new LiteralHLIR('bool', leftParsed <= rightParsed, 0, 0);
+                case '>': return new LiteralHLIR('bool', leftParsed > rightParsed, 0, 0);
+                case '>=': return new LiteralHLIR('bool', leftParsed >= rightParsed, 0, 0);
+                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
+                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
             }
 
         case 'float':
             leftParsed = parseFloat(left.value);
             rightParsed = parseFloat(right.value);
             switch (operator) {
-                case '+': return newLit({litType: 'float', value: (leftParsed + rightParsed) + ''});
-                case '-': return newLit({litType: 'float', value: (leftParsed - rightParsed) + ''});
-                case '*': return newLit({litType: 'float', value: (leftParsed * rightParsed) + ''});
-                case '/': return newLit({litType: 'float', value: (leftParsed / rightParsed) + ''});
-                case '%': return newLit({litType: 'float', value: (leftParsed % rightParsed) + ''});
-                case 'and': return newLit({litType: 'bool', value: leftParsed !== 0 && rightParsed !== 0});
-                case 'or': return newLit({litType: 'bool', value: leftParsed !== 0 || rightParsed !== 0});
-                case '<': return newLit({litType: 'bool', value: leftParsed < rightParsed});
-                case '<=': return newLit({litType: 'bool', value: leftParsed <= rightParsed});
-                case '>': return newLit({litType: 'bool', value: leftParsed > rightParsed});
-                case '>=': return newLit({litType: 'bool', value: leftParsed >= rightParsed});
-                case '==': return newLit({litType: 'bool', value: leftParsed === rightParsed});
-                case '!=': return newLit({litType: 'bool', value: leftParsed !== rightParsed});
+                case '+': return new LiteralHLIR('float', (leftParsed + rightParsed) + '', 0, 0);
+                case '-': return new LiteralHLIR('float', (leftParsed - rightParsed) + '', 0, 0);
+                case '*': return new LiteralHLIR('float', (leftParsed * rightParsed) + '', 0, 0);
+                case '/': return new LiteralHLIR('float', (leftParsed / rightParsed) + '', 0, 0);
+                case '%': return new LiteralHLIR('float', (leftParsed % rightParsed) + '', 0, 0);
+                case 'and': return new LiteralHLIR('bool', leftParsed !== 0 && rightParsed !== 0, 0, 0);
+                case 'or': return new LiteralHLIR('bool', leftParsed !== 0 || rightParsed !== 0, 0, 0);
+                case '<': return new LiteralHLIR('bool', leftParsed < rightParsed, 0, 0);
+                case '<=': return new LiteralHLIR('bool', leftParsed <= rightParsed, 0, 0);
+                case '>': return new LiteralHLIR('bool', leftParsed > rightParsed, 0, 0);
+                case '>=': return new LiteralHLIR('bool', leftParsed >= rightParsed, 0, 0);
+                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
+                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
             }
 
         case 'bool':
             switch (operator) {
-                case 'and': return newLit({litType: 'bool', value: left.value && right.value});
-                case 'or': return newLit({litType: 'bool', value: left.value || right.value});
-                case '==': return newLit({litType: 'bool', value: leftParsed === rightParsed});
-                case '!=': return newLit({litType: 'bool', value: leftParsed !== rightParsed});
+                case 'and': return new LiteralHLIR('bool', left.value && right.value, 0, 0);
+                case 'or': return new LiteralHLIR('bool', left.value || right.value, 0, 0);
+                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
+                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
             }
 
         case 'str':
             switch (operator) {
-                case '+': return newLit({litType: 'str', value: left.value + right.value});
-                case '==': return newLit({litType: 'bool', value: left.value === right.value});
-                case '!=': return newLit({litType: 'bool', value: left.value !== right.value});
+                case '+': return new LiteralHLIR('str', left.value + right.value, 0, 0);
+                case '==': return new LiteralHLIR('bool', left.value === right.value, 0, 0);
+                case '!=': return new LiteralHLIR('bool', left.value !== right.value, 0, 0);
             }
 
     }

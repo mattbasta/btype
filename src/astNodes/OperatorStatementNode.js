@@ -1,4 +1,7 @@
 import BaseBlockNode from './BaseBlockNode';
+import {Context} from '../compiler/context';
+import FunctionHLIR from '../hlirNodes/FunctionHLIR';
+import FunctionNode from './FunctionNode';
 import * as symbols from '../symbols';
 
 
@@ -44,11 +47,41 @@ export default class OperatorStatementNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        builder.addOpOverload(this);
+        var returnTypeNode = this.returnType[symbols.FMAKEHLIR](builder);
+        var paramNodes = [
+            this.left[symbols.FMAKEHLIR](builder),
+            this.right[symbols.FMAKEHLIR](builder),
+        ];
+
+        var node = new FunctionHLIR(
+            returnTypeNode,
+            builder.env.namer(),
+            paramNodes,
+            this.start,
+            this.end
+        );
+        var ctx = builder.peekCtx();
+        ctx.functions.add(node);
+        var assignedName = ctx.addVar(node.name, node.resolveType(ctx), node[symbols.ASSIGNED_NAME]);
+        ctx.functionDeclarations.set(assignedName, node);
+        ctx.isFuncSet.add(assignedName);
+
+        node[symbols.IS_FIRSTCLASS] = false;
+
+        var newCtx = new Context(builder.env, node, ctx, builder.privileged);
+        paramNodes.forEach(pn => {
+            pn[symbols.ASSIGNED_NAME] = newCtx.addVar(pn.name, pn.resolveType(newCtx));
+        });
+
+        builder.addFunc(this, node);
+        builder.addOpOverload(node);
+
+        return node;
+
     }
 
-    [symbols.FCONSTRUCT](ctx) {
-        //
+    [symbols.FCONSTRUCT](builder, hlir) {
+        return FunctionNode.prototype[symbols.FCONSTRUCT].call(this, builder, hlir);
     }
 
 };

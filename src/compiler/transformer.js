@@ -1,11 +1,15 @@
+import AssignmentHLIR from '../hlirNodes/AssignmentHLIR';
 import CallHLIR from '../hlirNodes/CallHLIR';
 import DeclarationHLIR from '../hlirNodes/DeclarationHLIR';
 import ExportHLIR from '../hlirNodes/ExportHLIR';
 import Func from './types/Func';
 import FunctionHLIR from '../hlirNodes/FunctionHLIR';
+import LiteralHLIR from '../hlirNodes/LiteralHLIR';
+import MemberHLIR from '../hlirNodes/MemberHLIR';
 import NewHLIR from '../hlirNodes/NewHLIR';
 import SymbolHLIR from '../hlirNodes/SymbolHLIR';
 import * as symbols from '../symbols';
+import TypedIdentifierHLIR from '../hlirNodes/TypedIdentifierHLIR';
 import TypeHLIR from '../hlirNodes/TypeHLIR';
 
 
@@ -13,6 +17,7 @@ const TRANSFORM_ENCOUNTERED_CTXS = Symbol();
 const TRANSFORMED = Symbol();
 const MAPPING = Symbol();
 const CTX_TYPEMAPPING = Symbol();
+const ORIG_TYPE = Symbol();
 
 /*
 See the following URL for details on the implementation of this file:
@@ -109,16 +114,19 @@ function getFunctionContext(ctx, name) {
         }
     });
 
+    var wrappedType = TypeHLIR.from(ctx.scope.resolveType(), ctx.scope.start, ctx.scope.end);
 
-    var funcctxTypeName = (ctx.scope.name || 'anon') + '$fctx';
-    var wrappedType = TypeHLIR(funcctxTypeName, [], ctx.scope.start, ctx.scope.end);
+    var reference = new SymbolHLIR(ctx.scope.name, 0, 0);
+    reference[symbols.REFCONTEXT] = ctx.parent;
+    reference[symbols.REFTYPE] = ctx.scope.resolveType();
+    reference[symbols.REFNAME] = ctx.scope[symbols.ASSIGNED_NAME];
 
     var funcctx = new DeclarationHLIR(
         wrappedType,
         name,
-        new NewHLIR(
+        NewHLIR.asFuncRef(
             wrappedType,
-            [],
+            [reference, new LiteralHLIR('null', null, 0, 0)],
             ctx.scope.start,
             ctx.scope.end
         ),
@@ -162,7 +170,7 @@ function processRoot(rootContext) {
 
         stack[0][member] = new NewHLIR(
             frefType,
-            [refSym]
+            [refSym],
             node.start,
             node.end
         );
@@ -211,133 +219,114 @@ function processFunc(rootContext, node, context) {
 
     function getContextReference() {
         if (!funcctx) {
-            return new nodes.Literal({
-                litType: 'null',
-                value: null,
-            });
+            return new LiteralHLIR('null', null, 0, 0);
         }
 
-        return new nodes.Symbol({
-            name: ctxName,
-            __refContext: context,
-            __refType: ctxType,
-            __refName: ctxName,
-            __isFunc: false,
-        });
+        var out = new SymbolHLIR(ctxName, 0, 0);
+        out[symbols.REFCONTEXT] = context;
+        out[symbols.REFTYPE] = ctxType;
+        out[symbols.REFNAME] = ctxName;
+        out[symbols.IS_FUNC] = false;
+        return out;
 
     }
 
     if (willFunctionNeedContext(context)) {
-
         ctxName = context.env.namer();
-
         funcctx = getFunctionContext(context, ctxName);
-        context.__funcctx = funcctx;
 
         ctxMapping = funcctx[MAPPING];
         node.body.unshift(funcctx);
 
-        ctxType = funcctx.declType.getType(context);
+        ctxType = funcctx.declType.resolveType(context);
         context.addVar(ctxName, ctxType, ctxName);
 
         function getReference(name) {
-            return new nodes.Member({
-                base: new nodes.Symbol({
-                    name: ctxName,
-                    __refContext: context,
-                    __refType: ctxType,
-                    __refName: ctxName,
-                }),
-                child: name,
-            });
+            var base = new SymbolHLIR(ctxName, 0, 0);
+            base[symbols.REFCONTEXT] = context;
+            base[symbols.REFTYPE] = ctxType;
+            base[symbols.REFNAME] = ctxName;
+            return new MemberHLIR(base, name, 0, 0);
         }
 
         // Replace symbols referencing declarations that are now inside the
         // funcctx with member expressions
-        traverser.findAndReplace(node, function(node) {
-            if (node.type === 'Symbol' &&
-                node.__refContext === context &&
-                node.__refName in ctxMapping) {
+        node.findAndReplace(node => {
+            if (node instanceof SymbolHLIR &&
+                node[symbols.REFCONTEXT] === context &&
+                ctxMapping.has(node[symbols.REFNAME])) {
 
-                return function(node) {
-                    return getReference(node.__refName);
-                };
+                return node => getReference(node[symbols.REFNAME]);
             }
 
-            if (node.type === 'Declaration' &&
-                node[symbols.ASSIGNED_NAME] in ctxMapping) {
-                // Delete the node.
-                return function(node) {
-                    return new nodes.Assignment(
-                        node.start,
-                        node.end,
-                        {
-                            base: getReference(node[symbols.ASSIGNED_NAME]),
-                            value: node.value,
-                        }
-                    );
-                };
+            if (node instanceof DeclarationHLIR &&
+                ctxMapping.has(node[symbols.ASSIGNED_NAME])) {
+
+                // Delete the node
+                return node => new AssignmentHLIR(
+                    getReference(node[symbols.ASSIGNED_NAME]),
+                    node.value,
+                    node.start,
+                    node.end
+                );
             }
         });
 
         // Put initial parameter values into the context
-        context.scope.params.forEach(function(param) {
-            var assignedName = context.nameMap[param.name];
-            if (!(assignedName in ctxMapping)) return;
-            var assign = new nodes.Assignment({
-                base: getReference(assignedName),
-                value: new nodes.Symbol({
-                    name: param.name,
-                    __refContext: context,
-                    __refType: param.getType(context),
-                    __refName: assignedName,
-                }),
-            });
+        context.scope.params.forEach(param => {
+            var assignedName = context.nameMap.get(param.name);
+            if (!ctxMapping.has(assignedName)) return;
+            var sym = new SymbolHLIR(param.name, 0, 0);
+            sym[symbols.REFCONTEXT] = context;
+            sym[symbols.REFTYPE] = param.resolveType(context);
+            sym[symbols.REFNAME] = assignedName;
+            var assign = new AssignmentHLIR(getReference(assignedName), sym, 0, 0);
             node.body.splice(1, 0, assign);
         });
 
         // Remove lexical lookups from the context objects and add the parameter
-        traverser.traverse(node, function(node) {
-            if (!node || node.type !== 'Function') return;
+        node.iterate(node => {
+            if (!(node instanceof FunctionHLIR)) return;
 
-            if (!node.__originalType) {
-                node.__originalType = node.getType(node.__context);
+            if (!node[ORIG_TYPE]) {
+                node[ORIG_TYPE] = node.resolveType(node[symbols.CONTEXT]);
             }
 
-            var ctx = node.__context;
-            for (var mem in ctxMapping) {
-                if (!(mem in ctx.lexicalLookups)) return; // Ignore lexical lookups not in this scope
-                if (ctx.lexicalLookups[mem] !== context) return; // Ignore lexical lookups from other scopes
+            var ctx = node[symbols.CONTEXT];
+            for (var mem of ctxMapping.keys()) {
+                if (!ctx.lexicalLookups.has(mem)) return; // Ignore lexical lookups not in this scope
+                if (ctx.lexicalLookups.get(mem) !== context) return; // Ignore lexical lookups from other scopes
 
-                delete ctx.lexicalLookups[mem];
+                ctx.lexicalLookups.delete(mem);
             }
 
-            node.params.unshift(new nodes.TypedIdentifier({
-                idType: funcctx[CTX_TYPEMAPPING],
-                name: ctxName,
-                __assignedName: ctxName,
-                __context: ctx,
-                __refContext: context,
-            }));
+            var type = new TypeHLIR(funcctx[CTX_TYPEMAPPING].typeName, [], 0, 0);
+            type.forceType(funcctx[CTX_TYPEMAPPING]);
+
+            var ident = new TypedIdentifierHLIR(ctxName, type, 0, 0);
+            ident[symbols.ASSIGNED_NAME] = ctxName;
+            ident[symbols.CONTEXT] = ctx;
+            ident[symbols.REFCONTEXT] = context;
+            node.params.unshift(ident);
 
             ctx.addVar(ctxName, ctxType, ctxName);
         });
 
         // Remove all of the converted variables from the `typeMap` and
         // `nameMap` fields.
-        for (var name in ctxMapping) {
+        for (var name of ctxMapping.keys()) {
             context.nameMap.delete(name);
             context.typeMap.delete(name);
         }
 
         // Finally, find all of the calls to the functions and add the appropriate
         // new parameter.
-        traverser.traverse(node, function(node) {
-            if (!node || node.type !== 'CallRaw') return;
+        node.iterate(node => {
+            if (!(node instanceof CallHLIR)) return;
             // Ignore calls to non-symbols
-            if (node.callee.type !== 'Symbol') return;
+            if (!(node.callee instanceof SymbolHLIR)) return;
             // Ignore calls to non-functions
-            if (!node.callee.__isFunc) return;
+            if (!node.callee[symbols.IS_FUNC]) return;
 
             node.params.unshift(getContextReference());
         });
@@ -345,58 +334,65 @@ function processFunc(rootContext, node, context) {
     }
 
     // Replace first class function delcarations with variable declarations
-    traverser.iterateBodies(node, function(body) {
-        if (!body) return;
+    traverser.iterateBodies(node, body => {
         for (var i = 0; i < body.length; i++) {
-            (function(iterNode, i) {
-                if (!iterNode || iterNode.type !== 'Function') return;
-                if (!iterNode.__firstClass) return false;
+            let iterNode = body[i];
 
-                var type = iterNode.getType(context);
-                context.env.registerFunc(iterNode);
-                body.splice(
-                    i,
-                    1,
-                    new nodes.Declaration(
-                        iterNode.start,
-                        iterNode.end,
-                        {
-                            declType: new nodes.Type({
-                                __type: type,
-                                name: type.typeName || type._type,
-                            }),
-                            identifier: iterNode.name,
-                            __assignedName: iterNode[symbols.ASSIGNED_NAME],
-                            value: new nodes.FunctionReference({
-                                base: iterNode,
-                                ctx: getContextReference(),
-                            }),
-                        }
-                    )
-                );
-            }(body[i], i));
+            if (!(iterNode instanceof FunctionHLIR)) return;
+            if (!iterNode[symbols.IS_FIRSTCLASS]) return;
+
+            let type = iterNode.resolveType(context);
+            context.env.registerFunc(iterNode);
+
+            let typeIR = new TypeHLIR(type.typeName || type._type, [], 0, 0);
+            typeIR.forceType(type);
+
+            let ref = new SymbolHLIR(iterNode.name, 0, 0);
+            ref[symbols.REFCONTEXT] = iterNode[symbols.CONTEXT];
+            ref[symbols.REFTYPE] = iterNode.resolveType();
+            ref[symbols.REFNAME] = iterNode[symbols.ASSIGNED_NAME];
+
+            let decl = new DeclarationHLIR(
+                type,
+                iterNode.name,
+                NewHLIR.asFuncRef(
+                    TypeHLIR.from(type),
+                    [ref, getContextReference()],
+                    0,
+                    0
+                ),
+                0,
+                0
+            );
+            decl[symbols.ASSIGNED_NAME] = iterNode[symbols.ASSIGNED_NAME];
+            body.splice(i, 1, decl);
         }
     });
 
     var stack = [];
-    traverser.traverse(node, function(node) {
-        if (!node) return;
+    node.iterate(node => {
 
-        function replacer(x) {
-            if (x !== node) return x;
-            context.env.registerFunc(node);
-            return new nodes.FunctionReference({
-                base: node,
-                ctx: getContextReference(),
-            });
-        }
-
-        if (stack[0] && node.type === 'Function' && node.__firstClass && stack[0].type !== 'FunctionReference') {
-            stack[0].substitute(replacer);
+        if (!stack[0] ||
+            !(node instanceof FunctionHLIR) ||
+            !node[symbols.IS_FIRSTCLASS] ||
+            stack[0][symbols.IS_FUNCREF]) {
+            stack.unshift(node);
             return;
         }
 
-        stack.unshift(node);
+        stack[0].substitute(x => {
+            if (x !== node) return x;
+            context.env.registerFunc(node);
+            var funcType = node.resolveType();
+            var ref = new SymbolHLIR(node.name, 0, 0);
+            ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
+            ref[symbols.REFTYPE] = funcType;
+            ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
+            return NewHLIR.asFuncRef(
+                TypeHLIR.from(funcType),
+                [ref, getContextReference()]
+            );
+        });
     }, function(node) {
         stack.shift();
     });
@@ -406,29 +402,20 @@ function processFunc(rootContext, node, context) {
 function processCallNodes(node, context) {
     // Replace calls to function declarations with CallDecl nodes and calls to
     // references with CallRef.
-    traverser.findAndReplace(node, function(node) {
-        if (node.type !== 'CallRaw') return;
+    node.findAndReplace(node => {
+        if (!(node instanceof CallHLIR)) return;
 
-        var isDeclaration = !!context.isFuncMap[node.callee.__refName];
-        if (!isDeclaration && node.callee.type === 'Member') {
-            var baseType = node.callee.base.getType(context);
+        var isDeclaration = context.isFuncSet.has(node.callee[symbols.REFNAME]);
+        if (!isDeclaration && node.callee instanceof MemberHLIR) {
+            var baseType = node.callee.base.resolveType(context);
             if (baseType._type === 'module' || baseType.flatTypeName() === 'foreign') {
                 isDeclaration = true;
             }
-        } else if (!isDeclaration && node.callee.type === 'Symbol') {
-            isDeclaration = node.callee.__refContext.isFuncMap[node.callee.__refName];
+        } else if (!isDeclaration && node.callee instanceof SymbolHLIR) {
+            isDeclaration = node.callee[symbols.REFCONTEXT].isFuncSet.has(node.callee[symbols.REFNAME]);
         }
-        var newNodeType = nodes[isDeclaration ? 'CallDecl' : 'CallRef'];
-        return function(node) {
-            return new newNodeType(
-                node.start,
-                node.end,
-                {
-                    callee: node.callee,
-                    params: node.params,
-                }
-            );
-        };
+
+        return node => new CallHLIR(node.callee, node.params, node.start, node.end);
 
     }, true);
 }

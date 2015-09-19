@@ -12,6 +12,7 @@ export const IS_FINAL = Symbol('the item is declared as final in an object');
 export const IS_PRIVATE = Symbol('the item is declared as private in an object');
 
 export const IS_FUNC = Symbol('whether a symbol points at a function');
+export const IS_FUNCREF = Symbol('whether a New node represents a reference to a function');
 export const REFCONTEXT = Symbol('the context that a symbol refers to');
 export const REFNAME = Symbol('the assigned name that a symbol refers to');
 export const REFTYPE = Symbol('the type of the variable that a symbol refers to');

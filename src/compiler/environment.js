@@ -3,14 +3,14 @@ var path = require('path');
 
 var argv = require('minimist')(process.argv.slice(2));
 
-var constantFold = require('./optimizer/constantFold');
+import constantFold from './optimizer/constantFold';
 import RootContext from './context';
 var flattener = require('./flattener');
 var globalInit = require('./globalInit');
 import lexer from '../lexer';
 import Module from './types/Module';
 import NamerFactory from './namer';
-var specialModules = require('./specialModules/__directory');
+import * as specialModules from './specialModules/__directory';
 import * as symbols from '../symbols';
 import transform from './transformer';
 

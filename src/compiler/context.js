@@ -1,8 +1,5 @@
-var nodes = require('./nodes');
-var traverser = require('./traverser');
-var types = require('./types');
-
 import * as symbols from '../symbols';
+import * as types from './types';
 
 
 class BaseContext {

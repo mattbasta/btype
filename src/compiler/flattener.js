@@ -1,21 +1,39 @@
-var nodes = require('./nodes');
-var traverser = require('./traverser');
-var types = require('./types');
+import AssignmentHLIR from '../hlirNodes/AssignmentHLIR';
+import BinopArithmeticHLIR from '../hlirNodes/BinopArithmeticHLIR';
+import BinopBitwiseHLIR from '../hlirNodes/BinopBitwiseHLIR';
+import BinopEqualityHLIR from '../hlirNodes/BinopEqualityHLIR';
+import BinopLogicalHLIR from '../hlirNodes/BinopLogicalHLIR';
+import CallHLIR from '../hlirNodes/CallHLIR';
+import DeclarationHLIR from '../hlirNodes/DeclarationHLIR';
+import FunctionHLIR from '../hlirNodes/FunctionHLIR';
+import IfHLIR from '../hlirNodes/IfHLIR';
+import LiteralHLIR from '../hlirNodes/LiteralHLIR';
+import MemberHLIR from '../hlirNodes/MemberHLIR';
+import NegateHLIR from '../hlirNodes/NegateHLIR';
+import NewHLIR from '../hlirNodes/NewHLIR';
+import ReturnHLIR from '../hlirNodes/ReturnHLIR';
+import SymbolHLIR from '../hlirNodes/SymbolHLIR';
+import TypeHLIR from '../hlirNodes/TypeHLIR';
+import * as symbols from '../symbols';
 
 
-var safeLiteralTypes = {
-    bool: true,
-    float: true,
-    int: true,
-    'null': true,
-};
+const SHOULD_FLATTEN = Symbol();
+const SHOULD_FLATTEN_CHILDREN = Symbol();
 
 
-module.exports = function(rootContext) {
-    rootContext.functions.forEach(function(func) {
-        traverser.iterateBodies(func, function(body, member) {
-            if (!body) return;
-            upliftExpressionsFromBody(func.__context, body);
+// TODO: should this also include sfloat?
+const SAFELITERALTYPES = new Set([
+    'bool',
+    'float',
+    'int',
+    'null',
+]);
+
+
+export default function flatten(rootCtx) {
+    rootCtx.functions.forEach(f => {
+        f.iterateBodies(body => {
+            upliftExpressionsFromBody(func[symbols.CONTEXT], body);
             convertLogicalBinops(body);
         });
     });
@@ -40,114 +58,96 @@ function upliftExpressionsFromBody(ctx, body) {
             value = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
         }
 
-        return new nodes.Declaration({
-            __context: ctx,
-
-            declType: new nodes.Type({
-                __type: type,
-                attributes: [],
-                name: type.typeName,
-            }),
-
-            identifier: name,
-            __assignedName: name,
-            value: new nodes.Literal({
-                litType: litType,
-                value: value,
-            }),
-        });
+        var type = new TypeHLIR(type.typeName, []);
+        type.forceType(type);
+        var decl = new DeclarationHLIR(
+            type,
+            name,
+            new LiteralHLIR(litType, value)
+        );
+        decl[symbols.CONTEXT] = ctx;
+        decl[symbols.ASSIGNED_NAME] = name;
+        return decl;
     }
 
     function getDeclReference(decl, type) {
-        return new nodes.Symbol({
-            name: decl.identifier,
-            __refContext: ctx,
-            __refName: decl.__assignedName,
-            __refType: type,
-        });
+        var sym = new SymbolHLIR(decl.identifier);
+        sym[symbols.REFCONTEXT] = ctx;
+        sym[symbols.REFTYPE] = type;
+        sym[symbols.REFNAME] = decl[symbols.ASSIGNED_NAME];
+        return sym;
     }
 
-    var current;
     for (var i = 0; i < body.length; i++) {
-
-        current = body[i];
+        let current = body[i];
 
         // Mark which expressions to flatten
         var stack = [];
-        traverser.traverseWithSelf(current, function(node, member) {
+        current.iterateWithSelf((node, member) => {
             if (isNodeBoundary(node, member)) return false;
 
             stack.unshift(node);
 
             var i;
             var temp;
-            if (node.type === 'LogicalBinop') {
+            if (node instanceof BinopLogicalHLIR) {
 
                 if (stack.length === 1 &&
-                    current.type === 'Assignment' &&
+                    current instanceof AssignmentHLIR &&
                     node === current.value) {
                     return;
                 }
 
                 for (i = 0; i < stack.length; i++) {
-                    if (stack[i].type === 'LogicalBinop' ||
-                        stack[i].type === 'EqualityBinop' ||
-                        stack[i].type === 'RelativeBinop' ||
-                        stack[i].type === 'Binop') {
-                        stack[i].__shouldFlatten = true;
+                    let stackItem = stack[i];
+                    if (stackItem instanceof BinopLogicalHLIR ||
+                        stackItem instanceof BinopEqualityHLIR ||
+                        stackItem instanceof BinopBitwiseHLIR ||
+                        stackItem instanceof BinopArithmeticHLIR) {
+                        stackItem[SHOULD_FLATTEN] = true;
                     }
 
                     if (i + 1 >= stack.length) continue;
-                    if ((stack[i + 1].type === 'CallRaw' ||
-                         stack[i + 1].type === 'CallDecl' ||
-                         stack[i + 1].type === 'CallRef') &&
-                        stack[i] !== stack[i + 1].callee) {
-
-                        stack[i + 1].__shouldFlattenChildren = true;
+                    if (stackItem instanceof CallHLIR &&
+                        stackItem !== stack[i + 1].callee) {
+                        stack[i + 1][SHOULD_FLATTEN_CHILDREN] = true;
                     }
                 }
 
-            } else if (stack[1] && stack[1].type === 'Return' &&
-                !(node.type === 'Literal' && node.litType in safeLiteralTypes) &&
-                node.type !== 'Symbol' &&
-                node.type !== 'New') {
-                node.__shouldFlatten = true;
+            } else if (stack[1] && stack[1] instanceof ReturnHLIR &&
+                !(node instanceof LiteralHLIR && SAFELITERALTYPES.has(node.litType)) &&
+                !(node instanceof SymbolHLIR) &&
+                !(node instanceof NewHLIR)) {
+                node[SHOULD_FLATTEN] = true;
 
-            } else if (stack[1] && stack[1].type === 'Member' &&
-                stack[1].getType(ctx).__isMethod &&
-                (!stack[2] || stack[2].type !== 'CallRef')) {
-                stack[1].__shouldFlatten = true;
+            } else if (stack[1] && stack[1] instanceof MemberHLIR &&
+                stack[1].resolveType(ctx)[symbols.IS_METHOD] &&
+                (!stack[2] || stack[2] instanceof CallHLIR)) {
+                stack[1][SHOULD_FLATTEN] = true;
             }
 
-        }, function(node) {
-            stack.shift();
-        });
+        }, () => stack.shift());
 
-        traverse(current, function(node, member) {
-            if (isNodeBoundary(node, member)) {
-                return false;
-            }
+        traverse(current, (node, member) => {
+            if (isNodeBoundary(node, member)) return false;
             stack.unshift(node);
-        }, function(node) {
-            if (stack.length > 1 && stack[1].__shouldFlattenChildren && node !== stack[1].callee) {
-                node.__shouldFlatten = true;
+        }, node => {
+            if (stack.length > 1 && stack[1][SHOULD_FLATTEN_CHILDREN] && node !== stack[1].callee) {
+                node[SHOULD_FLATTEN] = true;
             }
 
             stack.shift();
-            if (!node.__shouldFlatten) {
+            if (!node[SHOULD_FLATTEN]) {
                 return;
             }
 
             var type = node.getType(ctx);
             var decl = getTempDecl(type);
-            ctx.addVar(decl.identifier, type, decl.__assignedName);
+            ctx.addVar(decl.identifier, type, decl[symbols.ASSIGNED_NAME]);
             injectBefore(decl);
 
-            if (node.type !== 'Primitive' || node.value) {
-                injectBefore(new nodes.Assignment({
-                    base: getDeclReference(decl, type),
-                    value: node,
-                }));
+            if (type._type !== 'primitive' || node.value) {
+                injectBefore(new AssignmentHLIR(getDeclReference(decl, type), node));
             }
 
             return getDeclReference(decl, type);
@@ -159,26 +159,21 @@ function upliftExpressionsFromBody(ctx, body) {
 }
 
 function isNodeBoundary(node, member) {
-    return node.type === 'Function' ||
+    return node instanceof FunctionHLIR ||
         member === 'consequent' ||
         member === 'alternate' ||
         member === 'body';
 }
 
 function traverse(tree, filter, replacer) {
-    if (!tree || !tree.traverse) return;
-    tree.traverse.call(tree, function(node, member) {
+    tree.traverse((node, member) => {
         if (filter(node) === false) return;
         traverse(node, filter, replacer);
 
         var replacement = replacer(node, member);
         if (!replacement) return;
 
-        tree.substitute(function(x) {
-            if (x === node) return replacement;
-            return x;
-        });
-
+        tree.substitute(x => x === node ? replacement : x);
     });
 }
 
@@ -187,31 +182,27 @@ function convertLogicalBinops(body) {
     var condition;
     var conditional;
 
-    var current;
     for (var i = 0; i < body.length; i++) {
-        current = body[i];
-        if (current.type !== 'Assignment' || current.value.type !== 'LogicalBinop') continue;
+        let current = body[i];
+        if (!(current instanceof AssignmentHLIR) || !(current.value instanceof BinopLogicalHLIR)) continue;
 
         // Put the correct condition in the conditional
         if (current.value.operator === 'and') {
             condition = current.base;
         } else {
-            condition = new nodes.Unary({
-                base: current.base,
-                operator: '!',
-            });
+            condition = new NegateHLIR(current.base, current.base.start, current.base.end);
         }
 
         // Create the correct conditional
-        conditional = new nodes.If({
-            condition: condition,
-            consequent: [
-                new nodes.Assignment({
-                    base: current.base,
-                    value: current.value.right,
-                }),
-            ]
-        });
+        conditional = new IfHLIR(
+            condition,
+            [
+                new AssignmentHLIR(current.base, current.value.right)
+            ],
+            null,
+            current.start,
+            current.end
+        );
 
         current.value = current.value.left;
 
