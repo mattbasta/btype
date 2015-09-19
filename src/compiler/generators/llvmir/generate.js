@@ -3,7 +3,6 @@ var path = require('path');
 
 // var externalFuncs = require('../js/externalFuncs');
 var llvmTranslate = require('./translate');
-var traverser = require('../../traverser');
 
 var getLLVMType = require('./util').getLLVMType;
 var makeName = require('./util').makeName;
@@ -123,7 +122,7 @@ function registerAllUsedMethods(env) {
     });
 
     env.included.forEach(function(ctx) {
-        traverser.traverse(ctx.scope, function(node) {
+        ctx.scope.iterate(node => {
             if (node.type === 'ObjectDeclaration' && !node.__isConstructed) return false;
 
             if (node.type !== 'Member') return;

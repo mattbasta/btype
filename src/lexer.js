@@ -178,7 +178,7 @@ class Lexer {
             return tmp;
         }
 
-        if (!this.remainingData.trim()) return 'EOF';
+        if (!this.remainingData || !this.remainingData.trim()) return 'EOF';
         var token = this.readToken();
         if (!token) {
             if (!this.remainingData.trim()) return 'EOF';

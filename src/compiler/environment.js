@@ -29,11 +29,16 @@ const ENV_VARS = {
 export default class Environment {
     constructor(name, config) {
         this.name = name ? name.trim() : '';
-        this.config = new Map(config);
+        this.config = new Map();
+        for (let k in config) {
+            if (config.hasOwnProperty(k)) {
+                this.config.set(k, config[k]);
+            }
+        }
 
         this.namer = NamerFactory();
         this.foreigns = [];
-        this.included = [];
+        this.included = new Set();
         this.requested = null;
         this.modules = new Map();
         this.inits = []; // Ordered list of things to initialize

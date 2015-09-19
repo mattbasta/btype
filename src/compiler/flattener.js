@@ -33,7 +33,7 @@ const SAFELITERALTYPES = new Set([
 export default function flatten(rootCtx) {
     rootCtx.functions.forEach(f => {
         f.iterateBodies(body => {
-            upliftExpressionsFromBody(func[symbols.CONTEXT], body);
+            upliftExpressionsFromBody(f[symbols.CONTEXT], body);
             convertLogicalBinops(body);
         });
     });
@@ -141,7 +141,7 @@ function upliftExpressionsFromBody(ctx, body) {
                 return;
             }
 
-            var type = node.getType(ctx);
+            var type = node.resolveType(ctx);
             var decl = getTempDecl(type);
             ctx.addVar(decl.identifier, type, decl[symbols.ASSIGNED_NAME]);
             injectBefore(decl);

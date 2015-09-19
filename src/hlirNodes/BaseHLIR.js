@@ -38,20 +38,22 @@ export default class BaseHLIR {
 
 
     iterate(cb, afterCB) {
-        this.traverse((node, memeber) => {
+        this.traverse((node, member) => {
             var ret = cb(node, member);
             if (ret === false) return;
-            node.iterate(callback, afterCB);
+            node.iterate(cb, afterCB);
             if (afterCB) afterCB(node, member);
         });
     }
-    iterateBodies(cb, afterCB) {
-        this.traverseBodies((node, memeber) => {
-            var ret = cb(node, member);
-            if (ret === false) return;
-            node.iterateBodies(callback, afterCB);
-            if (afterCB) afterCB(node, member);
-        });
+    iterateBodies(cb, afterCB, filter) {
+        if (this.traverseBodies && (!filter || filter(this) !== false)) {
+            this.traverseBodies((body, member) => {
+                var ret = cb(body, member);
+                if (ret === false) return;
+                if (afterCB) afterCB(body, member);
+            });
+        }
+        this.iterate(node => node.iterateBodies(cb, afterCB, filter));
     }
 
     iterateWithSelf(cb, afterCB) {

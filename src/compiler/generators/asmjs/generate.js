@@ -4,7 +4,6 @@ var path = require('path');
 var externalFuncs = require('../js/externalFuncs');
 var jsTranslate = require('./translate');
 var postOptimizer = require('../js/postOptimizer');
-var traverser = require('../../traverser');
 
 var argv = require('minimist')(process.argv.slice(2));
 
@@ -106,7 +105,7 @@ function registerAllUsedMethods(env) {
     });
 
     env.included.forEach(function(ctx) {
-        traverser.traverse(ctx.scope, function(node) {
+        ctx.scope.iterate(node => {
             if (node.type === 'ObjectDeclaration' && !node.__isConstructed) return false;
             if (node.type !== 'Member') return;
 

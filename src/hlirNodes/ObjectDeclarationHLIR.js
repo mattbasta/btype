@@ -43,7 +43,7 @@ export default class ObjectDeclarationHLIR extends BaseHLIR {
         this.settleTypes(ctx);
 
         var typeMap = new Map();
-        var type = new Struct(this.name,);
+        var type = new Struct(this.name, typeMap);
         type[symbols.ASSIGNED_NAME] = this[symbols.ASSIGNED_NAME];
 
         this.members.forEach(m => {

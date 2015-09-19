@@ -28,6 +28,9 @@ var MathRaw = [
 const RAW = Symbol('raw');
 
 class BaseForeignType {
+    constructor(env) {
+        this.env = env;
+    }
     equals(x) {
         return false;
     }
@@ -55,7 +58,7 @@ class BaseForeignType {
 
 class StdlibType extends BaseForeignType {
     constructor(env, name, raw) {
-        super();
+        super(env);
         this.name = name;
         var parsed = parser(lexer(raw));
         this[RAW] = parsed[symbols.FMAKEHLIR](env, true)[symbols.CONTEXT];
@@ -74,9 +77,7 @@ class StdlibType extends BaseForeignType {
 
 class ForeignType extends BaseForeignType {
     constructor(env) {
-        super();
-        this.env = env;
-
+        super(env);
         this._type = '_foreign';
     }
 
@@ -88,7 +89,7 @@ class ForeignType extends BaseForeignType {
 
 class CurriedForeignType extends BaseForeignType {
     constructor(env, funcName, typeChain) {
-        super();
+        super(env);
         this.funcName = funcName;
         this.typeChain = typeChain;
 
@@ -102,7 +103,7 @@ class CurriedForeignType extends BaseForeignType {
             case 'bool':
             case 'str':
             case '_null':
-                return new CurriedForeignType(env, this.funcName, this.typeChain.concat([name]));
+                return new CurriedForeignType(this.env, this.funcName, this.typeChain.concat([name]));
         }
 
         var returnType = null;
@@ -124,7 +125,7 @@ class CurriedForeignType extends BaseForeignType {
 }
 
 
-exports.get = function(env) {
+export function get(env) {
     var fakeRoot = new RootNode([], 0, 0);
     var ctx = fakeRoot[symbols.FMAKEHLIR](env, true)[symbols.CONTEXT];
 

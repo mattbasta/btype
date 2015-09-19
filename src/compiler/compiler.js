@@ -6,8 +6,7 @@ function buildEnv(options) {
     var ctx = env.loadFile(options.filename, options.tree);
     env.markRequested(ctx);
 
-    if (!(options.config && options.config.runtime) &&
-        !Object.keys(ctx.exports).length) {
+    if (!(options.config && options.config.runtime) && !ctx.exports.size) {
         throw new TypeError('Nothing exported from ' + options.filename);
     }
 

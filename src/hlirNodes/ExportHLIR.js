@@ -8,4 +8,6 @@ export default class ExportHLIR extends BaseHLIR {
         this.value = value;
     }
 
+    settleTypes() {}
+
 };

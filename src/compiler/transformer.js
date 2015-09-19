@@ -334,7 +334,7 @@ function processFunc(rootContext, node, context) {
     }
 
     // Replace first class function delcarations with variable declarations
-    traverser.iterateBodies(node, body => {
+    node.iterateBodies(body => {
         for (var i = 0; i < body.length; i++) {
             let iterNode = body[i];
 

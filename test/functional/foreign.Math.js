@@ -14,8 +14,7 @@ var parser = require('../../src/parser');
 
 describe('foreign.Math module', function() {
 
-    function run(code, format, expectation, outputType) {
-        var parsed = parser(lexer(code));
+    function run(parsed, format, expectation, outputType) {
         var compiled = compiler({
             filename: 'test',
             tree: parsed,
@@ -59,9 +58,9 @@ describe('foreign.Math module', function() {
         beforeEach(function() {
             parsed = parser(lexer(code));
             var env = compiler.buildEnv({filename: 'test', tree: parsed});
-            var mainFunc = env.requested.exports.main;
-            var mainFuncDef = env.requested.functionDeclarations[mainFunc];
-            mainReturnType = mainFuncDef.getType(env.requested).getReturnType().typeName;
+            var mainFunc = env.requested.exports.get('main');
+            var mainFuncDef = env.requested.functionDeclarations.get(mainFunc);
+            mainReturnType = mainFuncDef.resolveType(env.requested).getReturnType().typeName;
         });
 
         it('should work in JS', function() {
