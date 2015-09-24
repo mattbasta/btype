@@ -1,6 +1,7 @@
 import BaseExpressionNode from './BaseExpressionNode';
+import BinopArithmeticHLIR from '../hlirNodes/BinopArithmeticHLIR';
+import LiteralHLIR from '../hlirNodes/LiteralHLIR';
 import NegateHLIR from '../hlirNodes/NegateHLIR';
-import TwosComplementHLIR from '../hlirNodes/TwosComplementHLIR';
 import * as symbols from '../symbols';
 
 
@@ -37,11 +38,28 @@ export default class UnaryNode extends BaseExpressionNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        return new (this.operator === OP_NEGATE ? NegateHLIR : TwosComplementHLIR)(
-            this.base[symbols.FMAKEHLIR](builder),
+        if (this.operator === OP_NEGATE) {
+            return new NegateHLIR(
+                this.base[symbols.FMAKEHLIR](builder),
+                this.start,
+                this.end
+            );
+        }
+
+        return new BinopArithmeticHLIR(
+            new BinopArithmeticHLIR(
+                this.base[symbols.FMAKEHLIR](builder),
+                '+',
+                new LiteralHLIR('int', 1, this.start, this.end),
+                this.start,
+                this.end
+            ),
+            '*',
+            new LiteralHLIR('int', -1, this.start, this.end),
             this.start,
             this.end
         );
+
     }
 
 };

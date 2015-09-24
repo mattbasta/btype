@@ -6,6 +6,7 @@ import * as symbols from '../symbols';
 
 
 const IS_MADE = Symbol();
+const BUILDER = Symbol();
 
 export default class ObjectDeclarationNode extends BaseBlockNode {
     constructor(
@@ -85,12 +86,9 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
             mappedAttributes.set(a, attributes[i]);
         });
 
-        var node = new ObjectDeclarationHLIR(
-            this.name,
-            mappedAttributes
-        );
+        var node = new ObjectDeclarationHLIR(this.name, mappedAttributes);
 
-        var builder = new contextBuilder(rootCtx.env, rootCtx.privileged);
+        var builder = new ContextBuilder(rootCtx.env, rootCtx.privileged);
         builder.pushCtx(rootCtx);
 
         var ctx = new Context(rootCtx.env, node, rootCtx, rootCtx.privileged);
@@ -99,6 +97,24 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         mappedAttributes.forEach((type, name) => {
             ctx.typeDefs.set(name, type);
         });
+
+        node[symbols.ASSIGNED_NAME] = rootCtx.env.namer();
+        node[symbols.IS_CONSTRUCTED] = true;
+        node[BUILDER] = builder;
+
+        return node;
+    }
+
+    bindContents(node) {
+        if (!(node instanceof ObjectDeclarationHLIR)) {
+            throw new TypeError('Attempting to bind to invalid HLIR node');
+        }
+        if (!(builder instanceof ContextBuilder)) {
+            throw new TypeError('Attempting to bind object declaration methods with invalid context builder');
+        }
+
+        var builder = node[BUILDER];
+        delete node[BUILDER];
 
         if (this.objConstructor) {
             node.setConstructor(
@@ -114,11 +130,6 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         node.setOperatorStatements(
             this.operators.map(o => o[symbols.FMAKEHLIR](builder))
         );
-
-        this[symbols.ASSIGNED_NAME] = rootCtx.env.namer();
-        node[symbols.IS_CONSTRUCTED] = true;
-
-        return node;
     }
 
 };

@@ -1,6 +1,3 @@
-'use strict';
-require('babel/register')({stage: 0});
-
 
 import assert from 'assert';
 import child_process from 'child_process';
@@ -10,8 +7,8 @@ import path from 'path';
 import bitstring from 'bitstring';
 
 var compiler = require('../../src/compiler/compiler');
-var lexer = require('../../src/lexer').default;
-var parser = require('../../src/parser');
+import lexer from '../../src/lexer';
+import parser from '../../src/parser';
 
 
 function globEach(path_, ext, callback) {

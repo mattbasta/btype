@@ -67,6 +67,7 @@ export default class OperatorStatementNode extends BaseBlockNode {
         ctx.isFuncSet.add(assignedName);
 
         node[symbols.IS_FIRSTCLASS] = false;
+        node[symbols.ORIG_OPERATOR] = node.operator;
 
         var newCtx = new Context(builder.env, node, ctx, builder.privileged);
         paramNodes.forEach(pn => {

@@ -1,7 +1,3 @@
-'use strict';
-require('babel/register')({stage: 0});
-
-
 var assert = require('assert');
 
 var compareTree = require('./_utils').compareTree;
@@ -9,6 +5,9 @@ var _i = require('./_utils')._i;
 var _root = require('./_utils')._root;
 var _type = require('./_utils')._type;
 var node = require('./_utils').node;
+
+import lexer from '../../src/lexer';
+import parser from '../../src/parser';
 
 
 describe('Assignments and declaration parser', function() {
@@ -23,30 +22,6 @@ describe('Assignments and declaration parser', function() {
                     {
                         base: _i('x'),
                         value: _i('y')
-                    }
-                )
-            ])
-        );
-    });
-    it('should parse chained assignments', function() {
-        compareTree(
-            'x = y = z;',
-            _root([
-                node(
-                    'Assignment',
-                    0,
-                    10,
-                    {
-                        base: _i('x'),
-                        value: node(
-                            'Assignment',
-                            4,
-                            9,
-                            {
-                                base: _i('y'),
-                                value: _i('z')
-                            }
-                        )
                     }
                 )
             ])

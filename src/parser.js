@@ -27,7 +27,7 @@ function parseString(input) {
  * @param  {Lexer} lex
  * @return {*} The parsed AST
  */
-module.exports = function parse(lex) {
+export default function parse(lex) {
     try {
         return new nodes.RootNode(
             parseStatements(lex, 'EOF', true),
@@ -389,8 +389,6 @@ function parseExpressionModifier(lex, base, precedence) {
     var peeked = lex.peek();
 
     switch (peeked.type) {
-        case '=':
-            return parseAssignment(lex, true, base);
         case 'as':
             return parseTypeCast(lex, base);
         case '(':
@@ -540,9 +538,8 @@ function parseType(lex, base, isAttribute) {
     if (!attributes.length && lex.peek().type === '.') {
         output = new nodes.SymbolNode(type.text, type.start, typeEnd.end);
 
-        var member;
         while (lex.accept('.')) {
-            member = lex.assert('identifier');
+            let member = lex.assert('identifier');
             output = new nodes.TypeMemberNode(output, member.text, [], output.start, member.end);
         }
 
@@ -566,8 +563,6 @@ function parseExpressionBase(lex) {
     // This function recursively accumulates tokens until the proper node
     // can be determined.
 
-    var peeked;
-    var temp;
     var base = lex.accept('func');
     // If the first token is `func`, we've got two options:
     // - Variable declaration: func<foo>:bar = ...
@@ -577,8 +572,7 @@ function parseExpressionBase(lex) {
         return parseFunctionDeclaration(lex, base);
     }
 
-    peeked = lex.peek();
-
+    var peeked = lex.peek();
     // Another option is a paren, which allows its contents to be any valid
     // expression:
     //   (foo as Bar).member = ...
@@ -591,7 +585,7 @@ function parseExpressionBase(lex) {
     // `var` and `const` are giveaways for a Declaration node.
     if (peeked.type === 'var' ||
         peeked.type === 'const') {
-        temp = lex.next();
+        let temp = lex.next();
         return parseDeclaration(lex, null, temp.start, temp.type === 'const');
     }
 
@@ -601,9 +595,8 @@ function parseExpressionBase(lex) {
     function convertStackToTypeMember(stack) {
         var bottomToken = stack.shift();
         var bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
-        var token;
         while (stack.length) {
-            token = stack.shift();
+            let token = stack.shift();
             bottom = new nodes.TypeMemberNode(bottom, token.text, [], bottom.start, token.end);
         }
 
@@ -613,9 +606,8 @@ function parseExpressionBase(lex) {
     function convertStackToMember(stack) {
         var bottomToken = stack.shift();
         var bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
-        var token;
         while (stack.length) {
-            token = stack.shift();
+            let token = stack.shift();
             bottom = new nodes.MemberNode(bottom, token.text, bottom.start, token.end);
         }
 
@@ -630,24 +622,16 @@ function parseExpressionBase(lex) {
             return accumulate(base);
         }
         var peeked = lex.peek();
-        var temp;
-        var semicolon;
         if (peeked.type === ':') {
             // We've parsed the type of a declaration.
-            if (base.length === 1) {
-                temp = parseType(lex, base[0]);
-            } else {
-                temp = convertStackToTypeMember(base);
-            }
+            let temp = base.length === 1 ?
+                parseType(lex, base[0]) :
+                convertStackToTypeMember(base);
             lex.assert(':'); // for sanity and to pop
             return parseDeclaration(lex, temp);
         } else if (peeked.type === '<') {
             // We've encountered the attributes chunk of a typed identifier.
-            if (base.length === 1) {
-                temp = parseType(lex, base[0]);
-            } else {
-                temp = parseType(lex, convertStackToTypeMember(base));
-            }
+            let temp = parseType(lex, base.length === 1 ? base[0] ? convertStackToMember(base));
             lex.assert(':'); // for sanity and to pop
             return parseDeclaration(lex, temp);
         }
@@ -658,9 +642,9 @@ function parseExpressionBase(lex) {
             // declaration:
             //   foo.bar() ...
             //   foo[bar] = ...
-            temp = convertStackToMember(base);
+            let temp = convertStackToMember(base);
             temp = parseExpression(lex, temp, 0);
-            semicolon = lex.assert(';');
+            let semicolon = lex.assert(';');
             if (temp instanceof nodes.CallNode) {
                 temp = new nodes.CallStatementNode(temp, temp.start, semicolon.end);
             }
@@ -670,9 +654,9 @@ function parseExpressionBase(lex) {
         if (peeked.type === '=') {
             // We've hit an assignment:
             //   foo.bar.zap = ...
-            temp = convertStackToMember(base);
+            let temp = convertStackToMember(base);
             temp = parseAssignment(lex, true, temp);
-            semicolon = lex.assert(';');
+            let semicolon = lex.assert(';');
             temp.end = semicolon.end;
             return temp;
         }
@@ -823,23 +807,15 @@ function parseObjectDeclaration(lex) {
         lex.assert(';');
     }
 
-    var peekedType;
-    var constructorBase;
-    var memberType;
-    var methodSignature;
-    var methodBody;
-    var methodEndBrace;
     var endBrace;
-    var methodSelfParam;
-    var isPrivate;
-    var isFinal;
     while (!(endBrace = lex.accept('}'))) {
-        methodSelfParam = null;
+        let methodSelfParam = null;
 
-        isPrivate = lex.accept('private');
-        isFinal = lex.accept('final');
+        let isPrivate = lex.accept('private');
+        let isFinal = lex.accept('final');
 
-        if (constructorBase = lex.accept('new')) {
+        let constructorBase = lex.accept('new');
+        if (constructorBase) {
 
             if (isPrivate) {
                 throw new SyntaxError('Private constructors are not allowed');
@@ -856,7 +832,7 @@ function parseObjectDeclaration(lex) {
                 lex.assert(']');
             }
 
-            methodSignature = [];
+            let methodSignature = [];
             if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
                 methodSignature = parseSignature(lex, true, ')');
             }
@@ -871,7 +847,7 @@ function parseObjectDeclaration(lex) {
 
             lex.assert(')');
             lex.assert('{');
-            methodBody = parseStatements(lex, '}');
+            let methodBody = parseStatements(lex, '}');
             endBrace = lex.assert('}');
 
             constructor = new nodes.ObjectConstructorNode(
@@ -909,16 +885,13 @@ function parseObjectDeclaration(lex) {
             continue;
         }
 
-        peekedType = lex.peek();
-        memberType = parseSymbol(lex);
+        let peekedType = lex.peek();
+        let memberType = parseSymbol(lex);
         if (lex.peek().text === ':' || lex.peek().text === '<') {
             memberType = parseTypedIdentifier(lex, peekedType);
         }
         if (members.some(m => m.name === memberType.name) ||
             methods.some(m => m.name === memberType.name)) {
-            console.log(memberType);
-            console.log(members);
-            console.log(methods);
             throw new SyntaxError('Class "' + name.text + '" cannot declare "' + memberType.name + '" more than once.');
         }
 
@@ -941,7 +914,7 @@ function parseObjectDeclaration(lex) {
                 lex.assert(']');
             }
 
-            methodSignature = [];
+            let methodSignature = [];
             if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
                 methodSignature = parseSignature(lex, true, ')');
             }
@@ -961,8 +934,8 @@ function parseObjectDeclaration(lex) {
 
             endBrace = lex.assert(')');
             lex.assert('{');
-            methodBody = parseStatements(lex, '}');
-            methodEndBrace = lex.assert('}');
+            let methodBody = parseStatements(lex, '}');
+            let methodEndBrace = lex.assert('}');
 
             methods.push(
                 new nodes.ObjectMethodNode(
@@ -1009,12 +982,11 @@ function parseSwitchType(lex) {
     var expr = parseExpression(lex);
     lex.assert('{');
 
-    var case_;
     var cases = [];
     var end;
     do {
-        case_ = parseSwitchTypeCase(lex);
-        cases.push(case_);
+        let c = parseSwitchTypeCase(lex);
+        cases.push(c);
     } while (!(end = lex.accept('}')));
 
     return new nodes.SwitchTypeNode(expr, cases, start.start, end.end);

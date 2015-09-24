@@ -1,11 +1,8 @@
-'use strict';
-require('babel/register')({stage: 0});
-
 
 var assert = require('assert');
 
-var lexer = require('../../src/lexer');
-var parser = require('../../src/parser');
+import lexer from '../../src/lexer';
+import parser from '../../src/parser';
 
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;

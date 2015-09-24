@@ -3,7 +3,7 @@ import assert from 'assert';
 import * as nodes from '../../src/astNodes';
 import lexer from '../../src/lexer';
 import token from '../../src/lexer';
-var parser = require('../../src/parser');
+import parser from '../../src/parser';
 
 exports.node = function node(name, start, end, params) {
     var x = new nodes[name + 'Node']();

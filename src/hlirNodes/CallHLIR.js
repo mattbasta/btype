@@ -11,10 +11,15 @@ export default class CallHLIR extends BaseExpressionHLIR {
 
     resolveType(ctx, expectedReturn) {
         var baseType = this.callee.resolveType(ctx);
-        if (baseType._type !== 'func') {
-            console.log(this.callee);
+        if (baseType._type !== 'func' &&
+            baseType._type !== '_foreign_curry') {
             throw this.TypeError('Cannot call non-func type: ' + baseType);
         }
+
+        if (baseType._type === '_foreign_curry') {
+            return baseType.getReturnType();
+        }
+
         if (baseType.args.length !== this.params.length) {
             throw this.TypeError('Cannot call func with wrong number of args: ' + baseType.args.length + ' != ' + this.params.length);
         }

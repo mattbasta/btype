@@ -1,7 +1,3 @@
-'use strict';
-require('babel/register')({stage: 0});
-
-
 import assert from 'assert';
 
 import lexer from '../src/lexer';

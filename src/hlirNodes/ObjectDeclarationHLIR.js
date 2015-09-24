@@ -5,13 +5,14 @@ import * as symbols from '../symbols';
 
 
 const TYPE_CACHE = Symbol();
+const ATTRIBUTES = Symbol();
 
 export default class ObjectDeclarationHLIR extends BaseHLIR {
 
     constructor(name, attributes, start, end) {
         super(start, end);
         this.name = name;
-        this.attributes = attributes;
+        this[ATTRIBUTES] = attributes;
 
         this.objConstructor = null;
         this.methods = [];

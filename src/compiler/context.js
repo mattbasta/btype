@@ -160,7 +160,7 @@ export class RootContext extends BaseContext {
         }
 
         var astNode = this.prototypes.get(typeName);
-        var hlirNode = astNode[symbols.FCONSTRUCT]();
+        var hlirNode = astNode[symbols.FCONSTRUCT](this, attributes);
 
         var type = hlirNode.resolveType(this);
 
@@ -171,10 +171,10 @@ export class RootContext extends BaseContext {
 
         // Mark each methods as having come from the cloned prototype.
         // This is used for visibility testing.
-        if (clonedProto.objConstructor) {
-            clonedProto.objConstructor.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
+        if (hlirNode.objConstructor) {
+            hlirNode.objConstructor.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         }
-        clonedProto.methods.forEach(m => {
+        hlirNode.methods.forEach(m => {
             m.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         });
 
@@ -183,6 +183,8 @@ export class RootContext extends BaseContext {
         type[symbols.ASSIGNED_NAME] = hlirNode[symbols.ASSIGNED_NAME];
         this.env.registerType(type[symbols.ASSIGNED_NAME], type, this);
         this.scope.body.push(hlirNode);
+
+        astNode.bindContents(hlirNode);
 
         return type;
     }
@@ -259,91 +261,4 @@ export class Context extends BaseContext {
         this.parent.resolvePrototype(...args);
     }
 
-};
-
-
-function generateContext(env, tree, filename, rootContext, privileged) {
-    if (!rootContext) {
-        rootContext = new Context(env, tree, null, privileged);
-        if (filename) {
-            rootContext.filename = filename;
-        }
-    }
-    var contexts = [rootContext];
-
-    // This is used to keep track of nested functions so that they can be
-    // processed after each context has been completely defined. This allows
-    // nested functions to access variables and functions declared lexically
-    // after themselves in the current scope.
-    var innerFunctions = [];
-
-    var operatorOverloads = [];
-
-    function preTraverseContext(node) {
-        if (!node) return false;
-        var assignedName;
-        var newContext;
-
-        node[symbols.CONTEXT] = contexts[0];
-        switch (node.type) {
-            case 'OperatorStatement':
-                if (operatorOverloads.indexOf(node) !== -1) {
-                    return false;
-                }
-                operatorOverloads.push(node);
-                return false;
-
-        }
-    }
-
-    function postTraverseContext(node) {
-    }
-
-    function doTraverse(tree) {
-        innerFunctions.unshift([]);
-        traverser.traverse(tree, preTraverseContext, postTraverseContext);
-        innerFunctions.shift().forEach(function contextInnerFunctionIterator(node) {
-            contexts.unshift(node[symbols.CONTEXT]);
-            doTraverse(node);
-            contexts.shift();
-        });
-    }
-    doTraverse(tree);
-
-    operatorOverloads.forEach(registerOperatorOverload);
-
-    function registerOperatorOverload(node) {
-        var leftType = node.left.getType(rootContext).flatTypeName();
-        if (!(leftType in rootContext.env.registeredOperators)) {
-            rootContext.env.registeredOperators[leftType] = {};
-        }
-        var rightType = node.right.getType(rootContext).flatTypeName();
-        if (!(rightType in rootContext.env.registeredOperators[leftType])) {
-            rootContext.env.registeredOperators[leftType][rightType] = {};
-        }
-
-        if (rootContext.env.registeredOperators[leftType][rightType][node.operator]) {
-            throw new Error('Cannot redeclare operator overload for ' +
-                '`' + leftType + ' ' + node.operator + ' ' + rightType + '`');
-        }
-
-        node[symbols.ASSIGNED_NAME] = rootContext.env.namer();
-
-        rootContext.env.registeredOperators[leftType][rightType][node.operator] = node[symbols.ASSIGNED_NAME];
-        rootContext.env.registeredOperatorReturns[node[symbols.ASSIGNED_NAME]] = node.returnType.getType(rootContext);
-
-        node.registerWithContext(node[symbols.CONTEXT], rootContext);
-
-        contexts.unshift(node[symbols.CONTEXT]);
-        doTraverse(node);
-        contexts.shift();
-
-        // TODO: Find a way to do this implicitly. It's only done because
-        // sometimes the node gets output twice.
-        if (rootContext.scope.body.indexOf(node) === -1) {
-            rootContext.scope.body.push(node);
-        }
-    }
-
-    return rootContext;
 };

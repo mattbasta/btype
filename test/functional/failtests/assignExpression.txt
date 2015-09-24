@@ -1,0 +1,4 @@
+SyntaxError: Unexpected token "=", expected "," at line 7 near " 2);
+}
+export main;
+" near line 7

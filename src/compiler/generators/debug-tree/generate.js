@@ -1,5 +1,7 @@
-module.exports = function(env) {
-    return env.included.map(function(i) {
-        return i.scope.toString();
-    }).join('\n');
+export default function generate(env) {
+    var output = '';
+    env.included.forEach(i => {
+        output += i.scope.toString();
+    });
+    return output;
 };

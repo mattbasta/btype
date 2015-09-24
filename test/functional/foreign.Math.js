@@ -1,7 +1,3 @@
-'use strict';
-require('babel/register')({stage: 0});
-
-
 var assert = require('assert');
 var child_process = require('child_process');
 var fs = require('fs');
@@ -9,7 +5,7 @@ var path = require('path');
 
 var compiler = require('../../src/compiler/compiler');
 import lexer from '../../src/lexer';
-var parser = require('../../src/parser');
+import parser from '../../src/parser';
 
 
 describe('foreign.Math module', function() {

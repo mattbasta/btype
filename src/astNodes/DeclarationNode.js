@@ -17,18 +17,15 @@ export default class DeclarationNode extends BaseStatementNode {
 
     pack(bitstr) {
         super.pack(bitstr);
-        bitstr.writebits(this.value ? 1 : 0, 1);
         bitstr.writebits(this.type ? 1 : 0, 1);
         if (this.type) this.type.pack(bitstr);
         this.packStr(bitstr, this.name);
-        if (this.value) this.value.pack(bitstr);
+        this.value.pack(bitstr);
     }
 
     traverse(cb) {
         cb(this.type, 'type');
-        if (this.value) {
-            cb(this.value, 'value');
-        }
+        cb(this.value, 'value');
     }
 
     toString() {
@@ -39,10 +36,8 @@ export default class DeclarationNode extends BaseStatementNode {
             out = 'var ';
         }
         out += this.name;
-        if (this.value) {
-            out += ' = ';
-            out += this.value.toString();
-        }
+        out += ' = ';
+        out += this.value.toString();
         out += ';';
         return out;
     }

@@ -1,0 +1,9 @@
+func foo(int:x) {
+    return x;
+}
+
+func main() {
+    int:i = 1;
+    foo(i = 2);
+}
+export main;

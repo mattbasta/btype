@@ -1,0 +1,6 @@
+func main() {
+    int:i = 1;
+    int:j = 2;
+    i = j = 3;
+}
+export main;

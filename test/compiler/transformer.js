@@ -1,13 +1,10 @@
-'use strict';
-require('babel/register')({stage: 0});
-
 
 var assert = require('assert');
 
 var context = require('../../src/compiler/context');
 import Environment from '../../src/compiler/environment';
 import lexer from '../../src/lexer';
-var parser = require('../../src/parser');
+import parser from '../../src/parser';
 var transformer = require('../../src/compiler/transformer');
 
 

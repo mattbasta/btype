@@ -1,6 +1,3 @@
-'use strict';
-require('babel/register')({stage: 0});
-
 
 var compareTree = require('./_utils').compareTree;
 var _i = require('./_utils')._i;
