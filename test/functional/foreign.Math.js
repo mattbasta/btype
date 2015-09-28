@@ -3,7 +3,7 @@ var child_process = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
-var compiler = require('../../src/compiler/compiler');
+import compiler from '../../src/compiler/compiler';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
 

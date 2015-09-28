@@ -6,7 +6,7 @@ import path from 'path';
 
 import bitstring from 'bitstring';
 
-var compiler = require('../../src/compiler/compiler');
+import compiler from '../../src/compiler/compiler';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
 

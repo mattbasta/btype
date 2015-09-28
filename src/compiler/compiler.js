@@ -1,7 +1,7 @@
 import Environment from './environment';
 
 
-function buildEnv(options) {
+export function buildEnv(options) {
     var env = new Environment(options.filename, options.config);
     var ctx = env.loadFile(options.filename, options.tree);
     env.markRequested(ctx);
@@ -13,9 +13,7 @@ function buildEnv(options) {
     return env;
 }
 
-module.exports = function compiler(options) {
+export default function compiler(options) {
     var env = buildEnv(options);
     return env.make(options.format || 'asmjs');
 };
-
-module.exports.buildEnv = buildEnv;

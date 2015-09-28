@@ -104,9 +104,13 @@ export default class BaseHLIR {
             if (key.startsWith('is')) return;
             if (Array.isArray(this[key])) {
                 out += key + ':\n';
-                this[key].forEach(e => {
-                    out += e.toString().split('\n').map(x => '    ' + x).join('\n') + '\n';
-                });
+                if (!this[key].length) {
+                    out += '    <empty>\n';
+                } else {
+                    this[key].forEach(e => {
+                        out += e.toString().split('\n').map(x => '    ' + x).join('\n') + '\n';
+                    });
+                }
             } else {
                 out += key + ': ' + this[key].toString() + '\n';
             }
@@ -114,7 +118,7 @@ export default class BaseHLIR {
 
         out = out.split('\n').map(line => '    ' + line).join('\n');
         out = this.asString() + '\n' + out;
-        return out;
+        return out.trim();
     }
 
     asString() {

@@ -57,7 +57,7 @@ function markFirstClassFunctions(context) {
 
             // If it's falsey, it means that it's a variable declaration of
             // type `func`, not a function declaration.
-            if (!node[symbols.REFCONTEXT].isFuncMap.has(node[symbols.REFNAME])) return false;
+            if (!node[symbols.REFCONTEXT].isFuncSet.has(node[symbols.REFNAME])) return false;
 
             node[symbols.REFCONTEXT].functionDeclarations.get(node[symbols.REFNAME])[symbols.IS_FIRSTCLASS] = true;
 
@@ -160,8 +160,8 @@ function processRoot(rootContext) {
         funcsToAppend.push(node);
 
         var funcType = node.resolveType(rootContext);
-        var freftype = new TypeHLIR('func', [], node.start, node.end);
-        freftype.forceType(funcType);
+        var frefType = new TypeHLIR('func', [], node.start, node.end);
+        frefType.forceType(funcType);
 
         var refSym = new SymbolHLIR(node.name || node[symbols.ASSIGNED_NAME], node.start, node.end);
         refSym[symbols.REFCONTEXT] = rootContext;
