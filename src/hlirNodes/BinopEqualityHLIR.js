@@ -1,8 +1,8 @@
-import BaseExpressionHLIR from './BaseExpressionHLIR';
+import BaseBinopHLIR from './BaseBinopHLIR';
 import {publicTypes} from '../compiler/types';
 
 
-export default class BinopEqualityHLIR extends BaseExpressionHLIR {
+export default class BinopEqualityHLIR extends BaseBinopHLIR {
 
     constructor(left, operator, right, start, end) {
         super(start, end);

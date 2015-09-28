@@ -96,4 +96,29 @@ export default class BaseHLIR {
         });
     }
 
+    toString() {
+        var out = '';
+        Object.keys(this).forEach(key => {
+            if (key === 'start' || key === 'end') return;
+            if (!this[key] || typeof this[key] !== 'object') return;
+            if (key.startsWith('is')) return;
+            if (Array.isArray(this[key])) {
+                out += key + ':\n';
+                this[key].forEach(e => {
+                    out += e.toString().split('\n').map(x => '    ' + x).join('\n') + '\n';
+                });
+            } else {
+                out += key + ': ' + this[key].toString() + '\n';
+            }
+        });
+
+        out = out.split('\n').map(line => '    ' + line).join('\n');
+        out = this.asString() + '\n' + out;
+        return out;
+    }
+
+    asString() {
+        return this.constructor.name + ' (' + this.start + ':' + this.end + ')';
+    }
+
 };

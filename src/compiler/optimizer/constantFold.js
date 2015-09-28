@@ -61,14 +61,12 @@ function foldBinop(node, ctx) {
     var rightTypeString = rightType.flatTypeName();
 
     // Test for operator overloading
-    if (env.registeredOperators[leftTypeString] &&
-        env.registeredOperators[leftTypeString][rightTypeString] &&
-        env.registeredOperators[leftTypeString][rightTypeString][node.operator]) return;
+    if (env.registeredOperators.has(leftTypeString) &&
+        env.registeredOperators.get(leftTypeString).has(rightTypeString) &&
+        env.registeredOperators.get(leftTypeString).get(rightTypeString).has(node.operator)) return;
 
-    var nodeLeftType = node.left.type;
     var nodeLeftBinop = BINOP_TYPES.has(node.left.constructor) !== -1;
     var nodeLeftBinopNotOverloaded = nodeLeftBinop && !node.left.isOverloaded(ctx);
-    var nodeRightType = node.right.type;
     var nodeRightBinop = BINOP_TYPES.has(node.right.constructor) !== -1;
     var nodeRightBinopNotOverloaded = nodeRightBinop && !node.right.isOverloaded(ctx);
 
@@ -80,7 +78,7 @@ function foldBinop(node, ctx) {
             if (node.operator === 'or' && node.left.value) return () => node.right;
         }
 
-        if (nodeRightType === 'Literal') {
+        if (node.right instanceof LiteralHLIR) {
             // Avoid folding into a special floating point value
             if (node.operator === '/' && parseFloat(node.right.value) === 0) {
                 return () => node;
@@ -202,7 +200,9 @@ function uintRange(value) {
 }
 
 function combine(left, right, leftType, operator) {
-    // TODO: Pass a start and end here
+    function build(litType, value) {
+        return new LiteralHLIR(litType, value, left.start, right.end);
+    }
 
     var leftParsed;
     var rightParsed;
@@ -212,82 +212,82 @@ function combine(left, right, leftType, operator) {
             leftParsed = parseInt(left.value, 10);
             rightParsed = parseInt(right.value, 10);
             switch (operator) {
-                case '+': return new LiteralHLIR('int', (leftParsed + rightParsed) + '', 0, 0);
-                case '-': return new LiteralHLIR('int', (leftParsed - rightParsed) + '', 0, 0);
-                case '*': return new LiteralHLIR('int', (leftParsed * rightParsed) + '', 0, 0);
-                case '/': return new LiteralHLIR('int', (leftParsed / rightParsed | 0) + '', 0, 0);
-                case '%': return new LiteralHLIR('int', (leftParsed % rightParsed) + '', 0, 0);
-                case '&': return new LiteralHLIR('int', (leftParsed & rightParsed) + '', 0, 0);
-                case '|': return new LiteralHLIR('int', (leftParsed | rightParsed) + '', 0, 0);
-                case '^': return new LiteralHLIR('int', (leftParsed ^ rightParsed) + '', 0, 0);
-                case '<<': return new LiteralHLIR('int', (leftParsed << rightParsed) + '', 0, 0);
-                case '>>': return new LiteralHLIR('int', (leftParsed >> rightParsed) + '', 0, 0);
-                case 'and': return new LiteralHLIR('bool', leftParsed !== 0 && rightParsed !== 0, 0, 0);
-                case 'or': return new LiteralHLIR('bool', leftParsed !== 0 || rightParsed !== 0, 0, 0);
-                case '<': return new LiteralHLIR('bool', leftParsed < rightParsed, 0, 0);
-                case '<=': return new LiteralHLIR('bool', leftParsed <= rightParsed, 0, 0);
-                case '>': return new LiteralHLIR('bool', leftParsed > rightParsed, 0, 0);
-                case '>=': return new LiteralHLIR('bool', leftParsed >= rightParsed, 0, 0);
-                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
-                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
+                case '+': return build('int', (leftParsed + rightParsed) + '');
+                case '-': return build('int', (leftParsed - rightParsed) + '');
+                case '*': return build('int', (leftParsed * rightParsed) + '');
+                case '/': return build('int', (leftParsed / rightParsed | 0) + '');
+                case '%': return build('int', (leftParsed % rightParsed) + '');
+                case '&': return build('int', (leftParsed & rightParsed) + '');
+                case '|': return build('int', (leftParsed | rightParsed) + '');
+                case '^': return build('int', (leftParsed ^ rightParsed) + '');
+                case '<<': return build('int', (leftParsed << rightParsed) + '');
+                case '>>': return build('int', (leftParsed >> rightParsed) + '');
+                case 'and': return build('bool', leftParsed !== 0 && rightParsed !== 0);
+                case 'or': return build('bool', leftParsed !== 0 || rightParsed !== 0);
+                case '<': return build('bool', leftParsed < rightParsed);
+                case '<=': return build('bool', leftParsed <= rightParsed);
+                case '>': return build('bool', leftParsed > rightParsed);
+                case '>=': return build('bool', leftParsed >= rightParsed);
+                case '==': return build('bool', leftParsed === rightParsed);
+                case '!=': return build('bool', leftParsed !== rightParsed);
             }
 
         case 'uint':
             leftParsed = parseInt(left.value, 10);
             rightParsed = parseInt(right.value, 10);
             switch (operator) {
-                case '+': return new LiteralHLIR('uint', uintRange(leftParsed + rightParsed) + '', 0, 0);
-                case '-': return new LiteralHLIR('uint', uintRange(leftParsed - rightParsed) + '', 0, 0);
-                case '*': return new LiteralHLIR('uint', uintRange(leftParsed * rightParsed) + '', 0, 0);
-                case '/': return new LiteralHLIR('uint', uintRange(leftParsed / rightParsed | 0) + '', 0, 0);
-                case '%': return new LiteralHLIR('uint', uintRange(leftParsed % rightParsed) + '', 0, 0);
-                case '&': return new LiteralHLIR('uint', uintRange(leftParsed & rightParsed) + '', 0, 0);
-                case '|': return new LiteralHLIR('uint', uintRange(leftParsed | rightParsed) + '', 0, 0);
-                case '^': return new LiteralHLIR('uint', uintRange(leftParsed ^ rightParsed) + '', 0, 0);
-                case '<<': return new LiteralHLIR('uint', uintRange(leftParsed << rightParsed) + '', 0, 0);
-                case '>>': return new LiteralHLIR('uint', uintRange(leftParsed >> rightParsed) + '', 0, 0);
-                case 'and': return new LiteralHLIR('bool', leftParsed !== 0 && rightParsed !== 0, 0, 0);
-                case 'or': return new LiteralHLIR('bool', leftParsed !== 0 || rightParsed !== 0, 0, 0);
-                case '<': return new LiteralHLIR('bool', leftParsed < rightParsed, 0, 0);
-                case '<=': return new LiteralHLIR('bool', leftParsed <= rightParsed, 0, 0);
-                case '>': return new LiteralHLIR('bool', leftParsed > rightParsed, 0, 0);
-                case '>=': return new LiteralHLIR('bool', leftParsed >= rightParsed, 0, 0);
-                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
-                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
+                case '+': return build('uint', uintRange(leftParsed + rightParsed) + '');
+                case '-': return build('uint', uintRange(leftParsed - rightParsed) + '');
+                case '*': return build('uint', uintRange(leftParsed * rightParsed) + '');
+                case '/': return build('uint', uintRange(leftParsed / rightParsed | 0) + '');
+                case '%': return build('uint', uintRange(leftParsed % rightParsed) + '');
+                case '&': return build('uint', uintRange(leftParsed & rightParsed) + '');
+                case '|': return build('uint', uintRange(leftParsed | rightParsed) + '');
+                case '^': return build('uint', uintRange(leftParsed ^ rightParsed) + '');
+                case '<<': return build('uint', uintRange(leftParsed << rightParsed) + '');
+                case '>>': return build('uint', uintRange(leftParsed >> rightParsed) + '');
+                case 'and': return build('bool', leftParsed !== 0 && rightParsed !== 0);
+                case 'or': return build('bool', leftParsed !== 0 || rightParsed !== 0);
+                case '<': return build('bool', leftParsed < rightParsed);
+                case '<=': return build('bool', leftParsed <= rightParsed);
+                case '>': return build('bool', leftParsed > rightParsed);
+                case '>=': return build('bool', leftParsed >= rightParsed);
+                case '==': return build('bool', leftParsed === rightParsed);
+                case '!=': return build('bool', leftParsed !== rightParsed);
             }
 
         case 'float':
             leftParsed = parseFloat(left.value);
             rightParsed = parseFloat(right.value);
             switch (operator) {
-                case '+': return new LiteralHLIR('float', (leftParsed + rightParsed) + '', 0, 0);
-                case '-': return new LiteralHLIR('float', (leftParsed - rightParsed) + '', 0, 0);
-                case '*': return new LiteralHLIR('float', (leftParsed * rightParsed) + '', 0, 0);
-                case '/': return new LiteralHLIR('float', (leftParsed / rightParsed) + '', 0, 0);
-                case '%': return new LiteralHLIR('float', (leftParsed % rightParsed) + '', 0, 0);
-                case 'and': return new LiteralHLIR('bool', leftParsed !== 0 && rightParsed !== 0, 0, 0);
-                case 'or': return new LiteralHLIR('bool', leftParsed !== 0 || rightParsed !== 0, 0, 0);
-                case '<': return new LiteralHLIR('bool', leftParsed < rightParsed, 0, 0);
-                case '<=': return new LiteralHLIR('bool', leftParsed <= rightParsed, 0, 0);
-                case '>': return new LiteralHLIR('bool', leftParsed > rightParsed, 0, 0);
-                case '>=': return new LiteralHLIR('bool', leftParsed >= rightParsed, 0, 0);
-                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
-                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
+                case '+': return build('float', (leftParsed + rightParsed) + '');
+                case '-': return build('float', (leftParsed - rightParsed) + '');
+                case '*': return build('float', (leftParsed * rightParsed) + '');
+                case '/': return build('float', (leftParsed / rightParsed) + '');
+                case '%': return build('float', (leftParsed % rightParsed) + '');
+                case 'and': return build('bool', leftParsed !== 0 && rightParsed !== 0);
+                case 'or': return build('bool', leftParsed !== 0 || rightParsed !== 0);
+                case '<': return build('bool', leftParsed < rightParsed);
+                case '<=': return build('bool', leftParsed <= rightParsed);
+                case '>': return build('bool', leftParsed > rightParsed);
+                case '>=': return build('bool', leftParsed >= rightParsed);
+                case '==': return build('bool', leftParsed === rightParsed);
+                case '!=': return build('bool', leftParsed !== rightParsed);
             }
 
         case 'bool':
             switch (operator) {
-                case 'and': return new LiteralHLIR('bool', left.value && right.value, 0, 0);
-                case 'or': return new LiteralHLIR('bool', left.value || right.value, 0, 0);
-                case '==': return new LiteralHLIR('bool', leftParsed === rightParsed, 0, 0);
-                case '!=': return new LiteralHLIR('bool', leftParsed !== rightParsed, 0, 0);
+                case 'and': return build('bool', left.value && right.value);
+                case 'or': return build('bool', left.value || right.value);
+                case '==': return build('bool', leftParsed === rightParsed);
+                case '!=': return build('bool', leftParsed !== rightParsed);
             }
 
         case 'str':
             switch (operator) {
-                case '+': return new LiteralHLIR('str', left.value + right.value, 0, 0);
-                case '==': return new LiteralHLIR('bool', left.value === right.value, 0, 0);
-                case '!=': return new LiteralHLIR('bool', left.value !== right.value, 0, 0);
+                case '+': return build('str', left.value + right.value);
+                case '==': return build('bool', left.value === right.value);
+                case '!=': return build('bool', left.value !== right.value);
             }
 
     }

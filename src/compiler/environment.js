@@ -234,4 +234,5 @@ export default class Environment {
         this.registeredStringLiterals.set(text, name);
         return name;
     }
-}
+
+};

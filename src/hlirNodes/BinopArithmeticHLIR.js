@@ -1,7 +1,7 @@
-import BaseExpressionHLIR from './BaseExpressionHLIR';
+import BaseBinopHLIR from './BaseBinopHLIR';
 
 
-export default class BinopArithmeticHLIR extends BaseExpressionHLIR {
+export default class BinopArithmeticHLIR extends BaseBinopHLIR {
 
     constructor(left, operator, right, start, end) {
         super(start, end);
