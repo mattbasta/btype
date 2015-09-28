@@ -1,4 +1,4 @@
-var utils = require('./_utils');
+import {memberSize} from './_utils';
 import * as symbols from '../../symbols';
 
 
@@ -30,7 +30,7 @@ export default class Struct {
         var offsets = {}; // TODO: make this a map?
         var i = 0;
         this.contentsTypeMap.forEach((value, key) => {
-            var size = utils.memberSize(value);
+            var size = memberSize(value);
             offsets[key] = i;
             i += size;
         });
@@ -41,7 +41,7 @@ export default class Struct {
         if (this[ORDERED_LAYOUT_CACHE]) return this[ORDERED_LAYOUT_CACHE];
         var keys = Array.from(this.contentsTypeMap.keys());
         keys.sort((a, b) => {
-            return utils.memberSize(this.contentsTypeMap.get(a)) < utils.memberSize(this.contentsTypeMap.get(b));
+            return memberSize(this.contentsTypeMap.get(a)) < memberSize(this.contentsTypeMap.get(b));
         });
         var order = keys.map(m => this.contentsTypeMap.get(m));
         return this[ORDERED_LAYOUT_CACHE] = order;
@@ -57,7 +57,7 @@ export default class Struct {
 
     getSize() {
         var sum = 0;
-        this.contentsTypeMap.forEach(v => sum += utils.memberSize(v));
+        this.contentsTypeMap.forEach(v => sum += memberSize(v));
         return sum;
     }
 

@@ -631,7 +631,7 @@ function parseExpressionBase(lex) {
             return parseDeclaration(lex, temp);
         } else if (peeked.type === '<') {
             // We've encountered the attributes chunk of a typed identifier.
-            let temp = parseType(lex, base.length === 1 ? base[0] ? convertStackToMember(base));
+            let temp = parseType(lex, base.length === 1 ? base[0] : convertStackToMember(base));
             lex.assert(':'); // for sanity and to pop
             return parseDeclaration(lex, temp);
         }

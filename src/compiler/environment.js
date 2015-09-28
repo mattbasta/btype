@@ -5,8 +5,8 @@ var argv = require('minimist')(process.argv.slice(2));
 
 import constantFold from './optimizer/constantFold';
 import RootContext from './context';
-var flattener = require('./flattener');
-var globalInit = require('./globalInit');
+import flatten from './flattener';
+import globalInit from './globalInit';
 import lexer from '../lexer';
 import Module from './types/Module';
 import NamerFactory from './namer';
@@ -97,7 +97,7 @@ export default class Environment {
         // Flatten lexical scope
         transform(ctx);
         // Flatten complex expressions
-        flattener(ctx);
+        flatten(ctx);
 
         // Move global statements to init functions.
         globalInit(ctx, this);

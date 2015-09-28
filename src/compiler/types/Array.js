@@ -1,4 +1,4 @@
-var utils = require('./_utils');
+import {memberSize} from './_utils';
 
 var types = require('../types');
 
@@ -12,7 +12,7 @@ Array_.prototype._type = 'array';
 Array_.prototype.subscript = function(index) {
     // We have an offset of 8 because primitives that take up eight bytes
     // need to be aligned to a multiple of 8 on the heap.
-    return 8 + index * utils.memberSize(this.contentType);
+    return 8 + index * memberSize(this.contentType);
 };
 
 Array_.prototype.getSize = function() {

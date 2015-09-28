@@ -9,7 +9,7 @@ describe('namer', function() {
         var n = namer();
         var data = new Set();
         for (var i = 0; i < 10000; i++) {
-            let name = n();g
+            let name = n();
             assert.ok(!data.has(name));
             data.add(name);
         }

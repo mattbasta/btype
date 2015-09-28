@@ -1,7 +1,7 @@
 
 var assert = require('assert');
 
-var context = require('../../src/compiler/context');
+import {Context} from '../../src/compiler/context';
 import Environment from '../../src/compiler/environment';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
@@ -9,8 +9,8 @@ var transformer = require('../../src/compiler/transformer');
 
 
 function getCtx(script, env) {
-    if (script instanceof Array) script = script.join('\n');
-    return context(
+    if (Array.isArray(script)) script = script.join('\n');
+    return Context(
         env || new Environment(),
         parser(lexer(script))
     );

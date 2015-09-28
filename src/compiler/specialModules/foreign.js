@@ -1,9 +1,9 @@
-import RootNode from '../../astNodes/RootNode';
-import lexer from '../../lexer';
-var parser = require('../../parser');
-var types = require('../types');
 import Func from '../types/Func';
+import lexer from '../../lexer';
+import parser from '../../parser';
+import RootNode from '../../astNodes/RootNode';
 import * as symbols from '../../symbols';
+import * as types from '../types';
 
 
 var MathRaw = [

@@ -1,4 +1,4 @@
-var utils = require('./_utils');
+import {memberSize} from './_utils';
 
 
 export default class Tuple {
@@ -23,7 +23,7 @@ export default class Tuple {
             if (i === index) {
                 return sum;
             }
-            sum += utils.memberSize(i);
+            sum += memberSize(i);
         }
         throw new TypeError('Invalid layout index: ' + index + ' in tuple ' + this.toString());
     }
@@ -42,7 +42,7 @@ export default class Tuple {
     getSize() {
         var sum = 0;
         for (var i = 0; i < this.contentsTypeArr.length; i++) {
-            sum += utils.memberSize(this.contentsTypeArr[i]);
+            sum += memberSize(this.contentsTypeArr[i]);
         }
         return sum;
     }
