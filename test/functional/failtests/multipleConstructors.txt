@@ -1,1 +1,5 @@
-SyntaxError: Cannot have multiple constructors in the same object declaration near line 3
+SyntaxError: Cannot have multiple constructors in the same object declaration
+2 |     new() {}
+3 |     new() {}
+  |       ^ (3:7)
+4 | }

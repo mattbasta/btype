@@ -35,7 +35,10 @@ export default function parse(lex) {
             lex.pointer
         );
     } catch (e) {
-        e.message += ' near line ' + lex.currentLine;
+        if (e instanceof SyntaxError && !e.isBTypeSyntaxError) {
+            e.message += '\n' +
+                lex.errorFormatter.getVerboseErrorAtIndex(lex.currentLine, lex.pointer);
+        }
         throw e;
     }
 };
@@ -281,15 +284,13 @@ function parseDeclaration(lex, type, start, isConst) {
         );
     }
 }
-function parseAssignment(lex, isExpression, base) {
-    if (base && base instanceof nodes.CallNode) {
-        throw new SyntaxError('Assignment to function call output');
+function parseAssignment(lex, base) {
+    if (!base) {
+        return parseExpressionBase(lex);
     }
 
-    if (!isExpression) {
-        var expr = parseExpression(lex, base);
-        expr.end = lex.assert(';').end;
-        return expr;
+    if (base && base instanceof nodes.CallNode) {
+        throw new SyntaxError('Assignment to function call output');
     }
 
     lex.assert('=');
@@ -655,7 +656,7 @@ function parseExpressionBase(lex) {
             // We've hit an assignment:
             //   foo.bar.zap = ...
             let temp = convertStackToMember(base);
-            temp = parseAssignment(lex, true, temp);
+            temp = parseAssignment(lex, temp);
             let semicolon = lex.assert(';');
             temp.end = semicolon.end;
             return temp;
@@ -1014,7 +1015,7 @@ function parseSwitchTypeCase(lex) {
  * @param  {bool}
  * @return {*}
  */
-function parseStatement(lex, isRoot) {
+function parseStatement(lex, isRoot = false) {
     return parseFunctionDeclaration(lex) ||
            isRoot && parseOperatorStatement(lex) ||
            isRoot && parseObjectDeclaration(lex) ||

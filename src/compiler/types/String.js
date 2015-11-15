@@ -25,7 +25,7 @@ export default class String {
 
     equals(x) {
         if (x instanceof Array_ && x.contentsType.equals(types.privateTypes.uint)) return true;
-        return x instanceof String_;
+        return x instanceof String;
     }
 
     isSubscriptable() {

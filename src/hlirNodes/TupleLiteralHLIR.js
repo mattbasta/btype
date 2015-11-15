@@ -25,6 +25,8 @@ export default class TupleLiteralHLIR extends BaseExpressionHLIR {
         if (expectedType && !myType.equals(expectedType)) {
             throw this.TypeError(myType + ' found where ' + expectedType + ' was expected');
         }
+
+        return myType;
     }
 
 };

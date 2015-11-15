@@ -87,7 +87,14 @@ export default class Environment {
 
         if (!tree) {
             let parser = require('../parser');
-            tree = parser(lexer(fs.readFileSync(filename).toString()));
+            try {
+                tree = parser(lexer(fs.readFileSync(filename).toString()));
+            } catch (e) {
+                if (e.isBTypeSyntaxError) {
+                    e.message += '\n' + filename + '\n';
+                }
+                throw e;
+            }
         }
 
         var rootNode = tree[symbols.FMAKEHLIR](this, privileged);

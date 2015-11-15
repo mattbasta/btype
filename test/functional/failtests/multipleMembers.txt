@@ -1,1 +1,5 @@
-SyntaxError: Class "foo" cannot declare "x" more than once. near line 3
+SyntaxError: Class "foo" cannot declare "x" more than once.
+2 |     int:x;
+3 |     int:x;
+  |         ^ (3:9)
+4 | }

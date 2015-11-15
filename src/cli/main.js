@@ -22,7 +22,7 @@ export default function(argv) {
     }
 
     if (argv._[0]) {
-        fs.readFile(argv._[0], function(err, data) {
+        fs.readFile(argv._[0], (err, data) => {
             if (err) {
                 console.error('Could not read file.');
                 console.error(err);
@@ -32,16 +32,13 @@ export default function(argv) {
             }
 
             processData(data, argv);
-
         });
     } else {
         let incomingData = '';
-        process.stdin.on('data', function(data) {
+        process.stdin.on('data', data => {
             incomingData += data;
         });
-        process.stdin.on('end', function() {
-            processData(incomingData, argv);
-        });
+        process.stdin.on('end', () => processData(incomingData, argv));
     }
 };
 

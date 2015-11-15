@@ -1,1 +1,5 @@
-SyntaxError: Operator overload for Foo of "+" must include Foo in its declaration. near line 5
+SyntaxError: Operator overload for Foo of "+" must include Foo in its declaration.
+4 |         return new Foo((left as int) + right);
+5 |     }
+  |     ^ (5:5)
+6 | }

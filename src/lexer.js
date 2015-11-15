@@ -1,3 +1,6 @@
+import ErrorFormatter from './errorFormatter';
+
+
 const TOKENS = [
     [/^(?:\r\n|\r|\n)/, null],
     [/^\s+/, null],
@@ -105,16 +108,18 @@ class Token {
     /**
      * @param {string} text  Text content of the token
      * @param {string} type  Token type
-     * @param {int} start Start position of token
-     * @param {int} end   End position of token
-     * @param {int} line  Line number of token
+     * @param {int} start   Start position of token
+     * @param {int} end     End position of token
+     * @param {int} line    Line number of token
+     * @param {int} column  Column number of token
      */
-    constructor(text, type, start, end, line) {
+    constructor(text, type, start, end, line, column) {
         this.text = text;
         this.type = type;
         this.start = start;
         this.end = end;
         this.line = line;
+        this.column = column;
 
         this.isToken = true;
     }
@@ -134,17 +139,29 @@ class Lexer {
      */
     constructor(text) {
         this.pointer = 0;
+        this.originalData = text;
+        this.lines = text.split(/\n/g);
         this.remainingData = text;
         this.currentLine = 1;
+
+        this.errorFormatter = new ErrorFormatter(this.lines);
 
         this.peeked = null;
     }
 
     /**
-     * Returns the next token from the stream
-     * @return {Token|null} The next token
+     * Gets the next token
+     * @return {Token|string} The next token
      */
-    readToken() {
+    next() {
+        if (this.peeked !== null) {
+            var tmp = this.peeked;
+            this.peeked = null;
+            return tmp;
+        }
+
+        if (!this.remainingData || !this.remainingData.trim()) return 'EOF';
+
         var match;
         var startPointer = this.pointer;
         for (var i = 0; i < TOKENS.length; i++) {
@@ -162,29 +179,22 @@ class Lexer {
                 startPointer = this.pointer;
                 continue;
             }
-            return new Token(match[0], TOKENS[i][1], startPointer, this.pointer, this.currentLine);
-        }
-        return null;
-    }
-
-    /**
-     * Gets the next token
-     * @return {Token|string} The next token
-     */
-    next() {
-        if (this.peeked !== null) {
-            var tmp = this.peeked;
-            this.peeked = null;
-            return tmp;
+            return new Token(
+                match[0],
+                TOKENS[i][1],
+                startPointer,
+                this.pointer,
+                this.currentLine,
+                this.errorFormatter.getColumn(startPointer)
+            );
         }
 
-        if (!this.remainingData || !this.remainingData.trim()) return 'EOF';
-        var token = this.readToken();
-        if (!token) {
-            if (!this.remainingData.trim()) return 'EOF';
-            throw new SyntaxError('Unknown token at line ' + this.currentLine + ' near "' + this.remainingData.substr(0, 20) + '"');
-        }
-        return token;
+        if (!this.remainingData.trim()) return 'EOF';
+
+        var snippet = this.errorFormatter.getVerboseErrorAtIndex(this.currentLine, startPointer);
+        throw this.SyntaxError(
+            `Unknown token\n${snippet}\n`
+        );
     }
 
     /**
@@ -223,15 +233,20 @@ class Lexer {
         var next = this.next();
         if (next === 'EOF') {
             if (tokenType !== 'EOF') {
-                throw new SyntaxError('Expected ' + tokenType + ' but reached the end of the file');
+                throw this.SyntaxError('Expected ' + tokenType + ' but reached the end of the file');
             }
         } else if (next.type !== tokenType) {
-            throw new SyntaxError(
-                'Unexpected token "' + next.type + '", expected "' + tokenType + '"' +
-                ' at line ' + this.currentLine + ' near "' +
-                this.remainingData.substr(0, 20) + '"');
+            let snippet = this.errorFormatter.getVerboseErrorAtIndex(this.currentLine, this.pointer);
+            throw this.SyntaxError(
+                `Unexpected token "${next.type}", expected "${tokenType}"\n${snippet}\n`);
         }
         return next;
+    }
+
+    SyntaxError(message) {
+        var out = new SyntaxError(message);
+        out.isBTypeSyntaxError = true;
+        return out;
     }
 
 }

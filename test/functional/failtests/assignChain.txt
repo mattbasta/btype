@@ -1,4 +1,6 @@
-SyntaxError: Unexpected token "=", expected ";" at line 4 near " 3;
-}
-export main;
-" near line 4
+SyntaxError: Unexpected token "=", expected ";"
+3 |     int:j = 2;
+4 |     i = j = 3;
+  |           ^ (4:11)
+5 | }
+

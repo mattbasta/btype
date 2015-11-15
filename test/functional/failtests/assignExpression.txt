@@ -1,4 +1,6 @@
-SyntaxError: Unexpected token "=", expected "," at line 7 near " 2);
-}
-export main;
-" near line 7
+SyntaxError: Unexpected token "=", expected ","
+6 |     int:i = 1;
+7 |     foo(i = 2);
+  |           ^ (7:11)
+8 | }
+

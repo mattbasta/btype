@@ -73,7 +73,12 @@ describe('Parity tests', function() {
             describe(btPath, function() {
 
                 describe('source transformations', function() {
-                    var parsed = parser(lexer(read));
+                    var parsed;
+                    try {
+                        parsed = parser(lexer(read));
+                    } catch (e) {
+                        e.message += `\n${btPath}\n`;
+                    }
 
                     it('should be able to use toString()', function() {
                         assert.ok(parsed.toString());

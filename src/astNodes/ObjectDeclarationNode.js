@@ -109,11 +109,11 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         if (!(node instanceof ObjectDeclarationHLIR)) {
             throw new TypeError('Attempting to bind to invalid HLIR node');
         }
+        var builder = node[BUILDER];
         if (!(builder instanceof ContextBuilder)) {
             throw new TypeError('Attempting to bind object declaration methods with invalid context builder');
         }
 
-        var builder = node[BUILDER];
         delete node[BUILDER];
 
         if (this.objConstructor) {
