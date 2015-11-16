@@ -3,7 +3,7 @@ var child_process = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
-import compiler from '../../src/compiler/compiler';
+import compiler, {buildEnv} from '../../src/compiler/compiler';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
 
@@ -53,7 +53,7 @@ describe('foreign.Math module', function() {
         var parsed;
         beforeEach(function() {
             parsed = parser(lexer(code));
-            var env = compiler.buildEnv({filename: 'test', tree: parsed});
+            var env = buildEnv({filename: 'test', tree: parsed});
             var mainFunc = env.requested.exports.get('main');
             var mainFuncDef = env.requested.functionDeclarations.get(mainFunc);
             mainReturnType = mainFuncDef.resolveType(env.requested).getReturnType().typeName;
