@@ -122,7 +122,7 @@ export default class BaseHLIR {
     }
 
     asString() {
-        return this.constructor.name + ' (' + this.start + ':' + this.end + ')';
+        return `${this.constructor.name} (${this.start}:${this.end})`;
     }
 
 };

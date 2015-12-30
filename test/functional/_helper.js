@@ -201,7 +201,7 @@ describe('Compile tests', function() {
                 it('compiles to JS', function compileTestBody() {
                     var parsed = parser(lexer(read));
                     var compiled = compiler({
-                        filename: 'test',
+                        filename: btPath,
                         tree: parsed,
                         format: 'js'
                     });
@@ -210,7 +210,7 @@ describe('Compile tests', function() {
                 it('compiles to Asm.js', function compileTestBody() {
                     var parsed = parser(lexer(read));
                     var compiled = compiler({
-                        filename: 'test',
+                        filename: btPath,
                         tree: parsed,
                         format: 'asmjs'
                     });
@@ -219,7 +219,7 @@ describe('Compile tests', function() {
                 it('compiles to LLVM IR', function compileTestBody() {
                     var parsed = parser(lexer(read));
                     var compiled = compiler({
-                        filename: 'test',
+                        filename: btPath,
                         tree: parsed,
                         format: 'llvmir'
                     });
@@ -228,7 +228,7 @@ describe('Compile tests', function() {
                 it('formats with debug-tree', function compileTestBody() {
                     var parsed = parser(lexer(read));
                     var compiled = compiler({
-                        filename: 'test',
+                        filename: btPath,
                         tree: parsed,
                         format: 'debug-tree'
                     });
@@ -257,7 +257,7 @@ describe('Failure tests', function() {
                 assert.throws(
                     function() {
                         compiler({
-                            filename: 'test',
+                            filename: btPath,
                             tree: parser(lexer(read)),
                             format: 'debug-tree',
                         });

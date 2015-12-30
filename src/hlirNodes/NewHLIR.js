@@ -30,7 +30,7 @@ export default class NewHLIR extends BaseExpressionHLIR {
                     var aType = func.params[i + 1].resolveType(func[symbols.CONTEXT]);
                     var pType = p.resolveType(ctx, aType);
                     if (!pType.equals(aType)) {
-                        throw this.TypeError('Constructor parameter (' + i + ') type mismatch: ' + pType + ' != ' + aType);
+                        throw this.TypeError(`Constructor parameter (${i}) type mismatch: ${pType} != ${aType}`);
                     }
                 });
 
@@ -40,7 +40,7 @@ export default class NewHLIR extends BaseExpressionHLIR {
         }
 
         if (expectedReturn && !expectedReturn.equals(baseType)) {
-            throw this.TypeError('Mismatched return type: ' + expectedReturn + ' != ' + baseType);
+            throw this.TypeError(`Mismatched return type: ${expectedReturn} != ${baseType}`);
         }
 
         return baseType;

@@ -16,6 +16,8 @@ export default class BinopArithmeticHLIR extends BaseBinopHLIR {
         if (!leftType.equals(rightType)) {
             throw new TypeError('Cannot convert ' + leftType.toString() + ' to ' + rightType.toString() + ' for "' + this.operator + '"');
         }
+
+        return ctx.env.getOverloadReturnType(leftType, rightType, this.operator) || leftType;
     }
 
 };

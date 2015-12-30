@@ -1,19 +1,4 @@
-import AssignmentHLIR from '../hlirNodes/AssignmentHLIR';
-import BinopArithmeticHLIR from '../hlirNodes/BinopArithmeticHLIR';
-import BinopBitwiseHLIR from '../hlirNodes/BinopBitwiseHLIR';
-import BinopEqualityHLIR from '../hlirNodes/BinopEqualityHLIR';
-import BinopLogicalHLIR from '../hlirNodes/BinopLogicalHLIR';
-import CallHLIR from '../hlirNodes/CallHLIR';
-import DeclarationHLIR from '../hlirNodes/DeclarationHLIR';
-import FunctionHLIR from '../hlirNodes/FunctionHLIR';
-import IfHLIR from '../hlirNodes/IfHLIR';
-import LiteralHLIR from '../hlirNodes/LiteralHLIR';
-import MemberHLIR from '../hlirNodes/MemberHLIR';
-import NegateHLIR from '../hlirNodes/NegateHLIR';
-import NewHLIR from '../hlirNodes/NewHLIR';
-import ReturnHLIR from '../hlirNodes/ReturnHLIR';
-import SymbolHLIR from '../hlirNodes/SymbolHLIR';
-import TypeHLIR from '../hlirNodes/TypeHLIR';
+import * as hlirNodes from '../hlirNodes';
 import * as symbols from '../symbols';
 
 
@@ -58,12 +43,12 @@ function upliftExpressionsFromBody(ctx, body) {
             value = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
         }
 
-        var type = new TypeHLIR(type.typeName, []);
+        var type = new hlirNodes.TypeHLIR(type.typeName, []);
         type.forceType(type);
-        var decl = new DeclarationHLIR(
+        var decl = new hlirNodes.DeclarationHLIR(
             type,
             name,
-            new LiteralHLIR(litType, value)
+            new hlirNodes.LiteralHLIR(litType, value)
         );
         decl[symbols.CONTEXT] = ctx;
         decl[symbols.ASSIGNED_NAME] = name;
@@ -71,7 +56,7 @@ function upliftExpressionsFromBody(ctx, body) {
     }
 
     function getDeclReference(decl, type) {
-        var sym = new SymbolHLIR(decl.identifier);
+        var sym = new hlirNodes.SymbolHLIR(decl.identifier);
         sym[symbols.REFCONTEXT] = ctx;
         sym[symbols.REFTYPE] = type;
         sym[symbols.REFNAME] = decl[symbols.ASSIGNED_NAME];
@@ -90,39 +75,39 @@ function upliftExpressionsFromBody(ctx, body) {
 
             var i;
             var temp;
-            if (node instanceof BinopLogicalHLIR) {
+            if (node instanceof hlirNodes.BinopLogicalHLIR) {
 
                 if (stack.length === 1 &&
-                    current instanceof AssignmentHLIR &&
+                    current instanceof hlirNodes.AssignmentHLIR &&
                     node === current.value) {
                     return;
                 }
 
                 for (i = 0; i < stack.length; i++) {
                     let stackItem = stack[i];
-                    if (stackItem instanceof BinopLogicalHLIR ||
-                        stackItem instanceof BinopEqualityHLIR ||
-                        stackItem instanceof BinopBitwiseHLIR ||
-                        stackItem instanceof BinopArithmeticHLIR) {
+                    if (stackItem instanceof hlirNodes.BinopLogicalHLIR ||
+                        stackItem instanceof hlirNodes.BinopEqualityHLIR ||
+                        stackItem instanceof hlirNodes.BinopBitwiseHLIR ||
+                        stackItem instanceof hlirNodes.BinopArithmeticHLIR) {
                         stackItem[SHOULD_FLATTEN] = true;
                     }
 
                     if (i + 1 >= stack.length) continue;
-                    if (stackItem instanceof CallHLIR &&
+                    if (stackItem instanceof hlirNodes.CallHLIR &&
                         stackItem !== stack[i + 1].callee) {
                         stack[i + 1][SHOULD_FLATTEN_CHILDREN] = true;
                     }
                 }
 
-            } else if (stack[1] && stack[1] instanceof ReturnHLIR &&
-                !(node instanceof LiteralHLIR && SAFELITERALTYPES.has(node.litType)) &&
-                !(node instanceof SymbolHLIR) &&
-                !(node instanceof NewHLIR)) {
+            } else if (stack[1] && stack[1] instanceof hlirNodes.ReturnHLIR &&
+                !(node instanceof hlirNodes.LiteralHLIR && SAFELITERALTYPES.has(node.litType)) &&
+                !(node instanceof hlirNodes.SymbolHLIR) &&
+                !(node instanceof hlirNodes.NewHLIR)) {
                 node[SHOULD_FLATTEN] = true;
 
-            } else if (stack[1] && stack[1] instanceof MemberHLIR &&
+            } else if (stack[1] && stack[1] instanceof hlirNodes.MemberHLIR &&
                 stack[1].resolveType(ctx)[symbols.IS_METHOD] &&
-                (!stack[2] || stack[2] instanceof CallHLIR)) {
+                (!stack[2] || stack[2] instanceof hlirNodes.CallHLIR)) {
                 stack[1][SHOULD_FLATTEN] = true;
             }
 
@@ -143,11 +128,16 @@ function upliftExpressionsFromBody(ctx, body) {
 
             var type = node.resolveType(ctx);
             var decl = getTempDecl(type);
-            ctx.addVar(decl.identifier, type, decl[symbols.ASSIGNED_NAME]);
+            ctx.addVar(decl.name, type, decl[symbols.ASSIGNED_NAME]);
             injectBefore(decl);
 
             if (type._type !== 'primitive' || node.value) {
-                injectBefore(new AssignmentHLIR(getDeclReference(decl, type), node));
+                injectBefore(
+                    new hlirNodes.AssignmentHLIR(
+                        getDeclReference(decl, type),
+                        node
+                    )
+                );
             }
 
             return getDeclReference(decl, type);
@@ -159,7 +149,7 @@ function upliftExpressionsFromBody(ctx, body) {
 }
 
 function isNodeBoundary(node, member) {
-    return node instanceof FunctionHLIR ||
+    return node instanceof hlirNodes.FunctionHLIR ||
         member === 'consequent' ||
         member === 'alternate' ||
         member === 'body';
@@ -184,21 +174,22 @@ function convertLogicalBinops(body) {
 
     for (var i = 0; i < body.length; i++) {
         let current = body[i];
-        if (!(current instanceof AssignmentHLIR) || !(current.value instanceof BinopLogicalHLIR)) continue;
+        if (!(current instanceof hlirNodes.AssignmentHLIR) ||
+            !(current.value instanceof hlirNodes.BinopLogicalHLIR)) {
+            continue;
+        }
 
         // Put the correct condition in the conditional
         if (current.value.operator === 'and') {
             condition = current.base;
         } else {
-            condition = new NegateHLIR(current.base, current.base.start, current.base.end);
+            condition = new hlirNodes.NegateHLIR(current.base, current.base.start, current.base.end);
         }
 
         // Create the correct conditional
-        conditional = new IfHLIR(
+        conditional = new hlirNodes.IfHLIR(
             condition,
-            [
-                new AssignmentHLIR(current.base, current.value.right)
-            ],
+            [new hlirNodes.AssignmentHLIR(current.base, current.value.right)],
             null,
             current.start,
             current.end

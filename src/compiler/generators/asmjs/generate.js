@@ -122,7 +122,7 @@ function registerAllUsedMethods(env) {
 }
 
 
-module.exports = function generate(env, ENV_VARS) {
+export default function generate(env, ENV_VARS) {
 
     registerAllUsedMethods(env);
 

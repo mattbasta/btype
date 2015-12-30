@@ -31,7 +31,7 @@ import SymbolNode from './astNodes/SymbolNode';
 import TupleLiteralNode from './astNodes/TupleLiteralNode';
 import TypeCastNode from './astNodes/TypeCastNode';
 import TypedIdentifierNode from './astNodes/TypedIdentifierNode';
-import TypeMemberNode from './astNodes/TypeNode';
+import TypeMemberNode from './astNodes/TypeMemberNode';
 import TypeNode from './astNodes/TypeNode';
 import UnaryNode from './astNodes/UnaryNode';
 import WhileNode from './astNodes/WhileNode';

@@ -1,10 +1,8 @@
 import BaseBlockHLIR from './BaseBlockHLIR';
 import BaseHLIR from './BaseHLIR';
-import Struct from '../compiler/types/Struct';
 import * as symbols from '../symbols';
 
 
-const TYPE_CACHE = Symbol();
 const ATTRIBUTES = Symbol();
 
 export default class ObjectDeclarationHLIR extends BaseHLIR {
@@ -24,12 +22,12 @@ export default class ObjectDeclarationHLIR extends BaseHLIR {
         this.objConstructor = objConstructor;
     }
 
-    setMethods(methods) {
-        this.methods = methods;
-    }
-
     setMembers(members) {
         this.members = members;
+    }
+
+    setMethods(methods) {
+        this.methods = methods;
     }
 
     setOperatorStatements(operatorStatements) {
@@ -38,33 +36,7 @@ export default class ObjectDeclarationHLIR extends BaseHLIR {
 
 
     resolveType(ctx) {
-        if (this[TYPE_CACHE]) {
-            return this[TYPE_CACHE];
-        }
-        this.settleTypes(ctx);
-
-        var typeMap = new Map();
-        var type = new Struct(this.name, typeMap);
-        type[symbols.ASSIGNED_NAME] = this[symbols.ASSIGNED_NAME];
-
-        this.members.forEach(m => {
-            typeMap.set(m.name, m.resolveType(ctx));
-            if (m.isPrivate) type.privateMembers.add(m.name);
-            if (m.isFinal) type.finalMembers.add(m.name);
-        });
-
-        if (this.objConstructor) {
-            type.objConstructor = this.objConstructor[symbols.ASSIGNED_NAME];
-            if (this.objConstructor[symbols.IS_FINAL]) type.finalMembers.add('new');
-        }
-
-        this.methods.forEach(m => {
-            type.methods.set(m.name, m[symbols.ASSIGNED_NAME]);
-            if (m.isPrivate) type.privateMembers.add(m.name);
-            if (m.isFinal) type.finalMembers.add(m.name);
-        });
-
-        return this[TYPE_CACHE] = type;
+        throw new Exception('Use Context.resolvePrototype instead.');
     }
 
     settleTypes(ctx) {

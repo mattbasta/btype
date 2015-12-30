@@ -61,6 +61,9 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
+        if (this[IS_MADE]) {
+            throw new Error('Object instance constructed as HLIR more than once.');
+        }
         builder.peekCtx().registerPrototype(this.name, this);
         this[IS_MADE] = true;
         return [];
@@ -83,7 +86,7 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
 
         var mappedAttributes = new Map();
         this.attributes.forEach((a, i) => {
-            mappedAttributes.set(a, attributes[i]);
+            mappedAttributes.set(a.name, attributes[i]);
         });
 
         var node = new ObjectDeclarationHLIR(this.name, mappedAttributes);
@@ -99,8 +102,13 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         });
 
         node[symbols.ASSIGNED_NAME] = rootCtx.env.namer();
+        node[symbols.CONTEXT] = ctx;
         node[symbols.IS_CONSTRUCTED] = true;
         node[BUILDER] = builder;
+
+        node.setMembers(
+            this.members.map(m => m[symbols.FMAKEHLIR](builder))
+        );
 
         return node;
     }
@@ -116,20 +124,25 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
 
         delete node[BUILDER];
 
+        const constructionTasks = new Set();
+
         if (this.objConstructor) {
-            node.setConstructor(
-                this.objConstructor[symbols.FMAKEHLIR](builder)
-            );
+            let hlir = this.objConstructor[symbols.FMAKEHLIR](builder);
+            node.setConstructor(hlir);
+            constructionTasks.add(() => this.objConstructor[symbols.FCONSTRUCT](builder, hlir));
         }
         node.setMethods(
-            this.methods.map(m => m[symbols.FMAKEHLIR](builder))
-        );
-        node.setMembers(
-            this.members.map(m => m[symbols.FMAKEHLIR](builder))
+            this.methods.map(m => {
+                var hlir = m[symbols.FMAKEHLIR](builder);
+                constructionTasks.add(() => m[symbols.FCONSTRUCT](builder, hlir));
+                return hlir;
+            })
         );
         node.setOperatorStatements(
             this.operators.map(o => o[symbols.FMAKEHLIR](builder))
         );
+
+        return constructionTasks;
     }
 
 };

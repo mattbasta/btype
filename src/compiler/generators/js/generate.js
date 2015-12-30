@@ -138,7 +138,7 @@ function typeTranslate(type, context) {
     }
 }
 
-module.exports = function generate(env, ENV_VARS) {
+export default function generate(env, ENV_VARS) {
 
     var body = '';
 

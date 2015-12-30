@@ -782,7 +782,9 @@ function parseObjectDeclaration(lex) {
                 throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
             }
 
-            attributes.push(new nodes.TypeNode(attrIdent, null, ident.start, ident.end));
+            attributes.push(
+                new nodes.TypeNode(attrIdent, null, ident.start, ident.end)
+            );
 
             if (lex.accept('>')) {
                 break;
@@ -797,16 +799,6 @@ function parseObjectDeclaration(lex) {
     var members = [];
     var methods = [];
     var operatorStatements = [];
-
-    while (lex.accept('with')) {
-        var attrIdent = lex.assert('identifier').text;
-        if (attributes.indexOf(attrIdent) !== -1) {
-            throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
-        }
-
-        attributes.push(attrIdent);
-        lex.assert(';');
-    }
 
     var endBrace;
     while (!(endBrace = lex.accept('}'))) {
@@ -839,7 +831,12 @@ function parseObjectDeclaration(lex) {
             }
             methodSignature.unshift(
                 methodSelfParam || new nodes.TypedIdentifierNode(
-                    new nodes.TypeNode(name.text, [], 0, 0),
+                    new nodes.TypeNode(
+                        name.text,
+                        attributes,
+                        0,
+                        0
+                    ),
                     'self',
                     0,
                     0
@@ -867,8 +864,7 @@ function parseObjectDeclaration(lex) {
             if (tempOpStmt.left.type.name !== name.text &&
                 tempOpStmt.right.type.name !== name.text) {
                 throw new SyntaxError(
-                    'Operator overload for ' + name.text + ' of "' + tempOpStmt.operator +
-                    '" must include ' + name.text + ' in its declaration.'
+                    `Operator overload for ${name.text} of "${tempOpStmt.operator}" must include ${name.text} in its declaration`
                 );
             }
 
@@ -893,7 +889,7 @@ function parseObjectDeclaration(lex) {
         }
         if (members.some(m => m.name === memberType.name) ||
             methods.some(m => m.name === memberType.name)) {
-            throw new SyntaxError('Class "' + name.text + '" cannot declare "' + memberType.name + '" more than once.');
+            throw new SyntaxError(`Class "${name.text}" cannot declare "${memberType.name}" more than once.`);
         }
 
         if (memberType instanceof nodes.TypedIdentifierNode && lex.accept(';')) {
@@ -923,7 +919,7 @@ function parseObjectDeclaration(lex) {
                 methodSelfParam || new nodes.TypedIdentifierNode(
                     new nodes.TypeNode(
                         name.text,
-                        attributes.map(a => new nodes.TypeNode(a, [], 0, 0)),
+                        attributes,
                         0,
                         0
                     ),

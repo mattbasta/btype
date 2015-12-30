@@ -11,7 +11,7 @@ export default class BinopEqualityHLIR extends BaseBinopHLIR {
         this.right = right;
     }
 
-    resolveType() {
+    resolveType(ctx) {
         var leftType = this.left.resolveType(ctx);
         var rightType = this.right.resolveType(ctx);
         if (!leftType.equals(rightType)) {

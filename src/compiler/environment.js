@@ -80,13 +80,26 @@ export default class Environment {
     }
 
 
-    loadFile(filename, tree, privileged) {
+    loadFile(filename, ...args) {
+        try {
+            return this.loadFileInner(filename, ...args);
+        } catch (e) {
+            throw e;
+            throw new e.constructor(
+                `${e.message} (${filename})`,
+                e.filename,
+                e.lineNumber
+            );
+        }
+    }
+
+    loadFileInner(filename, tree, privileged) {
         if (this.moduleCache.has(filename)) {
             return this.moduleCache.get(filename);
         }
 
         if (!tree) {
-            let parser = require('../parser');
+            let parser = require('../parser').default;
             try {
                 tree = parser(lexer(fs.readFileSync(filename).toString()));
             } catch (e) {
@@ -220,7 +233,7 @@ export default class Environment {
             throw new Error('No context was requested for export.');
         }
 
-        return require('./generators/' + outputLanguage + '/generate')(this, ENV_VARS);
+        return require('./generators/' + outputLanguage + '/generate').default(this, ENV_VARS);
     }
 
     findFunctionByAssignedName(assignedName) {
@@ -240,6 +253,49 @@ export default class Environment {
         var name = this.namer();
         this.registeredStringLiterals.set(text, name);
         return name;
+    }
+
+    getOverloadReturnType(leftType, rightType, operator) {
+        var leftTypeName = leftType.flatTypeName();
+        if (!this.registeredOperators.has(leftTypeName)) {
+            return null;
+        }
+        var rightTypeName = rightType.flatTypeName();
+        if (!this.registeredOperators.get(leftTypeName).has(rightTypeName)) {
+            return null;
+        }
+
+        if (!this.registeredOperators.get(leftTypeName).get(rightTypeName).has(operator)) {
+            return null;
+        }
+
+        var funcName = this.registeredOperators.get(leftTypeName).get(rightTypeName).get(operator);
+        return this.registeredOperatorReturns.get(funcName);
+    }
+
+    setOverload(leftType, rightType, operator, assignedName, returnType) {
+        var temp;
+
+        var leftTypeName = leftType.flatTypeName();
+        if (!this.registeredOperators.has(leftTypeName)) {
+            this.registeredOperators.set(leftTypeName, new Map());
+        }
+        temp = this.registeredOperators.get(leftTypeName);
+
+        var rightTypeName = rightType.flatTypeName();
+        if (!temp.has(rightTypeName)) {
+            temp.set(rightTypeName, new Map());
+        }
+        temp = temp.get(rightTypeName);
+
+        if (temp.has(operator)) {
+            throw new TypeError(
+                `Cannot redeclare operator overload for ${leftType.toString()} ${operator} ${rightType.toString()}`
+            );
+        }
+
+        temp.set(operator, assignedName);
+        this.registeredOperatorReturns.set(assignedName, returnType);
     }
 
 };

@@ -27,22 +27,21 @@ export default class ExportNode extends BaseStatementNode {
 
     [symbols.FMAKEHLIR](builder) {
         var node = new ExportHLIR(this.value, this.start, this.end);
+        var thisCtx = builder.peekCtx();
 
-        var ctx;
-        var refName;
-        try {
-            ctx = builder.peekCtx().lookupVar(this.value);
-            refName = ctx.nameMap.get(this.value);
-            node[symbols.ASSIGNED_NAME] = refName;
-            ctx.exports.set(this.value, refName);
-        } catch (e) {
-            if (!builder.peekCtx().prototypes.has(this.value)) {
-                throw new ReferenceError('Undefined function or type "' + this.value + '" being exported');
+        if (!thisCtx.hasVar(this.value)) {
+            if (!thisCtx.prototypes.has(this.value)) {
+                throw new ReferenceError(`Undefined function or type "${this.value}" being exported`);
             }
-
-            throw new Error('no idea if this works');
-            node[symbols.ASSIGNED_NAME] = builder.peekCtx().exportPrototypes.set(this.value, refName);
+            let refName = thisCtx.typeNameMap.get(this.value);
+            node[symbols.ASSIGNED_NAME] = thisCtx.exportPrototypes.set(this.value, refName);
+            return node;
         }
+
+        var varCtx = thisCtx.lookupVar(this.value);
+        let refName = varCtx.nameMap.get(this.value);
+        node[symbols.ASSIGNED_NAME] = refName;
+        varCtx.exports.set(this.value, refName);
 
         return node;
     }

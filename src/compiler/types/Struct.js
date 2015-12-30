@@ -21,7 +21,6 @@ export default class Struct {
         // facilitate lazily constructed structs, which are necessary for self-
         // referencing and cyclic type dependencies.
 
-
         this._type = 'struct';
     }
 
@@ -80,8 +79,15 @@ export default class Struct {
         return true;
     }
 
-    toString() {
-        return this.typeName;
+    toString(verbose = false) {
+        if (!verbose) {
+            return this.typeName;
+        }
+        var out = this.typeName;
+        this.contentsTypeMap.forEach((k, v) => {
+            out += `\n  ${k}: ${v.toString(true)}`;
+        });
+        return out;
     }
 
     flatTypeName() {
@@ -91,7 +97,7 @@ export default class Struct {
         return 'struct$' + this[symbols.ASSIGNED_NAME];
     }
 
-    hasMethod() {
+    hasMethod(name) {
         return this.methods.has(name);
     }
 
@@ -100,7 +106,8 @@ export default class Struct {
     }
 
     getMethodType(name, ctx) {
-        var temp = ctx.lookupFunctionByName(this.getMethod(name)).resolveType(ctx);
+        var method = this.getMethod(name);
+        var temp = ctx.lookupFunctionByName(method).resolveType(ctx);
         temp[symbols.IS_METHOD] = true;
         return temp;
     }

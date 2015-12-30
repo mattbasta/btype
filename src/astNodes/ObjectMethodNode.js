@@ -58,4 +58,8 @@ export default class ObjectMethodNode extends BaseBlockNode {
         return node;
     }
 
+    [symbols.FCONSTRUCT](...args) {
+        FunctionNode.prototype[symbols.FCONSTRUCT].apply(this, args);
+    }
+
 };

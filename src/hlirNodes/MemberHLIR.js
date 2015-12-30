@@ -16,7 +16,7 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         }
 
         if (!baseType.hasMember(this.child)) {
-            throw this.TypeError('Member not found for type "' + baseType + '": ' + this.child);
+            throw this.TypeError(`Member not found for type "${baseType}": ${this.child}`);
         }
 
         return baseType.getMemberType(this.child);

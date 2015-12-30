@@ -28,7 +28,7 @@ export default function constantFold(ctx) {
         true, // true for pretraversal
         node => {
             if (node instanceof FunctionHLIR) {
-                ctxStack.unshift(node.__context);
+                ctxStack.unshift(node[symbols.CONTEXT]);
             } else if (node instanceof ObjectDeclarationHLIR && !node[symbols.IS_CONSTRUCTED]) {
                 blocked++;
             }
@@ -57,17 +57,12 @@ function foldBinop(node, ctx) {
     // Ignore literal nulls.
     if (leftType.typeName === 'null') return;
 
-    var leftTypeString = leftType.flatTypeName();
-    var rightTypeString = rightType.flatTypeName();
-
     // Test for operator overloading
-    if (env.registeredOperators.has(leftTypeString) &&
-        env.registeredOperators.get(leftTypeString).has(rightTypeString) &&
-        env.registeredOperators.get(leftTypeString).get(rightTypeString).has(node.operator)) return;
+    if (env.getOverloadReturnType(leftType, rightType, node.operator) !== null) return;
 
-    var nodeLeftBinop = BINOP_TYPES.has(node.left.constructor) !== -1;
+    var nodeLeftBinop = BINOP_TYPES.has(node.left.constructor);
     var nodeLeftBinopNotOverloaded = nodeLeftBinop && !node.left.isOverloaded(ctx);
-    var nodeRightBinop = BINOP_TYPES.has(node.right.constructor) !== -1;
+    var nodeRightBinop = BINOP_TYPES.has(node.right.constructor);
     var nodeRightBinopNotOverloaded = nodeRightBinop && !node.right.isOverloaded(ctx);
 
     if (node.left instanceof LiteralHLIR) {

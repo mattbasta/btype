@@ -7,6 +7,10 @@ export default class BaseNode {
         this.end = end;
     }
 
+    get TypeError() {
+        return error => new TypeError(error + ' (' + this.start + ':' + this.end + ')');
+    }
+
     traverse() {
         throw new Error('Not implemented');
     }

@@ -1,4 +1,5 @@
 import BaseExpressionHLIR from './BaseExpressionHLIR';
+import * as symbols from '../symbols';
 
 
 export default class CallHLIR extends BaseExpressionHLIR {
@@ -20,7 +21,12 @@ export default class CallHLIR extends BaseExpressionHLIR {
             return baseType.getReturnType();
         }
 
-        if (baseType.args.length !== this.params.length) {
+        var expectedParamCount = baseType.args.length;
+        if (baseType[symbols.IS_METHOD]) {
+            expectedParamCount--;
+        }
+
+        if (expectedParamCount !== this.params.length) {
             throw this.TypeError('Cannot call func with wrong number of args: ' + baseType.args.length + ' != ' + this.params.length);
         }
 

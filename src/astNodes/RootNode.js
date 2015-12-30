@@ -43,30 +43,14 @@ export default class RootNode extends BaseBlockNode {
         builder.popCtx();
 
         builder.getOpOverloads().forEach(node => {
-            var env = rootCtx.env;
-
-            var leftType = node.left.resolveType(rootContext).flatTypeName();
-            if (!env.registeredOperators.has(leftType)) {
-                env.registeredOperators.set(leftType, new Map());
-            }
-            var rightType = node.right.resolveType(rootCtx).flatTypeName();
-            if (!env.registeredOperators.get(leftType).has(rightType)) {
-                env.registeredOperators.get(leftType).set(rightType, new Map());
-            }
-
-            var pair = env.registeredOperators.get(leftType).get(rightType);
-
-            if (pair.has(node[symbols.ORIG_OPERATOR])) {
-                throw new Error('Cannot redeclare operator overload for ' +
-                    '`' + leftType + ' ' + node[symbols.ORIG_OPERATOR] + ' ' + rightType + '`');
-            }
-
-            pair.set(node[symbols.ORIG_OPERATOR], node[symbols.ASSIGNED_NAME]);
-            env.registeredOperatorReturns.set(
+            var [left, right] = node.params;
+            rootCtx.env.setOverload(
+                left.resolveType(rootCtx),
+                right.resolveType(rootCtx),
+                node[symbols.ORIG_OPERATOR],
                 node[symbols.ASSIGNED_NAME],
                 node.returnType.resolveType(rootCtx)
             );
-
         });
 
         return rootHLIR;

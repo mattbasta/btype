@@ -36,6 +36,6 @@ export default class TypeNode extends BaseNode {
             this.attributes.map(a => a[symbols.FMAKEHLIR](builder)),
             this.start,
             this.end
-        )
+        );
     }
 };

@@ -1,3 +1,4 @@
+import Struct from './types/Struct';
 import * as symbols from '../symbols';
 import * as types from './types';
 
@@ -45,7 +46,7 @@ class BaseContext {
      */
     addVar(varName, type, assignedName) {
         if (this.nameMap.has(varName)) {
-            throw new Error('Cannot redeclare symbol in context: ' + varName);
+            throw new Error(`Cannot redeclare symbol in context: ${varName}`);
         }
 
         assignedName = assignedName || this.env.namer();
@@ -58,7 +59,7 @@ class BaseContext {
         // We don't need to recursively use serializePrototypeName because at
         // this point, the constructor would have already been built if the
         // type needs to go through the construction process.
-        return name + '<' + attributes.map(a => a.flatTypeName()).join(',') + '>';
+        return `${name}<{attributes.map(a => a.flatTypeName()).join(',')}>`;
     }
 
 }
@@ -101,8 +102,17 @@ export class RootContext extends BaseContext {
         if (this.nameMap.has(varName)) {
             return this;
         } else {
-            throw new ReferenceError('Reference to undefined variable "' + varName + '"');
+            throw new ReferenceError(`Reference to undefined variable "${varName}"`);
         }
+    }
+
+    /**
+     * Returns whether a variable with the provided name exists
+     * @param  {string} varName Name of the variable
+     * @return {Boolean} Whether the variable exists
+     */
+    hasVar(varName) {
+        return this.nameMap.has(varName);
     }
 
     /**
@@ -126,7 +136,7 @@ export class RootContext extends BaseContext {
      */
     registerPrototype(givenTypeName, type) {
         if (this.prototypes.has(givenTypeName)) {
-            throw new TypeError('Cannot declare object more than once: ' + givenTypeName);
+            throw new TypeError(`Cannot declare object more than once: ${givenTypeName}`);
         }
         this.prototypes.set(givenTypeName, type);
     }
@@ -159,32 +169,67 @@ export class RootContext extends BaseContext {
             return this.constructedPrototypeTypes.get(serName);
         }
 
+        var typeMap = new Map();
+        var type = new Struct(typeName, typeMap);
+
         var astNode = this.prototypes.get(typeName);
         var hlirNode = astNode[symbols.FCONSTRUCT](this, attributes);
 
-        var type = hlirNode.resolveType(this);
+        var assignedName = hlirNode[symbols.ASSIGNED_NAME];
+        type[symbols.ASSIGNED_NAME] = assignedName;
 
+        // Register the incomplete type immediately.
+        this.env.registerType(assignedName, type, this);
         // Record a copy of the constructed declaration
         this.constructedPrototypes.set(serName, hlirNode);
         // Record the incomplete type, which will get fully populated below.
         this.constructedPrototypeTypes.set(serName, type);
 
-        // Mark each methods as having come from the cloned prototype.
-        // This is used for visibility testing.
-        if (hlirNode.objConstructor) {
-            hlirNode.objConstructor.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
-        }
-        hlirNode.methods.forEach(m => {
-            m.base[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
+        hlirNode.members.forEach(m => {
+            typeMap.set(m.name, m.resolveType(hlirNode[symbols.CONTEXT]));
+            if (m.isPrivate) type.privateMembers.add(m.name);
+            if (m.isFinal) type.finalMembers.add(m.name);
         });
 
-        // Finally, get the type of the newly constructed declaration and
-        // register it for use.
-        type[symbols.ASSIGNED_NAME] = hlirNode[symbols.ASSIGNED_NAME];
-        this.env.registerType(type[symbols.ASSIGNED_NAME], type, this);
+        // Settle types of any non-member properties on the objects.
+        hlirNode.settleTypes(this);
+
+        // Now we bind the methods and constructors, since we've registered
+        // everything. That means we won't get into a recursive loop trying to
+        // cyclically resolve references to `self`.
+        const constructionTasks = astNode.bindContents(hlirNode);
+
+        if (hlirNode.objConstructor) {
+            let constructorAN = this.env.namer();
+            hlirNode.objConstructor[symbols.ASSIGNED_NAME] = constructorAN;
+
+            this.functionDeclarations.set(constructorAN, hlirNode.objConstructor);
+            this.isFuncSet.add(constructorAN);
+
+            type.objConstructor = constructorAN;
+
+            if (hlirNode.objConstructor[symbols.IS_FINAL]) {
+                type.finalMembers.add('new');
+            }
+            hlirNode.objConstructor[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
+        }
+
+        hlirNode.methods.forEach(m => {
+            var assignedName = this.env.namer();
+            m[symbols.ASSIGNED_NAME] = assignedName;
+            this.functionDeclarations.set(assignedName, m);
+            this.isFuncSet.add(assignedName);
+
+            type.methods.set(m.name, assignedName);
+            if (m.isPrivate) type.privateMembers.add(m.name);
+            if (m.isFinal) type.finalMembers.add(m.name);
+
+            m[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
+        });
+
         this.scope.body.push(hlirNode);
 
-        astNode.bindContents(hlirNode);
+        constructionTasks.forEach(task => task());
 
         return type;
     }
@@ -230,6 +275,15 @@ export class Context extends BaseContext {
     }
 
     /**
+     * Returns whether a variable with the provided name exists
+     * @param  {string} varName Name of the variable
+     * @return {Boolean} Whether the variable exists
+     */
+    hasVar(varName) {
+        return this.nameMap.has(varName) || this.parent.hasVar(varName);
+    }
+
+    /**
      * Looks up the function declaration node with the assigned name assignedName
      * @param  {string} assignedName
      * @return {*|null}
@@ -254,11 +308,11 @@ export class Context extends BaseContext {
         if (this.typeDefs.has(typeName) && !attributes.length) {
             return this.typeDefs.get(typeName);
         }
-        this.parent.resolveType(typeName, attributes);
+        return this.parent.resolveType(typeName, attributes);
     }
 
     resolvePrototype(...args) {
-        this.parent.resolvePrototype(...args);
+        return this.parent.resolvePrototype(...args);
     }
 
 };

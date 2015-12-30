@@ -48,7 +48,10 @@ export default class ConstDeclarationNode extends BaseStatementNode {
 
     [symbols.FMAKEHLIR](builder) {
         var typeNode = this.type ? this.type[symbols.FMAKEHLIR](builder) : null;
-        var valueNode = this.value[symbols.FMAKEHLIR](builder, typeNode.resolveType(builder.peekCtx()));
+        var valueNode = this.value[symbols.FMAKEHLIR](
+            builder,
+            typeNode && typeNode.resolveType(builder.peekCtx())
+        );
 
         var node = new DeclarationHLIR(typeNode, this.name, valueNode);
         node.setConst(true);

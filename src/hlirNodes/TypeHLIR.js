@@ -43,6 +43,10 @@ export default class TypeHLIR extends BaseHLIR {
         this[TYPE_CACHE] = type;
     }
 
+    asString() {
+        return `TypeHLIR (${this.start}:${this.end}) for ${this.name}`;
+    }
+
 };
 
 TypeHLIR.from = function from(type, start = 0, end = 0) {
