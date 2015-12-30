@@ -42,17 +42,6 @@ export default class RootNode extends BaseBlockNode {
 
         builder.popCtx();
 
-        builder.getOpOverloads().forEach(node => {
-            var [left, right] = node.params;
-            rootCtx.env.setOverload(
-                left.resolveType(rootCtx),
-                right.resolveType(rootCtx),
-                node[symbols.ORIG_OPERATOR],
-                node[symbols.ASSIGNED_NAME],
-                node.returnType.resolveType(rootCtx)
-            );
-        });
-
         return rootHLIR;
     }
 

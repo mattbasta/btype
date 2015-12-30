@@ -11,7 +11,7 @@ export default class BinopLogicalHLIR extends BaseBinopHLIR {
         this.right = right;
     }
 
-    resolveType() {
+    resolveType(ctx) {
         var leftType = this.left.resolveType(ctx);
         if (!leftType.equals(publicTypes.bool)) {
             throw new TypeError('Cannot use "' + this.operator + '" with ' + leftType);

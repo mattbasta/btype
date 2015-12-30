@@ -43,4 +43,5 @@ export default class String {
     getMemberType(name) {
         return types.publicTypes.int;
     }
+
 };

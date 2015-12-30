@@ -96,7 +96,12 @@ function updateSymbolReferences(funcNode, tree, rootContext, refType) {
 }
 
 function willFunctionNeedContext(ctx) {
-    return Array.from(ctx.functions.entries()).some(f => f[symbols.CONTEXT].accessesLexicalScope);
+    for (var e of ctx.functions.entries()) {
+        if (e.accessesLexicalScope) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function getFunctionContext(ctx, name) {

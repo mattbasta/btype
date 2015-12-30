@@ -1,13 +1,5 @@
-import AssignmentHLIR from '../hlirNodes/AssignmentHLIR';
-import CallStatementHLIR from '../hlirNodes/CallStatementHLIR';
-import DoWhileHLIR from '../hlirNodes/DoWhileHLIR';
-import FunctionHLIR from '../hlirNodes/FunctionHLIR';
-import IfHLIR from '../hlirNodes/IfHLIR';
-import LiteralHLIR from '../hlirNodes/LiteralHLIR';
-import LoopHLIR from '../hlirNodes/LoopHLIR';
-import ObjectDeclarationHLIR from '../hlirNodes/ObjectDeclarationHLIR';
-import SymbolHLIR from '../hlirNodes/SymbolHLIR';
 import * as context from './context';
+import * as hlirNodes from '../hlirNodes';
 import * as symbols from '../symbols';
 
 /*
@@ -32,15 +24,17 @@ export default function globalInit(ctx, env) {
                 continue;
             }
 
-            if (current.value instanceof LiteralHLIR || current.value.litType === 'str') {
-                var value = current.value;
-                current.value = new LiteralHLIR('null', null);
+            if (current.value instanceof hlirNodes.LiteralHLIR ||
+                current.value.litType === 'str') {
 
-                var sym = new SymbolHLIR(current.identifier);
+                var value = current.value;
+                current.value = new hlirNodes.LiteralHLIR('null', null);
+
+                var sym = new hlirNodes.SymbolHLIR(current.identifier);
                 sym[symbols.REFCONTEXT] = ctx;
                 sym[symbols.REFTYPE] = current.resolveType(ctx);
                 sym[symbols.REFNAME] = current[symbols.ASSIGNED_NAME];
-                var newNode = new AssignmentHLIR(sym, value);
+                var newNode = new hlirNodes.AssignmentHLIR(sym, value);
                 body.splice(i, 1, newNode);
                 prefixes.push(current);
 
@@ -53,8 +47,8 @@ export default function globalInit(ctx, env) {
 
         }
     }, node => {
-        return !(node instanceof FunctionHLIR ||
-                 node instanceof ObjectDeclarationHLIR);
+        return !(node instanceof hlirNodes.FunctionHLIR ||
+                 node instanceof hlirNodes.ObjectDeclarationHLIR);
     });
 
     // Next, move all of the top-level statements that are not declarations
@@ -63,11 +57,11 @@ export default function globalInit(ctx, env) {
         let current = ctx.scope.body[i];
         let cType = current.type;
 
-        if (cType instanceof AssignmentHLIR ||
-            cType instanceof CallStatementHLIR ||
-            cType instanceof DoWhileHLIR ||
-            cType instanceof LoopHLIR ||
-            cType instanceof IfHLIR) {
+        if (cType instanceof hlirNodes.AssignmentHLIR ||
+            cType instanceof hlirNodes.CallStatementHLIR ||
+            cType instanceof hlirNodes.DoWhileHLIR ||
+            cType instanceof hlirNodes.LoopHLIR ||
+            cType instanceof hlirNodes.IfHLIR) {
 
             initables.push(current);
             ctx.scope.body.splice(i, 1);
@@ -81,7 +75,7 @@ export default function globalInit(ctx, env) {
     }
 
     if (initables.length) {
-        var initFunc = new FunctionHLIR(null, '$init', [], 0, 0);
+        var initFunc = new hlirNodes.FunctionHLIR(null, '$init', [], 0, 0);
         initFunc.setBody(initables);
         ctx.scope.body.push(initFunc);
 

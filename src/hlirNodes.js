@@ -46,7 +46,7 @@ export {
     IfHLIR,
     ImportHLIR,
     LiteralHLIR,
-    LiteralHLIR,
+    LoopHLIR,
     MemberHLIR,
     NewHLIR,
     ObjectDeclarationHLIR,

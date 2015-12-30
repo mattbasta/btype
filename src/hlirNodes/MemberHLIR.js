@@ -11,7 +11,7 @@ export default class MemberHLIR extends BaseExpressionHLIR {
 
     resolveType(ctx) {
         var baseType = this.base.resolveType(ctx)
-        if (baseType.hasMethod(this.child)) {
+        if (baseType.hasMethod && baseType.hasMethod(this.child)) {
             return baseType.getMethodType(this.child, ctx);
         }
 

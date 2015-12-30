@@ -37,12 +37,16 @@ export default class ContextBuilder {
         return this.functionStack[this.functionStack.length - 1];
     }
 
-    addOpOverload(oo) {
-        this.opOverloads.add(oo);
-    }
-
-    getOpOverloads() {
-        return this.opOverloads;
+    addOpOverload(node) {
+        var [left, right] = node.params;
+        var rootCtx = this.contextStack[0];
+        this.env.setOverload(
+            left.resolveType(rootCtx),
+            right.resolveType(rootCtx),
+            node[symbols.ORIG_OPERATOR],
+            node[symbols.ASSIGNED_NAME],
+            node.returnType.resolveType(rootCtx)
+        );
     }
 
     processFuncs() {

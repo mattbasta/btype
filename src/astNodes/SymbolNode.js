@@ -48,7 +48,7 @@ export default class SymbolNode extends BaseExpressionNode {
             }
 
             // Otherwise the lookup is lexical and needs to be marked as such.
-            for (var i = 0; i < builder.contextStack.length && builder.contextStack[i] !== ctx; i++) {
+            for (var i = builder.contextStack.length - 1; i && builder.contextStack[i] !== ctx; i--) {
                 builder.contextStack[i].accessesLexicalScope = true;
                 builder.contextStack[i].lexicalLookups.set(refName, ctx);
             }
