@@ -1,5 +1,6 @@
 import BaseBinopHLIR from './BaseBinopHLIR';
 import {publicTypes} from '../compiler/types';
+import Struct from '../compiler/types/Struct';
 
 
 export default class BinopEqualityHLIR extends BaseBinopHLIR {
@@ -14,8 +15,24 @@ export default class BinopEqualityHLIR extends BaseBinopHLIR {
     resolveType(ctx) {
         var leftType = this.left.resolveType(ctx);
         var rightType = this.right.resolveType(ctx);
+
+        if (!leftType && !rightType) {
+            throw new TypeError('Cannot compare null to null');
+        }
+
+        if (!leftType || !rightType) {
+            if (!(leftType instanceof Struct || rightType instanceof Struct)) {
+                throw this.TypeError(
+                    `Cannot compare non-object type ${leftType || rightType} to null`
+                );
+            }
+            return publicTypes.bool;
+        }
+
         if (!leftType.equals(rightType)) {
-            throw new TypeError('Cannot convert ' + leftType.toString() + ' to ' + rightType.toString() + ' for "' + this.operator + '"');
+            throw this.TypeError(
+                `Cannot convert ${leftType} to ${rightType} for "${this.operator}"`
+            );
         }
         return publicTypes.bool;
     }

@@ -11,15 +11,20 @@ export default class ReturnHLIR extends BaseHLIR {
     settleTypes(ctx) {
         var scopeReturnType = ctx.scope.returnType;
         if (scopeReturnType && !this.value) {
-            throw new TypeError('No value was returning when a return value was expected');
+            throw this.TypeError('No value was returning when a return value was expected');
         }
-        if (!scopeReturnType && this.value) {
-            throw new TypeError('Returning value when no value was expected');
+
+        if (!scopeReturnType) {
+            if (this.value) {
+                throw this.TypeError('Returning value when no value was expected');
+            }
+            return;
         }
+
         var expectedReturnType = scopeReturnType.resolveType(ctx);
         var returnType = this.value.resolveType(ctx);
         if (!returnType.equals(expectedReturnType)) {
-            throw new TypeError('Attempted to return ' + returnType.toString() + ' but expected a ' + expectedReturnType.toString());
+            throw this.TypeError('Attempted to return ' + returnType.toString() + ' but expected a ' + expectedReturnType.toString());
         }
     }
 

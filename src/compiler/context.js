@@ -59,7 +59,7 @@ class BaseContext {
         // We don't need to recursively use serializePrototypeName because at
         // this point, the constructor would have already been built if the
         // type needs to go through the construction process.
-        return `${name}<{attributes.map(a => a.flatTypeName()).join(',')}>`;
+        return `${name}<${attributes.map(a => a.flatTypeName()).join(',')}>`;
     }
 
 }
@@ -170,7 +170,7 @@ export class RootContext extends BaseContext {
         }
 
         var typeMap = new Map();
-        var type = new Struct(typeName, typeMap);
+        var type = new Struct(typeName, typeMap, attributes);
 
         var astNode = this.prototypes.get(typeName);
         var hlirNode = astNode[symbols.FCONSTRUCT](this, attributes);
@@ -200,9 +200,7 @@ export class RootContext extends BaseContext {
         const constructionTasks = astNode.bindContents(hlirNode);
 
         if (hlirNode.objConstructor) {
-            let constructorAN = this.env.namer();
-            hlirNode.objConstructor[symbols.ASSIGNED_NAME] = constructorAN;
-
+            let constructorAN = hlirNode.objConstructor[symbols.ASSIGNED_NAME];
             this.functionDeclarations.set(constructorAN, hlirNode.objConstructor);
             this.isFuncSet.add(constructorAN);
 
@@ -215,8 +213,7 @@ export class RootContext extends BaseContext {
         }
 
         hlirNode.methods.forEach(m => {
-            var assignedName = this.env.namer();
-            m[symbols.ASSIGNED_NAME] = assignedName;
+            var assignedName = m[symbols.ASSIGNED_NAME];
             this.functionDeclarations.set(assignedName, m);
             this.isFuncSet.add(assignedName);
 
@@ -224,6 +221,13 @@ export class RootContext extends BaseContext {
             if (m.isPrivate) type.privateMembers.add(m.name);
             if (m.isFinal) type.finalMembers.add(m.name);
 
+            m[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
+        });
+
+        hlirNode.operatorStatements.forEach(m => {
+            var assignedName = m[symbols.ASSIGNED_NAME];
+            this.functionDeclarations.set(assignedName, m);
+            this.isFuncSet.add(assignedName);
             m[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         });
 

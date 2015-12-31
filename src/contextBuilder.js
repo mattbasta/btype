@@ -45,7 +45,8 @@ export default class ContextBuilder {
             right.resolveType(rootCtx),
             node[symbols.ORIG_OPERATOR],
             node[symbols.ASSIGNED_NAME],
-            node.returnType.resolveType(rootCtx)
+            node.returnType.resolveType(rootCtx),
+            node
         );
     }
 

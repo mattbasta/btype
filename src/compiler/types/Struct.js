@@ -7,7 +7,7 @@ const ORDERED_LAYOUT_CACHE = Symbol();
 const LAYOUT_INDICES_CACHE = Symbol();
 
 export default class Struct {
-    constructor(name, contentsTypeMap) {
+    constructor(name, contentsTypeMap, attributeTypes = null) {
         this.typeName = name;
         this.contentsTypeMap = contentsTypeMap;
 
@@ -22,6 +22,8 @@ export default class Struct {
         // referencing and cyclic type dependencies.
 
         this._type = 'struct';
+
+        this.attributeTypes = attributeTypes;
     }
 
     getLayout() {
@@ -61,6 +63,8 @@ export default class Struct {
     }
 
     equals(x) {
+        if (x === this) return true;
+
         // Ignore null types.
         if (!x) return false;
         // If we have an assigned name, compare that.
@@ -81,7 +85,11 @@ export default class Struct {
 
     toString(verbose = false) {
         if (!verbose) {
-            return this.typeName;
+            if (!this.attributeTypes || !this.attributeTypes.length) {
+                return this.typeName;
+            } else {
+                return `${this.typeName}<${this.attributeTypes.map(x => x.toString()).join(',')}>`;
+            }
         }
         var out = this.typeName;
         this.contentsTypeMap.forEach((k, v) => {

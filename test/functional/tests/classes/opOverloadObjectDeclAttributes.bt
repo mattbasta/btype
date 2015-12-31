@@ -5,7 +5,7 @@ object Foo<T> {
         self.x = x;
     }
 
-    operator (Foo<T>:left + T:right) Foo {
+    operator (Foo<T>:left + T:right) Foo<T> {
         return new Foo<T>(left.x + right);
     }
 }

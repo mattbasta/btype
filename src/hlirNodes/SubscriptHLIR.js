@@ -15,7 +15,6 @@ export default class SubscriptHLIR extends BaseExpressionHLIR {
         var childExprType = this.childExpr.resolveType(ctx);
 
         var temp = ctx.env.getOverloadReturnType(baseType, childExprType, '[]');
-        debugger;
         if (temp) {
             return temp;
         }

@@ -45,14 +45,12 @@ export default class ObjectOperatorStatementNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        OperatorStatementNode.prototype[symbols.FMAKEHLIR].call(this, builder);
-        // builder.addOpOverload(this);
+        return OperatorStatementNode.prototype[symbols.FMAKEHLIR].call(this, builder);
     }
 
-    [symbols.FCONSTRUCT](ctx) {
-        var out = OperatorStatementNode.prototype[symbols.FCONSTRUCT].call(this, ctx);
-        out[symbols.IS_OBJOPSTMT] = true;
-        return out;
+    [symbols.FCONSTRUCT](builder, hlir) {
+        hlir[symbols.IS_OBJOPSTMT] = true;
+        return OperatorStatementNode.prototype[symbols.FCONSTRUCT].call(this, builder, hlir);
     }
 
 };

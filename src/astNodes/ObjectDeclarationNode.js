@@ -115,11 +115,11 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
 
     bindContents(node) {
         if (!(node instanceof ObjectDeclarationHLIR)) {
-            throw new TypeError('Attempting to bind to invalid HLIR node');
+            throw new Error('Attempting to bind to invalid HLIR node');
         }
         var builder = node[BUILDER];
         if (!(builder instanceof ContextBuilder)) {
-            throw new TypeError('Attempting to bind object declaration methods with invalid context builder');
+            throw new Error('Attempting to bind object declaration methods with invalid context builder');
         }
 
         delete node[BUILDER];
@@ -139,7 +139,11 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
             })
         );
         node.setOperatorStatements(
-            this.operators.map(o => o[symbols.FMAKEHLIR](builder))
+            this.operators.map(o => {
+                var hlir = o[symbols.FMAKEHLIR](builder);
+                constructionTasks.add(() => o[symbols.FCONSTRUCT](builder, hlir));
+                return hlir;
+            })
         );
 
         return constructionTasks;

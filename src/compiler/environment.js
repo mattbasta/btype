@@ -300,7 +300,7 @@ export default class Environment {
         return this.registeredOperatorReturns.get(funcName);
     }
 
-    setOverload(leftType, rightType, operator, assignedName, returnType) {
+    setOverload(leftType, rightType, operator, assignedName, returnType, node) {
         var temp;
 
         var leftTypeName = leftType.flatTypeName();
@@ -316,7 +316,7 @@ export default class Environment {
         temp = temp.get(rightTypeName);
 
         if (temp.has(operator)) {
-            throw new TypeError(
+            throw node.TypeError(
                 `Cannot redeclare operator overload for ${leftType.toString()} ${operator} ${rightType.toString()}`
             );
         }

@@ -13,7 +13,7 @@ export default class NewHLIR extends BaseExpressionHLIR {
     resolveType(ctx, expectedReturn) {
         var baseType = this.base.resolveType(ctx);
         if (baseType._type === 'primitive') {
-            throw this.TypeError('Cannot instantiate new primitive: ' + baseType);
+            throw this.TypeError(`Cannot instantiate new primitive: ${baseType}`);
         }
         if (baseType._type === 'struct') {
             if (this.args.length && !baseType.objConstructor) {
@@ -30,7 +30,11 @@ export default class NewHLIR extends BaseExpressionHLIR {
                     var aType = func.params[i + 1].resolveType(func[symbols.CONTEXT]);
                     var pType = p.resolveType(ctx, aType);
                     if (!pType.equals(aType)) {
-                        throw this.TypeError(`Constructor parameter (${i}) type mismatch: ${pType} != ${aType}`);
+                        throw this.TypeError(
+                            `Got ${pType}, but expected ${aType} for parameter ${i} of constructor for ${baseType}`,
+                            p.start,
+                            p.end
+                        );
                     }
                 });
 

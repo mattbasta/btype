@@ -39,7 +39,7 @@ export default class ErrorFormatter {
             if (consumed + line.length + 1 > startIndex) {
                 return i + 1;
             }
-            consumed += line.length;
+            consumed += line.length + 1;
         }
         return this.lines.length;
     }

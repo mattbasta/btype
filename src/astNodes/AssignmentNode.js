@@ -41,7 +41,7 @@ export default class AssignmentNode extends BaseStatementNode {
 
         if (baseNode instanceof SymbolHLIR &&
             baseNode[symbols.REFCONTEXT].isFuncSet.has(baseNode[symbols.REFNAME])) {
-            throw new TypeError('Cannot assign values to function declarations');
+            throw this.TypeError('Cannot assign values to function declarations');
         }
 
         var baseType = baseNode.resolveType(builder.peekCtx());

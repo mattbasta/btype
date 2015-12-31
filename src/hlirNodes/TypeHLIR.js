@@ -1,11 +1,13 @@
 import BaseHLIR from './BaseHLIR';
 import Func from '../compiler/types/Func';
-import {Array as Array_} from '../compiler/types/Array';
+import Array_ from '../compiler/types/Array';
 import Tuple from '../compiler/types/Tuple';
 import {resolve} from '../compiler/types';
+import * as symbols from '../symbols';
 
 
 const TYPE_CACHE = Symbol();
+const RESOLVE_CATCH = Symbol();
 
 export default class TypeHLIR extends BaseHLIR {
 
@@ -30,10 +32,19 @@ export default class TypeHLIR extends BaseHLIR {
         } else if (this.name === 'tuple') {
             this[TYPE_CACHE] = new Tuple(this.attributes.map(t => t.resolveType(ctx)));
         } else {
-            this[TYPE_CACHE] = ctx.resolveType(
-                this.name,
-                this.attributes.map(a => a.resolveType(ctx))
-            );
+            try {
+                this[TYPE_CACHE] = ctx.resolveType(
+                    this.name,
+                    this.attributes.map(a => a.resolveType(ctx))
+                );
+            } catch (e) {
+                if (typeof e[RESOLVE_CATCH] === 'undefined') {
+                    e[RESOLVE_CATCH] = true;
+                    e[symbols.ERR_START] = this.start;
+                    e[symbols.ERR_END] = this.end;
+                }
+                throw e;
+            }
         }
 
         return this[TYPE_CACHE];

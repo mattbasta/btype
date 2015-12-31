@@ -22,27 +22,40 @@ export default class CallHLIR extends BaseExpressionHLIR {
         }
 
         var expectedParamCount = baseType.args.length;
-        if (baseType[symbols.IS_METHOD]) {
+        var isMethod = baseType[symbols.IS_METHOD];
+        if (isMethod) {
             expectedParamCount--;
         }
 
         if (expectedParamCount !== this.params.length) {
-            throw this.TypeError('Cannot call func with wrong number of args: ' + baseType.args.length + ' != ' + this.params.length);
+            throw this.TypeError(`Cannot call func with wrong number of args: ${baseType.args.length} != ${this.params.length}`);
         }
 
         this.params.forEach((p, i) => {
             var pType = p.resolveType(ctx, baseType.args[i]);
-            if (!pType.equals(baseType.args[i])) {
-                throw this.TypeError('Parameter type mismatch: ' + pType + ' != ' + baseType.args[i]);
+            var paramIdx = i;
+
+            if (isMethod) {
+                // If this is a method call, the first param is the self
+                // reference, which we don't need to check.
+                paramIdx += 1;
+            }
+
+            if (!pType.equals(baseType.args[paramIdx])) {
+                throw this.TypeError(
+                    `Type mismatch: ${pType} != ${baseType.args[i]} for parameter ${i} of call`,
+                    p.start,
+                    p.end
+                );
             }
         });
 
         if (expectedReturn) {
             if (!baseType.returnType) {
-                throw this.TypeError('Expected return value (' + expectedReturn + ') from void function');
+                throw this.TypeError(`Expected return value (${expectedReturn}) from void function`);
             }
             if (!expectedReturn.equals(baseType.returnType)) {
-                throw this.TypeError('Mismatched return type: ' + expectedReturn + ' != ' + baseType.returnType);
+                throw this.TypeError(`Mismatched return type: ${expectedReturn} != ${baseType.returnType}`);
             }
         }
 

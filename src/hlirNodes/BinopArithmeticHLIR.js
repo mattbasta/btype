@@ -13,11 +13,14 @@ export default class BinopArithmeticHLIR extends BaseBinopHLIR {
     resolveType(ctx) {
         var leftType = this.left.resolveType(ctx);
         var rightType = this.right.resolveType(ctx);
-        if (!leftType.equals(rightType)) {
+
+        var overloadType = ctx.env.getOverloadReturnType(leftType, rightType, this.operator);
+
+        if (!overloadType && !leftType.equals(rightType)) {
             throw new TypeError('Cannot convert ' + leftType.toString() + ' to ' + rightType.toString() + ' for "' + this.operator + '"');
         }
 
-        return ctx.env.getOverloadReturnType(leftType, rightType, this.operator) || leftType;
+        return overloadType || leftType;
     }
 
 };

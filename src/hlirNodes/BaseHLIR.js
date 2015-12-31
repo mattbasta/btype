@@ -14,14 +14,12 @@ export default class BaseHLIR {
         throw new Error('not implemented');
     }
 
-    get TypeError() {
-        return error => {
-            var err = new TypeError(error);
-            err[symbols.ERR_MSG] = error;
-            err[symbols.ERR_START] = this.start;
-            err[symbols.ERR_END] = this.end;
-            return err;
-        };
+    TypeError(error, start = null, end = null) {
+        var err = new TypeError(error);
+        err[symbols.ERR_MSG] = error;
+        err[symbols.ERR_START] = start !== null ? start : this.start;
+        err[symbols.ERR_END] = end !== null ? end : this.end;
+        return err;
     }
 
 

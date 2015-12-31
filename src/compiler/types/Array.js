@@ -3,7 +3,7 @@ import String from './String';
 import {publicTypes} from '../types';
 
 
-export default class Array_ {
+export default class Array {
     constructor(contentsType) {
         this.contentsType = contentsType;
         this._type = 'array';
@@ -40,7 +40,7 @@ export default class Array_ {
         return this.contentsType;
     }
 
-    hasMember() {
+    hasMember(name) {
         return name === 'length';
     }
 
