@@ -28,7 +28,7 @@ Some notes about transformation:
   issues with name collisions.
 */
 
-function markFirstClassFunctions(context) {
+export function markFirstClassFunctions(context) {
     var stack = [];
     context.scope.iterate(
         (node, marker) => {

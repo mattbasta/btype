@@ -67,19 +67,27 @@ export default class BaseNode {
 
 
     iterate(cb, afterCB) {
-        this.traverse((node, memeber) => {
-            if (!node) return;
+        this.traverse((node, member) => {
+            if (!node) {
+                return;
+            }
             var ret = cb(node, member);
-            if (ret === false) return;
-            node.iterate(callback, afterCB);
-            if (afterCB) afterCB(node, member);
+            if (ret === false) {
+                return;
+            }
+            node.iterate(cb, afterCB);
+            if (afterCB) {
+                afterCB(node, member);
+            }
         });
     }
 
     iterateWithSelf(cb, afterCB) {
         cb(this, null);
         this.iterate(cb, afterCB);
-        if (afterCB) afterCB(this, null);
+        if (afterCB) {
+            afterCB(this, null);
+        }
     }
 
 };

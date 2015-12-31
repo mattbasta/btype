@@ -588,9 +588,11 @@ function parseExpressionBase(lex) {
     // expression:
     //   (foo as Bar).member = ...
     //   (foo as Bar).method();
-    // This is all handled by parseAssignment.
     if (peeked.type === '(') {
-        return parseAssignment(lex);
+        lex.accept('(');
+        let base = parseExpression(lex);
+        lex.assert(')');
+        return accumulate([base]);
     }
 
     // `var` and `const` are giveaways for a Declaration node.
