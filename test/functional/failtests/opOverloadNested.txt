@@ -1,6 +1,6 @@
 SyntaxError: Unexpected token "operator", expected "identifier"
 1 | func main() {
 2 |     operator (int:x + int:y) int {
-  |            ^ (2:12)
+  |     ^ (2:5)
 3 |         return x / y;
 

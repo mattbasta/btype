@@ -44,7 +44,7 @@ export default class SymbolNode extends BaseExpressionNode {
         } else if (ctx !== builder.peekCtx() && ctx !== builder.rootCtx()) {
             // Ignore calls from a nested function to itself (recursion)
             if (isFunc && refName === builder.peekCtx().scope[symbols.ASSIGNED_NAME]) {
-                return;
+                return node;
             }
 
             // Otherwise the lookup is lexical and needs to be marked as such.

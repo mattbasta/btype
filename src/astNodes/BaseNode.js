@@ -8,7 +8,13 @@ export default class BaseNode {
     }
 
     get TypeError() {
-        return error => new TypeError(error + ' (' + this.start + ':' + this.end + ')');
+        return error => {
+            var err = new TypeError(error);
+            err[symbols.ERR_MSG] = error;
+            err[symbols.ERR_START] = this.start;
+            err[symbols.ERR_END] = this.end;
+            return err;
+        };
     }
 
     traverse() {

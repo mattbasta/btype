@@ -1,15 +1,17 @@
-var fs = require('fs');
-var path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 var argv = require('minimist')(process.argv.slice(2));
 
 import constantFold from './optimizer/constantFold';
-import RootContext from './context';
+import ErrorFormatter from '../errorFormatter';
 import flatten from './flattener';
 import globalInit from './globalInit';
 import lexer from '../lexer';
 import Module from './types/Module';
 import NamerFactory from './namer';
+import parser from '../parser';
+import RootContext from './context';
 import * as specialModules from './specialModules/__directory';
 import * as symbols from '../symbols';
 import transform from './transformer';
@@ -80,54 +82,75 @@ export default class Environment {
     }
 
 
-    loadFile(filename, ...args) {
-        try {
-            return this.loadFileInner(filename, ...args);
-        } catch (e) {
-            throw e;
-            throw new e.constructor(
-                `${e.message} (${filename})`,
-                e.filename,
-                e.lineNumber
-            );
-        }
-    }
-
-    loadFileInner(filename, tree, privileged) {
+    loadFile(filename, tree = null, privileged = false, sourceCode = null) {
         if (this.moduleCache.has(filename)) {
             return this.moduleCache.get(filename);
         }
 
+        var errorFormatter;
+
         if (!tree) {
-            let parser = require('../parser').default;
-            try {
-                tree = parser(lexer(fs.readFileSync(filename).toString()));
-            } catch (e) {
-                if (e.isBTypeSyntaxError) {
-                    e.message += '\n' + filename + '\n';
+            if (!sourceCode) {
+                try {
+                    sourceCode = fs.readFileSync(filename).toString();
+                } catch (e) {
+                    e.message = `Could not read source contents from "${filename}"\n${e.message}`;
+                    throw e;
                 }
+            }
+
+            errorFormatter = new ErrorFormatter(sourceCode.split(/\n/g));
+            let lex = lexer(sourceCode);
+            try {
+                tree = parser(lexer(sourceCode));
+            } catch (e) {
+                this.formatError(e, errorFormatter);
                 throw e;
             }
+        } else if (sourceCode) {
+            errorFormatter = new ErrorFormatter(sourceCode.split(/\n/g));
         }
 
-        var rootNode = tree[symbols.FMAKEHLIR](this, privileged);
-        var ctx = rootNode[symbols.CONTEXT];
-        rootNode.settleTypes(ctx);
+        try {
+            var rootNode = tree[symbols.FMAKEHLIR](this, privileged);
+            var ctx = rootNode[symbols.CONTEXT];
+            rootNode.settleTypes(ctx);
 
-        // Flatten lexical scope
-        transform(ctx);
-        // Flatten complex expressions
-        flatten(ctx);
+            // Flatten lexical scope
+            transform(ctx);
+            // Flatten complex expressions
+            flatten(ctx);
 
-        // Move global statements to init functions.
-        globalInit(ctx, this);
+            // Move global statements to init functions.
+            globalInit(ctx, this);
 
-        // Perform constant folding.
-        constantFold(ctx);
+            // Perform constant folding.
+            constantFold(ctx);
+        } catch (e) {
+            this.formatError(e, errorFormatter);
+            throw e;
+        }
 
         this.addContext(ctx);
         this.moduleCache.set(filename, ctx);
         return ctx;
+    }
+
+    formatError(e, errorFormatter) {
+        if (!errorFormatter || !e[symbols.ERR_MSG]) {
+            return;
+        }
+        if (typeof e[symbols.ERR_START] !== 'undefined') {
+            debugger;
+            e[symbols.ERR_LINE] = errorFormatter.getLine(e[symbols.ERR_START]);
+            e[symbols.ERR_COL] = errorFormatter.getColumn(e[symbols.ERR_START]);
+        }
+
+        var snippet = errorFormatter.getVerboseError(
+            e[symbols.ERR_LINE],
+            e[symbols.ERR_COL]
+        );
+        e.message += `\n${snippet}\n`;
     }
 
     doImport(importNode, requestingContext) {
@@ -209,13 +232,17 @@ export default class Environment {
 
     registerFunc(funcNode) {
         // If the function was already registered, return the cached index.
-        if (symbols.FUNCLIST_IDX in funcNode) return funcNode[symbols.FUNCLIST_IDX];
+        if (symbols.FUNCLIST_IDX in funcNode) {
+            return funcNode[symbols.FUNCLIST_IDX];
+        }
 
         // Get the function's type and use that to determine the table.
-        var ft = funcNode.getType(funcNode[symbols.CONTEXT]);
+        var ft = funcNode.resolveType(funcNode[symbols.CONTEXT]);
         var funcList = this.getFuncListName(ft);
         // If the table doesn't exist yet, create it.
-        if (!this.funcList.has(funcList)) this.funcList.set(funcList, []);
+        if (!this.funcList.has(funcList)) {
+            this.funcList.set(funcList, []);
+        }
         // Add the function's assigned name to the table.
         this.funcList.get(funcList).push(funcNode[symbols.ASSIGNED_NAME]);
 

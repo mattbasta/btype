@@ -1,4 +1,3 @@
-
 import assert from 'assert';
 import child_process from 'child_process';
 import fs from 'fs';
@@ -7,6 +6,7 @@ import path from 'path';
 import bitstring from 'bitstring';
 
 import compiler from '../../src/compiler/compiler';
+import ErrorFormatter from '../../src/errorFormatter';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
 
@@ -27,11 +27,10 @@ function globEach(path_, ext, callback) {
 }
 
 function compile(code, format) {
-    var parsed = parser(lexer(code));
     var compiled = compiler({
         filename: 'test',
-        tree: parsed,
         format: format,
+        sourceCode: code,
     });
 
     return compiled;
@@ -114,7 +113,8 @@ describe('Parity tests', function() {
                         compiled = compiler({
                             filename: 'test',
                             tree: parsed,
-                            format: 'llvmir'
+                            format: 'llvmir',
+                            sourceCode: read,
                         });
                     } catch (e) {
                         done(e);
@@ -203,7 +203,8 @@ describe('Compile tests', function() {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
-                        format: 'js'
+                        format: 'js',
+                        sourceCode: read,
                     });
                     assert.ok(compiled);
                 });
@@ -212,7 +213,8 @@ describe('Compile tests', function() {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
-                        format: 'asmjs'
+                        format: 'asmjs',
+                        sourceCode: read,
                     });
                     assert.ok(compiled);
                 });
@@ -221,7 +223,8 @@ describe('Compile tests', function() {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
-                        format: 'llvmir'
+                        format: 'llvmir',
+                        sourceCode: read,
                     });
                     assert.ok(compiled);
                 });
@@ -230,7 +233,8 @@ describe('Compile tests', function() {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
-                        format: 'debug-tree'
+                        format: 'debug-tree',
+                        sourceCode: read,
                     });
                     assert.ok(compiled);
                 });
@@ -258,7 +262,7 @@ describe('Failure tests', function() {
                     function() {
                         compiler({
                             filename: btPath,
-                            tree: parser(lexer(read)),
+                            sourceCode: read,
                             format: 'debug-tree',
                         });
                     },

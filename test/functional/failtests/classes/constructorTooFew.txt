@@ -1,1 +1,6 @@
-Error: Number of parameters passed to constructor does not match object constructor signature
+TypeError: Number of parameters passed to constructor does not match object constructor signature
+9  | func main() {
+10 |     var foo = new Point(1.0); # one arg
+   |                   ^ (10:19)
+11 | }
+

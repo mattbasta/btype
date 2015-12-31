@@ -67,7 +67,7 @@ class BaseContext {
 
 export class RootContext extends BaseContext {
 
-    constructor(env, scope, privileged) {
+    constructor(env, scope, privileged = false) {
         super(env, scope, privileged);
 
         // Null by default, since most contexts don't represent a file.
@@ -238,7 +238,7 @@ export class RootContext extends BaseContext {
 
 export class Context extends BaseContext {
 
-    constructor(env, scope, parent, privileged) {
+    constructor(env, scope, parent, privileged = false) {
         super(env, scope, privileged);
 
         // A reference to the parent context of this context.

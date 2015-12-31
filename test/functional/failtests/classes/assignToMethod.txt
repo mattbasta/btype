@@ -1,1 +1,6 @@
-TypeError: Mismatched types in assignment: func<null,Foo> != func<null> near char 71
+TypeError: Attempted to assign a value to a class method, which is not allowed.
+6 |     var x = new Foo();
+7 |     x.test = func() {};
+  |     ^ (7:5)
+8 | }
+

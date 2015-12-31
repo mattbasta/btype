@@ -1,4 +1,5 @@
 import ErrorFormatter from './errorFormatter';
+import * as symbols from './symbols';
 
 
 const TOKENS = [
@@ -140,13 +141,21 @@ class Lexer {
     constructor(text) {
         this.pointer = 0;
         this.originalData = text;
-        this.lines = text.split(/\n/g);
         this.remainingData = text;
         this.currentLine = 1;
 
-        this.errorFormatter = new ErrorFormatter(this.lines);
-
         this.peeked = null;
+
+        this.lineIndex = 0;
+    }
+
+    /**
+     * Returns the column for a given index
+     * @param  {int} index
+     * @return {int} The column number
+     */
+    getColumn(index) {
+        return index - this.lineIndex;
     }
 
     /**
@@ -172,7 +181,14 @@ class Lexer {
                 continue;
             }
             this.remainingData = this.remainingData.substr(match[0].length);
-            this.currentLine += match[0].split(/(?:\r\n|\r|\n)/).length - 1;
+
+            let lineSplit = match[0].split(/(?:\r\n|\r|\n)/);
+            let addedLines = lineSplit.length - 1;
+            if (addedLines) {
+                this.currentLine += addedLines;
+                this.lineIndex = this.pointer + lineSplit.slice(0, -1).join('\n').length;
+            }
+
             this.pointer += match[0].length;
             if (!TOKENS[i][1] || TOKENS[i][1] === 'comment') {
                 i = -1;
@@ -185,16 +201,13 @@ class Lexer {
                 startPointer,
                 this.pointer,
                 this.currentLine,
-                this.errorFormatter.getColumn(startPointer)
+                startPointer - this.lineIndex
             );
         }
 
         if (!this.remainingData.trim()) return 'EOF';
 
-        var snippet = this.errorFormatter.getVerboseErrorAtIndex(this.currentLine, startPointer);
-        throw this.SyntaxError(
-            `Unknown token\n${snippet}\n`
-        );
+        throw this.SyntaxError('Unknown token', this.currentLine, startPointer);
     }
 
     /**
@@ -233,19 +246,27 @@ class Lexer {
         var next = this.next();
         if (next === 'EOF') {
             if (tokenType !== 'EOF') {
-                throw this.SyntaxError('Expected ' + tokenType + ' but reached the end of the file');
+                throw this.SyntaxError(
+                    `Expected ${tokenType} but reached the end of the file`,
+                    this.currentLine,
+                    this.getColumn(this.pointer)
+                );
             }
         } else if (next.type !== tokenType) {
-            let snippet = this.errorFormatter.getVerboseErrorAtIndex(this.currentLine, this.pointer);
             throw this.SyntaxError(
-                `Unexpected token "${next.type}", expected "${tokenType}"\n${snippet}\n`);
+                `Unexpected token "${next.type}", expected "${tokenType}"`,
+                this.currentLine,
+                this.getColumn(this.pointer - next.text.length)
+            );
         }
         return next;
     }
 
-    SyntaxError(message) {
+    SyntaxError(message, line, col) {
         var out = new SyntaxError(message);
-        out.isBTypeSyntaxError = true;
+        out[symbols.ERR_MSG] = message;
+        out[symbols.ERR_LINE] = line;
+        out[symbols.ERR_COL] = col;
         return out;
     }
 

@@ -1,4 +1,5 @@
 import * as nodes from './astNodes';
+import * as symbols from './symbols';
 
 
 /**
@@ -35,13 +36,22 @@ export default function parse(lex) {
             lex.pointer
         );
     } catch (e) {
-        if (e instanceof SyntaxError && !e.isBTypeSyntaxError) {
-            e.message += '\n' +
-                lex.errorFormatter.getVerboseErrorAtIndex(lex.currentLine, lex.pointer);
+        if (e instanceof SyntaxError && !e[symbols.ERR_MSG]) {
+            e[symbols.ERR_MSG] = e.message;
+            e[symbols.ERR_LINE] = lex.currentLine;
+            e[symbols.ERR_COL] = lex.getColumn(lex.pointer);
         }
         throw e;
     }
 };
+
+function raiseSyntaxError(message, startIndex, endIndex) {
+    var err = new SyntaxError(message);
+    err[symbols.ERR_MSG] = message;
+    err[symbols.ERR_START] = startIndex;
+    err[symbols.ERR_END] = endIndex;
+    throw err;
+}
 
 function parseFunctionDeclaration(lex, func) {
     if (!func && !(func = lex.accept('func'))) return;
@@ -815,7 +825,11 @@ function parseObjectDeclaration(lex) {
             }
 
             if (constructor) {
-                throw new SyntaxError('Cannot have multiple constructors in the same object declaration');
+                raiseSyntaxError(
+                    'Cannot have multiple constructors in the same object declaration',
+                    constructorBase.start,
+                    constructorBase.end
+                );
             }
 
             lex.assert('(');
@@ -864,7 +878,9 @@ function parseObjectDeclaration(lex) {
             if (tempOpStmt.left.type.name !== name.text &&
                 tempOpStmt.right.type.name !== name.text) {
                 throw new SyntaxError(
-                    `Operator overload for ${name.text} of "${tempOpStmt.operator}" must include ${name.text} in its declaration`
+                    `Operator overload for ${name.text} of "${tempOpStmt.operator}" must include ${name.text} in its declaration`,
+                    tempOpStmt.line,
+                    tempOpStmt.column
                 );
             }
 
@@ -884,12 +900,17 @@ function parseObjectDeclaration(lex) {
 
         let peekedType = lex.peek();
         let memberType = parseSymbol(lex);
+        let memberStart = isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start;
         if (lex.peek().text === ':' || lex.peek().text === '<') {
             memberType = parseTypedIdentifier(lex, peekedType);
         }
         if (members.some(m => m.name === memberType.name) ||
             methods.some(m => m.name === memberType.name)) {
-            throw new SyntaxError(`Class "${name.text}" cannot declare "${memberType.name}" more than once.`);
+            raiseSyntaxError(
+                `Class "${name.text}" cannot declare "${memberType.name}" more than once.`,
+                memberStart,
+                memberType.end
+            );
         }
 
         if (memberType instanceof nodes.TypedIdentifierNode && lex.accept(';')) {
@@ -900,7 +921,7 @@ function parseObjectDeclaration(lex) {
                     null,
                     !!isFinal,
                     !!isPrivate,
-                    isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start,
+                    memberStart,
                     memberType.end
                 )
             );
@@ -942,7 +963,7 @@ function parseObjectDeclaration(lex) {
                     methodBody,
                     !!isFinal,
                     !!isPrivate,
-                    isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start,
+                    memberStart,
                     methodEndBrace.end
                 )
             );

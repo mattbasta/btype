@@ -1,15 +1,17 @@
 import assert from 'assert';
 
 import lexer from '../src/lexer';
-var parser = require('../src/parser');
+import parser from '../src/parser';
 
-var compareTree = require('./parser/_utils').compareTree;
-var _i = require('./parser/_utils')._i;
-var _int = require('./parser/_utils')._int;
-var _root = require('./parser/_utils')._root;
-var _type = require('./parser/_utils')._type;
-var _typed = require('./parser/_utils')._typed;
-var node = require('./parser/_utils').node;
+import {
+    compareTree,
+    _i,
+    _int,
+    _root,
+    _type,
+    _typed,
+    node,
+} from './parser/_utils';
 
 
 describe('Parser', function() {

@@ -1,1 +1,6 @@
 TypeError: Constructor parameter (1) type mismatch: float != int
+9  | func main() {
+10 |     var foo = new Point(1.0, 2.0); # float float
+   |                   ^ (10:19)
+11 | }
+

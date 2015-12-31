@@ -22,7 +22,26 @@ export default class ErrorFormatter {
             }
             consumed += line.length + 1;
         }
-        return startIndex - consumed;
+        return startIndex - consumed + 1;
+    }
+
+    /**
+     * Returns the line number for the current file from a start index
+     * @param  {int} startIndex
+     * @return {int} The line number
+     */
+    getLine(startIndex) {
+        var consumed = 0;
+
+        var i;
+        for (i = 0; i < this.lines.length; i++) {
+            let line = this.lines[i];
+            if (consumed + line.length + 1 > startIndex) {
+                return i + 1;
+            }
+            consumed += line.length;
+        }
+        return this.lines.length;
     }
 
     /**

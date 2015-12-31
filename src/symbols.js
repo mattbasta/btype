@@ -25,3 +25,9 @@ export const FUNCLIST_IDX = Symbol('Function table index');
 export const FMAKEHLIR = Symbol('function: make HLIR');
 export const FMAKEHLIRBLOCK = Symbol('function: make HLIR from a block');
 export const FCONSTRUCT = Symbol('function: convert registered AST prototype to HLIR');
+
+export const ERR_MSG = Symbol('error: original btype message');
+export const ERR_START = Symbol('error: start index of error in bt file');
+export const ERR_LINE = Symbol('error: line of error in bt file, optional instead of ERR_START');
+export const ERR_COL = Symbol('error: column of error in bt file, optional instead of ERR_START');
+export const ERR_END = Symbol('error: end index of error in bt file');

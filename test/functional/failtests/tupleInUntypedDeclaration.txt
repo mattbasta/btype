@@ -1,1 +1,6 @@
-TypeError: Cannot subscript tuple with non-int literal vlaue
+TypeError: Cannot subscript built-in types with non-static ints
+1 | var x = 1;
+2 | var foo = [: 123, 456][x];
+  |           ^ (2:11)
+3 | 
+

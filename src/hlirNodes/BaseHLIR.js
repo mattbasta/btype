@@ -1,3 +1,5 @@
+import * as symbols from '../symbols';
+
 const BODY_FIELDS = new Set(['body', 'consequent', 'alternate']);
 
 
@@ -13,7 +15,13 @@ export default class BaseHLIR {
     }
 
     get TypeError() {
-        return error => new TypeError(error + ' (' + this.start + ':' + this.end + ')');
+        return error => {
+            var err = new TypeError(error);
+            err[symbols.ERR_MSG] = error;
+            err[symbols.ERR_START] = this.start;
+            err[symbols.ERR_END] = this.end;
+            return err;
+        };
     }
 
 
@@ -56,15 +64,19 @@ export default class BaseHLIR {
         this.iterate(node => node.iterateBodies(cb, afterCB, filter));
     }
 
-    iterateWithSelf(cb, afterCB) {
+    iterateWithSelf(cb, afterCB = null) {
         cb(this, null);
         this.iterate(cb, afterCB);
-        if (afterCB) afterCB(this, null);
+        if (afterCB) {
+            afterCB(this, null);
+        }
     }
 
-    findAndReplace(filter, preTraverse, beforeCB, afterCB) {
+    findAndReplace(filter = null, preTraverse = false, beforeCB = null, afterCB = null) {
         this.iterate((node, member) => {
-            if (beforeCB) beforeCB(node, member);
+            if (beforeCB) {
+                beforeCB(node, member);
+            }
             if (preTraverse) {
                 node.findAndReplace(filter, preTraverse, beforeCB, afterCB);
             }
@@ -78,7 +90,9 @@ export default class BaseHLIR {
             if (!preTraverse) {
                 node.findAndReplace(filter, preTraverse, beforeCB, afterCB);
             }
-            if (afterCB) afterCB(node, member);
+            if (afterCB) {
+                afterCB(node, member);
+            }
         });
     }
 
@@ -103,7 +117,7 @@ export default class BaseHLIR {
             if (!this[key] || typeof this[key] !== 'object') return;
             if (key.startsWith('is')) return;
             if (Array.isArray(this[key])) {
-                out += key + ':\n';
+                out += `${key}:\n`;
                 if (!this[key].length) {
                     out += '    <empty>\n';
                 } else {
@@ -112,7 +126,7 @@ export default class BaseHLIR {
                     });
                 }
             } else {
-                out += key + ': ' + this[key].toString() + '\n';
+                out += `${key}: ${this[key].toString()}\n`;
             }
         });
 

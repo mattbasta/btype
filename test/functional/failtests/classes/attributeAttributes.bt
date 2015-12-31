@@ -3,3 +3,6 @@ object Foo<x> {
 }
 
 var bar = new Foo<int>();
+
+func main() {}
+export main;

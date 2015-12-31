@@ -1,1 +1,5 @@
-TypeError: Mismatched types in declaration: tuple<int,int,int> != tuple<bool,float,bool>
+TypeError: tuple<bool,float,bool> found where tuple<int,int,int> was expected
+1 | tuple<int, int, int>:foo = [: false, 1.2, false];
+  |                            ^ (1:28)
+2 | 
+

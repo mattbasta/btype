@@ -1,11 +1,12 @@
 import assert from 'assert';
 
 import * as nodes from '../../src/astNodes';
+import ErrorFormatter from '../../src/errorFormatter';
 import lexer from '../../src/lexer';
 import token from '../../src/lexer';
 import parser from '../../src/parser';
 
-exports.node = function node(name, start, end, params) {
+export function node(name, start, end, params) {
     var x = new nodes[name + 'Node']();
     x.start = start;
     x.end = end;
@@ -15,12 +16,17 @@ exports.node = function node(name, start, end, params) {
     return x;
 };
 
-
-var parse = exports.parse = function parse(script) {
-    return parser(lexer(script));
+export function getLexer(code) {
+    var lex = lexer(code);
+    lex.errorFormatter = new ErrorFormatter(/\n/g);
+    return lex;
 };
 
-exports.compareTree = function compareTree(script, tree) {
+export function parse(script) {
+    return parser(getLexer(script));
+};
+
+export function compareTree(script, tree) {
     var parsed = parse(script);
     function compare(left, right, base, key) {
         if (left instanceof token) {
@@ -83,29 +89,29 @@ exports.compareTree = function compareTree(script, tree) {
     assert(compare(parsed, tree, '', ''));
 };
 
-exports._root = function _root(body) {
+export function _root(body) {
     if (!body.length) {
         return new nodes.RootNode(body, 0, 0);
     }
     return new nodes.RootNode(body, body[0].start, body[body.length - 1].end);
 };
 
-exports._i = function _i(text) {
+export function _i(text) {
     return new nodes.SymbolNode(text, 0, 0);
 };
 
-exports._type = function _type(text, attributes) {
+export function _type(text, attributes) {
     return new nodes.TypeNode(text, attributes || [], 0, 0);
 };
 
-exports._typed = function _typed(ident, type) {
+export function _typed(ident, type) {
     return new nodes.TypedIdentifierNode(type, ident, 0, 0);
 };
 
-exports._int = function _int(val) {
+export function _int(val) {
     return new nodes.LiteralNode('int', val.toString(), 0, 0);
 };
 
-exports._float = function _float(val) {
+export function _float(val) {
     return new nodes.LiteralNode('float', val.toString(), 0, 0);
 };

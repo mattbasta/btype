@@ -507,7 +507,8 @@ function upliftContext(rootContext, ctx) {
 
     // If the function is in a function table, update it there as well.
     if (node[symbols.FUNCLIST]) {
-        rootContext.env.funcList.get(node[symbols.FUNCLIST]).set(node[symbols.FUNCLIST_IDX], newName);
+        let funcList = rootContext.env.funcList.get(node[symbols.FUNCLIST]);
+        funcList[node[symbols.FUNCLIST_IDX]] = newName;
     }
 
 
