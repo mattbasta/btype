@@ -13,8 +13,8 @@ export default class ObjectDeclarationHLIR extends BaseHLIR {
         this[ATTRIBUTES] = attributes;
 
         this.objConstructor = null;
-        this.methods = [];
-        this.members = [];
+        this.methods = null;
+        this.members = null;
         this.operatorStatements = [];
     }
 

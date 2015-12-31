@@ -1,60 +1,53 @@
-var fs = require('fs');
-var path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-var externalFuncs = require('./externalFuncs');
-var jsTranslate = require('./translate');
-var postOptimizer = require('./postOptimizer');
-
-
-function compileIncludes(env, ENV_VARS) {
-    return env.includes.map(function(module) {
-        return fs.readFileSync(path.resolve(__dirname, '..', '..', 'static', 'asm.js', module + '.js')).toString().replace(/\$([A-Z_]+)\$/g, function(v) {
-            return ENV_VARS[v.substr(1, v.length - 2)];
-        });
-    }).join('\n');
-}
+import * as externalFuncs from './externalFuncs';
+import jsTranslate from './translate';
+import * as postOptimizer from './postOptimizer';
+import * as symbols from '../../../symbols';
 
 
 function makeModule(env, ENV_VARS, body) {
-    return [
-        '(function(module) {',
-        'Math.imul = Math.imul || function(a, b) {return (a | 0) * (b | 0) | 0;};',
-        'Math.fround = Math.fround || function fround(x) {var f32 = new Float32Array(1);return f32[0] = x, f32[0];};',
-        'var ret = module(this, {' + env.foreigns.map(function(foreign) {
+    return `(function(module) {
+    Math.imul = Math.imul || function imul(a, b) {
+        return (a | 0) * (b | 0) | 0;
+    };
+    var f32 = new Float32Array(1);
+    Math.fround = Math.fround || function fround(x) {
+        return f32[0] = x, f32[0];
+    };
+    var ret = module(this, {
+        ${env.foreigns.map(foreign => {
             var base = JSON.stringify(foreign) + ':';
-            if (foreign in externalFuncs) {
-                base += externalFuncs[foreign]();
-            } else {
-                base += 'function() {}';
-            }
+            base += foreign in externalFuncs ? externalFuncs[foreign]() : 'function() {}';
             return base;
-        }).join(',') + (env.foreigns.length ? ',' : '') + 'arr2str:typeof TextDecoder !== \'undefined\' ?',
-        'function(arr) {',
-        '    return (new TextDecoder()).decode(arr);',
-        '}',
-        ':',
-        'function(arr) {',
-        '    var out = "";', // slower less cheaty way
-        '    for (var i = 0; i < arr.length; i++) {',
-        '        out += String.fromCharCode(arr[i]);',
-        '    }',
-        '    return out;',
-        '}',
-        '});',
-        'if (ret.$init) {ret.$init();}',
-        'return {',
-        '$strings:{read: function(x) {return x;}},', // noop
-        Object.keys(env.requested.exports).filter(function(e) {
-            return e !== '$init';
-        }).map(function(e) {
-            return e + ': ret.' + e;
-        }).join(',\n'),
-        '};',
-        '}).call(typeof global !== "undefined" ? global : this, function app(stdlib, foreign) {',
-        'var fround = stdlib.Math.fround;',
-        body,
-        '})'
-    ].join('\n');
+        }).join(',')}${env.foreigns.length ? ',' : ''}
+        arr2str:typeof TextDecoder !== \'undefined\' ? function(arr) {
+            return (new TextDecoder()).decode(arr);
+        } : function(arr) {
+            var out = "";
+            for (var i = 0; i < arr.length; i++) {
+                out += String.fromCharCode(arr[i]);
+            }
+            return out;
+        }
+    });
+    if (ret.$init) {
+        ret.$init();
+    }
+    return {
+        $strings: {
+            read: function(x) {return x;}
+        },
+        ${Array.from(env.requested.exports.keys())
+            .filter(e => e !== '$init')
+            .map(e => `${JSON.stringify(e)}: ret[${JSON.stringify(e)}]`)
+            .join(',\n')}
+    };
+}).call(typeof global !== "undefined" ? global : this, function app(stdlib, foreign) {
+    var fround = stdlib.Math.fround;
+    ${body}
+})`;
 }
 
 function extend(base, members) {
@@ -83,10 +76,10 @@ function typeTranslate(type, context) {
             // Create the constructor
             if (type.objConstructor) {
                 constructorFunc = this.findFunctionByAssignedName(type.objConstructor);
-                selfName = constructorFunc.params[0].__assignedName;
+                selfName = constructorFunc.params[0][symbols.ASSIGNED_NAME];
 
                 output = 'function ' + type.flatTypeName() + '(' + constructorFunc.params.slice(1).map(function(param) {
-                    return param.__assignedName;
+                    return param[symbols.ASSIGNED_NAME];
                 }).join(',') + ') { /* struct */';
 
             } else {
@@ -142,17 +135,19 @@ export default function generate(env, ENV_VARS) {
 
     var body = '';
 
-    body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/casting.js')).toString();
+    body += fs.readFileSync(path.resolve(__dirname, '..', '..', 'static', 'asmjs', 'casting.js')).toString();
 
-    body += env.types.map(function(type) {
-        return typeTranslate.call(
+    env.types.forEach(type => {
+        body += typeTranslate.call(
             env,
             type,
-            env.typeContextMap[type.__assignedName]
-        );
-    }, env).join('\n\n') + '\n';
+            env.typeContextMap[type[symbols.ASSIGNED_NAME]]
+        ) + '\n\n';
+    });
 
-    body += env.included.map(jsTranslate).join('\n\n');
+    env.included.forEach(inc => {
+        body += jsTranslate(inc) + '\n\n';
+    })
 
     // Pre-define any string literals
     body += Object.keys(env.registeredStringLiterals).map(function(str) {
@@ -160,20 +155,23 @@ export default function generate(env, ENV_VARS) {
     }).join('\n');
 
     if (env.inits.length) {
-        body += '\nfunction $init() {\n' +
-            '    ' + env.inits.map(function(init) {
-                return init.__assignedName + '();';
-            }).join('\n    ') + '\n' +
-            '}\n';
-        env.requested.exports['$init'] = '$init';
+        body += `
+function $$init() {
+    ${env.inits.map(init => init[symbols.ASSIGNED_NAME] + '();').join('\n    ')}
+}
+`;
+        env.requested.exports.set('$$init', '$$init');
     }
 
     // Compile exports for the code.
-    body += '\n    return {\n    ' + Object.keys(env.requested.exports).map(function(e) {
-        return '        ' + e + ': ' + env.requested.exports[e];
-    }).join(',\n    ') + '\n    };';
+    body += `
+    return {
+        ${Array.from(env.requested.exports.keys())
+            .map(e => `${JSON.stringify(e)}: ${env.requested.exports.get(e)}`)
+            .join(',\n        ')}
+    };`;
 
-    body = postOptimizer.optimize(body);
+    // body = postOptimizer.optimize(body);
 
     return makeModule(env, ENV_VARS, body);
 };

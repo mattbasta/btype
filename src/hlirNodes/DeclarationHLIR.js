@@ -1,4 +1,5 @@
 import BaseHLIR from './BaseHLIR';
+import * as symbols from '../symbols';
 
 
 export default class DeclarationHLIR extends BaseHLIR {
@@ -26,6 +27,10 @@ export default class DeclarationHLIR extends BaseHLIR {
         } else {
             this.value.resolveType(ctx);
         }
+    }
+
+    asString() {
+        return `DeclarationHLIR(${this.name}:${this[symbols.ASSIGNED_NAME]})`;
     }
 
 };

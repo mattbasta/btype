@@ -30,7 +30,7 @@ export default function globalInit(ctx, env) {
                 var value = current.value;
                 current.value = new hlirNodes.LiteralHLIR('null', null);
 
-                var sym = new hlirNodes.SymbolHLIR(current.identifier);
+                var sym = new hlirNodes.SymbolHLIR(current.name);
                 sym[symbols.REFCONTEXT] = ctx;
                 sym[symbols.REFTYPE] = current.resolveType(ctx);
                 sym[symbols.REFNAME] = current[symbols.ASSIGNED_NAME];

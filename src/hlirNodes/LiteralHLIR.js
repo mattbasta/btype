@@ -14,4 +14,8 @@ export default class LiteralHLIR extends BaseExpressionHLIR {
         return resolve(this.litType, true);
     }
 
+    asString() {
+        return `LiteralHLIR(${this.litType}:${this.value.toString()})`;
+    }
+
 };

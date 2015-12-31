@@ -118,14 +118,18 @@ export default class Environment {
 
             // Flatten lexical scope
             transform(ctx);
+            // console.log('tf', ctx.scope.toString());
             // Flatten complex expressions
             flatten(ctx);
+            // console.log('fl', ctx.scope.toString());
 
             // Move global statements to init functions.
             globalInit(ctx, this);
+            // console.log('gi', ctx.scope.toString());
 
             // Perform constant folding.
             constantFold(ctx);
+            // console.log('cf', ctx.scope.toString());
         } catch (e) {
             this.formatError(e, errorFormatter);
             throw e;

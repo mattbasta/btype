@@ -16,6 +16,7 @@ import ImportHLIR from './hlirNodes/ImportHLIR';
 import LiteralHLIR from './hlirNodes/LiteralHLIR';
 import LoopHLIR from './hlirNodes/LoopHLIR';
 import MemberHLIR from './hlirNodes/MemberHLIR';
+import NegateHLIR from './hlirNodes/NegateHLIR';
 import NewHLIR from './hlirNodes/NewHLIR';
 import ObjectDeclarationHLIR from './hlirNodes/ObjectDeclarationHLIR';
 import ObjectMemberHLIR from './hlirNodes/ObjectMemberHLIR';
@@ -48,6 +49,7 @@ export {
     LiteralHLIR,
     LoopHLIR,
     MemberHLIR,
+    NegateHLIR,
     NewHLIR,
     ObjectDeclarationHLIR,
     ObjectMemberHLIR,

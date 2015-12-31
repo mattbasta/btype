@@ -115,10 +115,10 @@ export default class BaseHLIR {
             if (!this[key] || typeof this[key] !== 'object') return;
             if (key.startsWith('is')) return;
             if (Array.isArray(this[key])) {
-                out += `${key}:\n`;
                 if (!this[key].length) {
-                    out += '    <empty>\n';
+                    out += `${key}: <empty>\n`;
                 } else {
+                    out += `${key}:\n`;
                     this[key].forEach(e => {
                         out += e.toString().split('\n').map(x => '    ' + x).join('\n') + '\n';
                     });

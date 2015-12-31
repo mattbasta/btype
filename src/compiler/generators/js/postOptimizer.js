@@ -289,7 +289,7 @@ function cleanUpTypecasting(body) {
     traverse(body, iterator);
 }
 
-exports.optimize = function(body) {
+export function optimize(body) {
     var parsed;
     try {
         parsed = esprima.parse('(function() {' + body + '})', {raw: true});

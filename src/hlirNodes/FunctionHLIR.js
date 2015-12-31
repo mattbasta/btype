@@ -22,7 +22,9 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
 
 
     resolveType(ctx) {
-        if (this[TYPE_CACHE]) return this[TYPE_CACHE];
+        if (this[TYPE_CACHE]) {
+            return this[TYPE_CACHE];
+        }
         return this[TYPE_CACHE] = new Func(
             this.returnType ? this.returnType.resolveType(ctx) : null,
             this.params.map(p => p.resolveType(ctx))
@@ -33,6 +35,16 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
         var ctx = this[symbols.CONTEXT];
         this.params.forEach(p => p.resolveType(ctx));
         BaseBlockHLIR.prototype.settleTypesForArr.call(this, ctx, this.body);
+    }
+
+    asString() {
+        var output = `FunctionHLIR(${this.name}:${this[symbols.ASSIGNED_NAME]})`;
+
+        if (this[symbols.IS_FIRSTCLASS]) {
+            output += '[firstclass]';
+        }
+
+        return output;
     }
 
 };

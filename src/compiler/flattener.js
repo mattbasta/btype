@@ -56,18 +56,18 @@ function upliftExpressionsFromBody(ctx, body) {
     }
 
     function getDeclReference(decl, type) {
-        var sym = new hlirNodes.SymbolHLIR(decl.identifier);
+        var sym = new hlirNodes.SymbolHLIR(decl.name);
         sym[symbols.REFCONTEXT] = ctx;
         sym[symbols.REFTYPE] = type;
         sym[symbols.REFNAME] = decl[symbols.ASSIGNED_NAME];
         return sym;
     }
 
-    for (var i = 0; i < body.length; i++) {
+    for (i = 0; i < body.length; i++) {
         let current = body[i];
+        let stack = [];
 
         // Mark which expressions to flatten
-        var stack = [];
         current.iterateWithSelf((node, member) => {
             if (isNodeBoundary(node, member)) return false;
 
@@ -131,14 +131,12 @@ function upliftExpressionsFromBody(ctx, body) {
             ctx.addVar(decl.name, type, decl[symbols.ASSIGNED_NAME]);
             injectBefore(decl);
 
-            if (type._type !== 'primitive' || node.value) {
-                injectBefore(
-                    new hlirNodes.AssignmentHLIR(
-                        getDeclReference(decl, type),
-                        node
-                    )
-                );
-            }
+            injectBefore(
+                new hlirNodes.AssignmentHLIR(
+                    getDeclReference(decl, type),
+                    node
+                )
+            );
 
             return getDeclReference(decl, type);
 

@@ -54,6 +54,14 @@ export default class TypeHLIR extends BaseHLIR {
         this[TYPE_CACHE] = type;
     }
 
+    toString() {
+        if (this.attributes.length) {
+            return super.toString();
+        } else {
+            return this.asString();
+        }
+    }
+
     asString() {
         return `TypeHLIR (${this.start}:${this.end}) for ${this.name}`;
     }

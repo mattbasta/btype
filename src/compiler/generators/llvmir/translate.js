@@ -556,7 +556,7 @@ var NODES = {
         var declType = this.getType(ctx);
         var typeName = getLLVMType(declType);
 
-        var annotation = ' ; ' + this.identifier;
+        var annotation = ' ; ' + this.name;
         if (parent === 'root') {
             var globVal = 'null';
             if (this.value.type === 'Literal' && this.value.litType !== 'str') {

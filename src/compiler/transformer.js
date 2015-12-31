@@ -527,5 +527,5 @@ export default function transform(rootCtx) {
     processRoot(rootCtx);
 
     // Perform all uplifting at the end.
-    rootCtx[TRANSFORM_ENCOUNTERED_CTXS].forEach(upliftContext.bind(null, rootCtx));
+    rootCtx[TRANSFORM_ENCOUNTERED_CTXS].forEach(ctx => upliftContext(rootCtx, ctx));
 };

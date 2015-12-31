@@ -13,4 +13,14 @@ export default class SymbolHLIR extends BaseExpressionHLIR {
         return this[symbols.REFTYPE];
     }
 
+    asString() {
+        var output = `SymbolHLIR(${this.name || '<unnamed>'})`;
+
+        if (this[symbols.REFNAME]) {
+            output += ` for ${this[symbols.REFNAME]}`;
+        }
+
+        return output;
+    }
+
 };

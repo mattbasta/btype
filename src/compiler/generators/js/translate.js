@@ -1,5 +1,11 @@
-var TranslationContext = require('./TranslationContext');
-var types = require('../../types');
+import * as hlirNodes from '../../../hlirNodes';
+import Struct from '../../types/Struct';
+import * as symbols from '../../../symbols';
+import TranslationContext from './TranslationContext';
+import * as types from '../../types';
+
+
+const GLOBAL_PREFIX = '';
 
 
 function _binop(env, ctx, tctx) {
@@ -7,19 +13,19 @@ function _binop(env, ctx, tctx) {
     var left = _node(this.left, env, ctx, tctx);
     var right = _node(this.right, env, ctx, tctx);
 
-    var leftTypeRaw = this.left.getType(ctx);
-    var rightTypeRaw = this.right.getType(ctx);
+    var leftTypeRaw = this.left.resolveType(ctx);
+    var rightTypeRaw = this.right.resolveType(ctx);
 
 
     if (leftTypeRaw && rightTypeRaw) {
         var leftType = leftTypeRaw.flatTypeName();
         var rightType = rightTypeRaw.flatTypeName();
-        if (ctx.env.registeredOperators[leftType] &&
-            ctx.env.registeredOperators[leftType][rightType] &&
-            ctx.env.registeredOperators[leftType][rightType][this.operator]) {
+        if (ctx.env.registeredOperators.get(leftType) &&
+            ctx.env.registeredOperators.get(leftType).get(rightType) &&
+            ctx.env.registeredOperators.get(leftType).get(rightType).get(this.operator)) {
 
-            var operatorStmtFunc = ctx.env.registeredOperators[leftType][rightType][this.operator];
-            return operatorStmtFunc + '(' + left + ',' + right + ')';
+            var operatorStmtFunc = ctx.env.registeredOperators.get(leftType).get(rightType).get(this.operator);
+            return `${operatorStmtFunc}(${left}, ${right})`;
         }
     }
 
@@ -34,20 +40,20 @@ function _binop(env, ctx, tctx) {
             out = left + ' === ' + right;
             break;
         case '*':
-            if (this.left.getType(ctx) === types.publicTypes.int &&
-                this.right.getType(ctx) === types.publicTypes.int) {
+            if (this.left.resolveType(ctx) === types.publicTypes.int &&
+                this.right.resolveType(ctx) === types.publicTypes.int) {
 
                 if (!env.__hasImul) {
                     env.__hasImul = true;
-                    env.__globalPrefix += 'var imul = stdlib.Math.imul;\n';
+                    env[GLOBAL_PREFIX] += 'var imul = stdlib.Math.imul;\n';
                 }
                 out = 'imul(' + left + ', ' + right + ')';
                 break;
             }
         case '/':
             if (this.operator === '/' &&
-                this.left.getType(ctx) === types.publicTypes.int &&
-                this.right.getType(ctx) === types.publicTypes.int) {
+                this.left.resolveType(ctx) === types.publicTypes.int &&
+                this.right.resolveType(ctx) === types.publicTypes.int) {
 
                 out = '(' + left + ' / ' + right + ' | 0)';
                 break;
@@ -59,39 +65,321 @@ function _binop(env, ctx, tctx) {
     return '(' + out + ')';
 }
 
-function _node(node, env, ctx, prec) {
-    return NODES[node.type].call(node, env, ctx, prec);
+const NODES = new Map();
+const IGNORE_NODES = new Set([
+    hlirNodes.ExportHLIR,
+    hlirNodes.ImportHLIR,
+    hlirNodes.ObjectMemberHLIR,
+]);
+
+function _node(node, env, ctx, tctx) {
+    if (IGNORE_NODES.has(node.constructor)) {
+        return '';
+    }
+    if (!NODES.has(node.constructor)) {
+        throw new Error('Unrecognized node: ' + node.constructor.name);
+    }
+    return NODES.get(node.constructor).call(node, env, ctx, tctx);
 }
 
-var NODES = {
-    Root: function(env, ctx, tctx) {
-        env.__globalPrefix = env.__globalPrefix || '';
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-        if (env.__globalPrefix) {
-            tctx.prepend(env.__globalPrefix);
+NODES.set(hlirNodes.RootHLIR, function(env, ctx, tctx) {
+    env[GLOBAL_PREFIX] = env[GLOBAL_PREFIX] || '';
+    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
+    if (env[GLOBAL_PREFIX]) {
+        tctx.prepend(env[GLOBAL_PREFIX]);
+    }
+    env[GLOBAL_PREFIX] = '';
+});
+
+NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
+    // Precedence here will always be 4.
+    return '!' + _node(this.base, env, ctx, tctx);
+});
+
+NODES.set(hlirNodes.AssignmentHLIR, function(env, ctx, tctx) {
+    tctx.write(_node(this.base, env, ctx, tctx) + ' = ' + _node(this.value, env, ctx, tctx) + ';');
+});
+
+NODES.set(hlirNodes.BinopArithmeticHLIR, _binop);
+NODES.set(hlirNodes.BinopBitwiseHLIR, _binop);
+NODES.set(hlirNodes.BinopEqualityHLIR, _binop);
+NODES.set(hlirNodes.BinopLogicalHLIR, _binop);
+
+NODES.set(hlirNodes.BreakHLIR, function() {
+    tctx.write('break;');
+});
+
+NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
+    tctx.write(_node(this.call, env, ctx, tctx) + ';');
+});
+
+NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
+    return _node(this.callee, env, ctx, tctx) +
+        '(' +
+        this.params.map(p => _node(p, env, ctx, tctx)).join(',') +
+        ')';
+});
+
+NODES.set(hlirNodes.ContinueHLIR, function() {
+    tctx.write('continue;');
+});
+
+NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
+    var type = this.value.resolveType(ctx);
+    var output = 'var ' + this[symbols.ASSIGNED_NAME] + ' = ';
+
+    if (this.value instanceof hlirNodes.LiteralHLIR) {
+        output += (this.value.value !== null ? this.value.value : 'null').toString() + ';';
+        return output;
+    }
+
+    var def;
+    if (type && type._type === 'primitive') {
+        def = type && (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
+    } else if (type) {
+        def = 'null';
+    }
+    output += def + ';\n';
+
+    output += this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';';
+    tctx.write(output);
+});
+
+NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
+    tctx.write('do {');
+    tctx.push();
+    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
+    tctx.pop();
+    tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + ');');
+});
+
+NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
+    var context = this[symbols.CONTEXT];
+
+    tctx.write('function ' + this[symbols.ASSIGNED_NAME] + '(');
+    tctx.push();
+    tctx.write(this.params.map(param => _node(param, env, context, tctx)).join(','));
+    tctx.pop();
+    tctx.write(') {');
+
+    tctx.push();
+    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
+
+    if (this[symbols.IS_CONSTRUCTOR]) {
+        tctx.write('return ' + this.params[0][symbols.ASSIGNED_NAME] + ';');
+    }
+
+    tctx.pop();
+
+    tctx.write('}');
+});
+
+NODES.set(hlirNodes.IfHLIR, function(env, ctx, tctx) {
+    tctx.write('if (' + _node(this.condition, env, ctx, tctx) + ') {');
+
+    tctx.push();
+    this.consequent.forEach(stmt => _node(stmt, env, ctx, tctx));
+    tctx.pop();
+
+    if (this.alternate) {
+        tctx.write('} else {');
+        tctx.push();
+        this.alternate.forEach(stmt => _node(stmt, env, ctx, tctx));
+        tctx.pop();
+    }
+    tctx.write('}');
+});
+
+NODES.set(hlirNodes.LiteralHLIR, function(env, ctx, tctx) {
+    if (this.litType === 'str') {
+        return env.getStrLiteralIdentifier(this.value);
+    }
+
+    if (this.value === true) return 'true';
+    if (this.value === false) return 'false';
+    if (this.value === null) return 'null';
+    return this.value.toString();
+});
+
+NODES.set(hlirNodes.LoopHLIR, function(env, ctx, tctx) {
+    tctx.write('while (' + _node(this.condition, env, ctx, tctx) + ') {');
+    tctx.push();
+    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
+    tctx.pop();
+    tctx.write('}');
+});
+
+NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx) {
+    var baseType = this.base.resolveType(ctx);
+    if (baseType._type === 'module') {
+        return baseType.memberMapping.get(this.child);
+    }
+
+    var base;
+    if (baseType._type === '_stdlib') {
+        base = 'stdlib.' + baseType.name;
+    } else if (baseType._type === '_foreign') {
+        if (env.foreigns.indexOf(this.child) === -1) {
+            env.foreigns.push(this.child);
         }
-        env.__globalPrefix = '';
-    },
-    Block: function(env, ctx, tctx) {
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-    },
-    Unary: function(env, ctx, tctx) {
-        // Precedence here will always be 4.
-        var out = _node(this.base, env, ctx, tctx);
-        out = this.operator + '(' + out + ')';
-        return out;
-    },
-    LogicalBinop: _binop,
-    EqualityBinop: _binop,
-    RelativeBinop: _binop,
-    Binop: _binop,
-    CallStatement: function(env, ctx, tctx) {
-        tctx.write(_node(this.base, env, ctx, tctx) + ';');
-    },
+        return 'foreign.' + this.child;
+    } else {
+        base = _node(this.base, env, ctx, tctx);
+    }
+
+    if (baseType._type === '_foreign_curry') {
+        return base;
+    }
+
+    if (baseType.hasMethod && baseType.hasMethod(this.child)) {
+        return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, tctx) + ')';
+    }
+
+    if (baseType._type === 'string' || baseType._type === 'array') {
+        switch (this.child) {
+            case 'length':
+                return base + '.length';
+        }
+    }
+
+    return base + '.' + this.child;
+});
+
+NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
+    var baseType = this.resolveType(ctx);
+
+    if (baseType._type === 'array') {
+        var arrLength = _node(this.args[0], env, ctx, tctx);
+        if (baseType.contentsType._type === 'primitive') {
+            switch (baseType.contentsType.typeName) {
+                case 'float': return 'new Float64Array(' + arrLength + ')';
+                case 'sfloat': return 'new Float32Array(' + arrLength + ')';
+                case 'int': return 'new Int32Array(' + arrLength + ')';
+                case 'uint': return 'new Uint32Array(' + arrLength + ')';
+                case 'byte': return 'new Uint8Array(' + arrLength + ')';
+            }
+        }
+        return 'new Array(' + arrLength + ')';
+    }
+
+    var output = 'new ' + baseType.flatTypeName();
+
+    if (baseType instanceof Struct && baseType.objConstructor) {
+        output += '(' + this.args.map(a => _node(a, env, ctx, tctx)).join(', ') + ')';
+    } else {
+        output += '()';
+    }
+
+    return output;
+});
+
+NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
+    // Ignore the unconstructed prototypes
+    if (!this[symbols.IS_CONSTRUCTED]) return;
+
+    if (this.objConstructor) {
+        _node(this.objConstructor, env, ctx, tctx);
+    }
+
+    this.methods.forEach(method => _node(method, env, ctx, tctx));
+
+    this.operatorStatements.forEach(op => _node(op, env, ctx, tctx));
+});
+
+NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
+    if (!this.value) {
+        if (ctx.scope[symbols.IS_CONSTRUCTOR] === 'constructor') {
+            tctx.write('return ' + ctx.scope.params[0][symbols.ASSIGNED_NAME] + ';');
+            return;
+        }
+        tctx.write('return;');
+        return;
+    }
+    tctx.write('return ' + _node(this.value, env, ctx, tctx) + ';');
+});
+
+NODES.set(hlirNodes.SymbolHLIR, function() {
+    return this[symbols.REFNAME];
+});
+
+NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
+    var baseType = this.base.resolveType(ctx);
+    var targetType = this.target.resolveType(ctx);
+
+    var base = _node(this.base, env, ctx, tctx);
+
+    if (targetType.equals(types.publicTypes.str) &&
+        baseType instanceof types.Array &&
+        baseType.contentsType.equals(types.privateTypes.uint)) {
+        return 'foreign.arr2str(' + base + ')';
+    }
+
+    if (baseType.equals(targetType)) return base;
+
+    switch (baseType.typeName) {
+        case 'int':
+            switch (targetType.typeName) {
+                case 'uint':
+                    if (this.base.type === 'Literal' && /^[\d\.]+/.exec(this.base.value)) {
+                        return base; // 123 as uint -> 123
+                    } else if (this.base.type === 'Literal') {
+                        return '0'; // -123 as uint -> 0
+                    }
+                    return 'int2uint(' + base + ')';
+                case 'float': return '(+(' + base + '))';
+                case 'sfloat': return '(fround(' + base + '))';
+                case 'byte': return base;
+                case 'bool': return '(!!' + base + ')';
+            }
+        case 'uint':
+            switch (targetType.typeName) {
+                case 'int': return 'uint2int(' + base + ')';
+                case 'float': return '(+(' + base + '))';
+                case 'sfloat': return '(fround(' + base + '))';
+                case 'byte': return base;
+                case 'bool': return '(' + base + ' != 0)';
+            }
+        case 'float':
+            switch (targetType.typeName) {
+                case 'sfloat': return '(fround(' + base + '))';
+                case 'uint': return 'float2uint(' + base + ')';
+                case 'int': return '(' + base + '|0)';
+                case 'byte': return '(' + base + '|0)';
+                case 'bool': return '(!!' + base + ')';
+            }
+        case 'sfloat':
+            switch (targetType.typeName) {
+                case 'float': return '(+(' + base + '))';
+                case 'uint': return 'float2uint(' + base + ')';
+                case 'int': return '(' + base + '|0)';
+                case 'byte': return '(' + base + '|0)';
+                case 'bool': return '(!!' + base + ')';
+            }
+        case 'byte':
+            switch (targetType.typeName) {
+                case 'uint': return base;
+                case 'int': return base;
+                case 'float': return '(+(' + base + '))';
+                case 'sfloat': return '(fround(' + base + '))';
+                case 'bool': return '(!!' + base + ')';
+            }
+        case 'bool':
+            return '(' + base + '?1:0)';
+    }
+});
+
+NODES.set(hlirNodes.TypedIdentifierHLIR, function() {
+    return this[symbols.ASSIGNED_NAME];
+});
+
+NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
+    return '[' + this.elements.map(x => _node(x, env, ctx, tctx)).join(',') + ']';
+});
+
+
+
+
+var NODES_OLD = {
     CallRaw: function(env, ctx, tctx) {
         return _node(this.callee, env, ctx, tctx) + '(/* CallRaw */' +
             this.params.map(function(param) {
@@ -108,7 +396,7 @@ var NODES = {
             ')';
     },
     CallRef: function(env, ctx, tctx) {
-        var funcType = this.callee.getType(ctx);
+        var funcType = this.callee.resolveType(ctx);
 
         var paramList = this.params.map(function(param) {
             return _node(param, env, ctx, tctx);
@@ -116,7 +404,7 @@ var NODES = {
 
         var temp;
         if (this.callee.type === 'Member' &&
-            (temp = this.callee.base.getType(ctx)).hasMethod &&
+            (temp = this.callee.base.resolveType(ctx)).hasMethod &&
             temp.hasMethod(this.callee.child)) {
 
             return temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
@@ -126,336 +414,20 @@ var NODES = {
         return _node(this.callee, env, ctx, tctx) +
             '(/* CallRef */' + paramList + ')';
     },
-    FunctionReference: function(env, ctx, tctx) {
-        if (!this.ctx) {
-            // If there is no context, it means it's just a root global or
-            // needs no context.
-            return _node(this.base, env, ctx, tctx);
-        }
-
-        var ctx = _node(this.ctx, env, ctx, tctx);
-        if (ctx === '0') {
-            return _node(this.base, env, ctx, tctx);
-        }
-        // TODO: optimize this by adding the function prototype directly
-        return '(function($$ctx) {return ' + _node(this.base, env, ctx, tctx) + '.apply(null, Array.prototype.slice.call(arguments, 1).concat([$$ctx]))}.bind(null, ' + _node(this.ctx, env, ctx, tctx) + '))';
-    },
-    Member: function(env, ctx, tctx) {
-        var baseType = this.base.getType(ctx);
-        if (baseType._type === 'module') {
-            return baseType.memberMapping[this.child];
-        }
-
-        var base;
-        if (baseType._type === '_stdlib') {
-            base = 'stdlib.' + baseType.name;
-        } else if (baseType._type === '_foreign') {
-            if (env.foreigns.indexOf(this.child) === -1) {
-                env.foreigns.push(this.child);
-            }
-            return 'foreign.' + this.child;
-        } else {
-            base = _node(this.base, env, ctx, tctx);
-        }
-
-        if (baseType._type === '_foreign_curry') {
-            return base;
-        }
-
-        if (baseType.hasMethod && baseType.hasMethod(this.child)) {
-            return baseType.getMethod(this.child) + '.bind(null, ' + _node(this.base, env, ctx, tctx) + ')';
-        }
-
-        if (baseType._type === 'string' || baseType._type === 'array') {
-            switch (this.child) {
-                case 'length':
-                    return base + '.length';
-            }
-        }
-
-        return base + '.' + this.child;
-    },
-    Assignment: function(env, ctx, tctx) {
-        tctx.write(_node(this.base, env, ctx, tctx) + ' = ' + _node(this.value, env, ctx, tctx) + ';');
-    },
-    Declaration: function(env, ctx, tctx) {
-        var type = this.value.getType(ctx);
-        var output = 'var ' + this.__assignedName + ' = ';
-
-        if (this.value.type === 'Literal') {
-            output += (this.value.value || 'null').toString() + ';';
-            return output;
-        }
-
-        var def;
-        if (type && type._type === 'primitive') {
-            def = type && (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
-        } else if (type) {
-            def = 'null';
-        }
-        output += def + ';\n';
-
-        output += this.__assignedName + ' = ' + _node(this.value, env, ctx, tctx) + ';';
-        tctx.write(output);
-    },
-    Return: function(env, ctx, tctx) {
-        if (!this.value) {
-            if (ctx.scope.__objectSpecial === 'constructor') {
-                tctx.write('return ' + ctx.scope.params[0].__assignedName + ';');
-                return;
-            }
-            tctx.write('return;');
-            return;
-        }
-        tctx.write('return ' + _node(this.value, env, ctx, tctx) + ';');
-    },
-    Export: function() {},
-    Import: function() {},
-    For: function(env, ctx, tctx) {
-        tctx.write('for (');
-
-        tctx.push();
-        _node(this.assignment, env, ctx, tctx);
-        tctx.write(_node(this.condition, env, ctx, tctx) + ';');
-        _node(this.iteration, env, ctx, tctx);
-        tctx.trimSemicolon();
-        tctx.pop();
-
-        tctx.write(') {');
-
-        tctx.push();
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-        tctx.pop();
-
-        tctx.write('}');
-    },
-    DoWhile: function(env, ctx, tctx) {
-        tctx.write('do {');
-
-        tctx.push();
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-        tctx.pop();
-
-        tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + ');');
-    },
-    While: function(env, ctx, tctx) {
-        tctx.write('while (' + _node(this.condition, env, ctx, tctx) + ') {');
-
-        tctx.push();
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-        tctx.pop();
-
-        tctx.write('}');
-    },
-    If: function(env, ctx, tctx) {
-        tctx.write('if (' + _node(this.condition, env, ctx, tctx) + ') {');
-
-        tctx.push();
-        this.consequent.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-        tctx.pop();
-
-        if (this.alternate) {
-            tctx.write('} else {');
-            tctx.push();
-            this.alternate.forEach(function(stmt) {
-                _node(stmt, env, ctx, tctx);
-            });
-            tctx.pop();
-        }
-        tctx.write('}');
-    },
-    Function: function(env, ctx, tctx) {
-        var context = this.__context;
-
-        tctx.write('function ' + this.__assignedName + '(');
-        tctx.push();
-        tctx.write(this.params.map(function(param) {
-            return _node(param, env, context, tctx);
-        }).join(','));
-        tctx.pop();
-        tctx.write(') {');
-
-        tctx.push();
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-
-        if (this.__objectSpecial === 'constructor') {
-            tctx.write('return ' + this.params[0].__assignedName + ';');
-        }
-
-        tctx.pop();
-
-        tctx.write('}');
-    },
-    OperatorStatement: function(env, ctx, tctx) {
-        tctx.write('function ' + this.__assignedName + '(');
-        tctx.push();
-        tctx.write(_node(this.left, env, ctx, tctx) + ', ' + _node(this.right, env, ctx, tctx));
-        tctx.pop();
-        tctx.write(') {');
-
-        tctx.push();
-        this.body.forEach(function(stmt) {
-            _node(stmt, env, ctx, tctx);
-        });
-        tctx.pop();
-
-        tctx.write('}');
-    },
-    Type: function() {},
-    TypedIdentifier: function() {
-        return this.__assignedName;
-    },
-    Literal: function(env) {
-        if (this.litType === 'str') {
-            return env.getStrLiteralIdentifier(this.value);
-        }
-
-        if (this.value === true) return 'true';
-        if (this.value === false) return 'false';
-        if (this.value === null) return 'null';
-        return this.value.toString();
-    },
-    Symbol: function() {
-        return this.__refName;
-    },
-    New: function(env, ctx, tctx) {
-        var type = this.getType(ctx);
-
-        // TODO: Consider making this use typed arrays for primitives
-        if (type._type === 'array') {
-            var arrLength = _node(this.params[0], env, ctx, tctx);
-            if (type.contentsType._type === 'primitive') {
-                switch (type.contentsType.typeName) {
-                    case 'float': return 'new Float64Array(' + arrLength + ')';
-                    case 'sfloat': return 'new Float32Array(' + arrLength + ')';
-                    case 'int': return 'new Int32Array(' + arrLength + ')';
-                    case 'uint': return 'new Uint32Array(' + arrLength + ')';
-                    case 'byte': return 'new Uint8Array(' + arrLength + ')';
-                }
-            }
-            return 'new Array(' + arrLength + ')';
-        }
-
-        var output = 'new ' + type.flatTypeName();
-
-        if (type instanceof types.Struct && type.objConstructor) {
-            output += '(' + this.params.map(function(param) {
-                return _node(param, env, ctx, tctx);
-            }).join(', ') + ')';
-        } else {
-            output += '()';
-        }
-
-        return output;
-    },
-
-    Break: function(env, ctx, tctx) {
-        tctx.write('break;');
-    },
-    Continue: function(env, ctx, tctx) {
-        tctx.write('continue;');
-    },
 
     ObjectDeclaration: function(env, ctx, tctx) {
-        if (!this.__isConstructed) return;
+        if (!this[symbols.IS_CONSTRUCTED]) return;
 
         if (this.objConstructor) {
             _node(this.objConstructor, env, ctx, tctx);
         }
 
-        this.methods.forEach(function(method) {
-            _node(method, env, ctx, tctx);
-        });
-    },
-    ObjectMember: function() {},
-    ObjectMethod: function(env, ctx, tctx) {
-        return _node(this.base, env, ctx, tctx);
-    },
-    ObjectConstructor: function() {
-        // Constructors are merged with the JS constructor in `typeTranslate`
-        // in the JS generate module.
-    },
-
-    TypeCast: function(env, ctx, tctx) {
-        var baseType = this.left.getType(ctx);
-        var targetType = this.rightType.getType(ctx);
-
-        var base = _node(this.left, env, ctx, tctx);
-
-        if (targetType.equals(types.publicTypes.str) &&
-            baseType instanceof types.Array &&
-            baseType.contentsType.equals(types.privateTypes.uint)) {
-            return 'foreign.arr2str(' + base + ')';
-        }
-
-        if (baseType.equals(targetType)) return base;
-
-        switch (baseType.typeName) {
-            case 'int':
-                switch (targetType.typeName) {
-                    case 'uint':
-                        if (this.left.type === 'Literal' && /^[\d\.]+/.exec(this.left.value)) {
-                            return base; // 123 as uint -> 123
-                        } else if (this.left.type === 'Literal') {
-                            return '0'; // -123 as uint -> 0
-                        }
-                        return 'int2uint(' + base + ')';
-                    case 'float': return '(+(' + base + '))';
-                    case 'sfloat': return '(fround(' + base + '))';
-                    case 'byte': return base;
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'uint':
-                switch (targetType.typeName) {
-                    case 'int': return 'uint2int(' + base + ')';
-                    case 'float': return '(+(' + base + '))';
-                    case 'sfloat': return '(fround(' + base + '))';
-                    case 'byte': return base;
-                    case 'bool': return '(' + base + ' != 0)';
-                }
-            case 'float':
-                switch (targetType.typeName) {
-                    case 'sfloat': return '(fround(' + base + '))';
-                    case 'uint': return 'float2uint(' + base + ')';
-                    case 'int': return '(' + base + '|0)';
-                    case 'byte': return '(' + base + '|0)';
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'sfloat':
-                switch (targetType.typeName) {
-                    case 'float': return '(+(' + base + '))';
-                    case 'uint': return 'float2uint(' + base + ')';
-                    case 'int': return '(' + base + '|0)';
-                    case 'byte': return '(' + base + '|0)';
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'byte':
-                switch (targetType.typeName) {
-                    case 'uint': return base;
-                    case 'int': return base;
-                    case 'float': return '(+(' + base + '))';
-                    case 'sfloat': return '(fround(' + base + '))';
-                    case 'bool': return '(!!' + base + ')';
-                }
-            case 'bool':
-                return '(' + base + '?1:0)';
-        }
-
+        this.methods.forEach(method => _node(method, env, ctx, tctx));
     },
 
     Subscript: function(env, ctx, tctx) {
-        var baseType = this.base.getType(ctx);
-        var subscriptType = this.subscript.getType(ctx);
+        var baseType = this.base.resolveType(ctx);
+        var subscriptType = this.subscript.resolveType(ctx);
 
         var baseOutput = _node(this.base, env, ctx, tctx);
         var subscriptOutput = _node(this.subscript, env, ctx, tctx);
@@ -476,15 +448,9 @@ var NODES = {
         return baseOutput + '[' + subscriptOutput + ']';
     },
 
-    TupleLiteral: function(env, ctx, tctx) {
-        return '[' + this.content.map(function(x) {
-            return _node(x, env, ctx, tctx);
-        }).join(',') + ']';
-    },
-
 };
 
-module.exports = function translateJS(ctx) {
+export default function translateJS(ctx) {
     var tctx = new TranslationContext(ctx.env, ctx);
     _node(ctx.scope, ctx.env, ctx, tctx);
     return tctx.toString();
