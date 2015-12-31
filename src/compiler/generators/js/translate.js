@@ -20,9 +20,9 @@ function _binop(env, ctx, tctx) {
     if (leftTypeRaw && rightTypeRaw) {
         var leftType = leftTypeRaw.flatTypeName();
         var rightType = rightTypeRaw.flatTypeName();
-        if (ctx.env.registeredOperators.get(leftType) &&
-            ctx.env.registeredOperators.get(leftType).get(rightType) &&
-            ctx.env.registeredOperators.get(leftType).get(rightType).get(this.operator)) {
+        if (ctx.env.registeredOperators.has(leftType) &&
+            ctx.env.registeredOperators.get(leftType).has(rightType) &&
+            ctx.env.registeredOperators.get(leftType).get(rightType).has(this.operator)) {
 
             var operatorStmtFunc = ctx.env.registeredOperators.get(leftType).get(rightType).get(this.operator);
             return `${operatorStmtFunc}(${left}, ${right})`;
@@ -130,7 +130,8 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
 
     if (this.value instanceof hlirNodes.LiteralHLIR) {
         output += (this.value.value !== null ? this.value.value : 'null').toString() + ';';
-        return output;
+        tctx.write(output);
+        return;
     }
 
     var def;
@@ -139,10 +140,8 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     } else if (type) {
         def = 'null';
     }
-    output += def + ';\n';
-
-    output += this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';';
-    tctx.write(output);
+    tctx.write(output + def + ';');
+    tctx.write(this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';');
 });
 
 NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
@@ -298,6 +297,27 @@ NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
     tctx.write('return ' + _node(this.value, env, ctx, tctx) + ';');
 });
 
+NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx) {
+    var baseType = this.base.resolveType(ctx);
+    var subscriptType = this.childExpr.resolveType(ctx);
+
+    var baseOutput = _node(this.base, env, ctx, tctx);
+    var subscriptOutput = _node(this.childExpr, env, ctx, tctx);
+
+    var temp;
+    if ((temp = env.registeredOperators.get(baseType.flatTypeName())) &&
+        (temp = temp.get(subscriptType.flatTypeName())) &&
+        temp.has('[]')) {
+        return temp.get('[]') + '(' + baseOutput + ',' + subscriptOutput + ')';
+    }
+
+    if (baseType._type === 'string') {
+        return baseOutput + '.charCodeAt(' + subscriptOutput + ')';
+    }
+
+    return baseOutput + '[' + subscriptOutput + ']';
+});
+
 NODES.set(hlirNodes.SymbolHLIR, function() {
     return this[symbols.REFNAME];
 });
@@ -413,39 +433,6 @@ var NODES_OLD = {
 
         return _node(this.callee, env, ctx, tctx) +
             '(/* CallRef */' + paramList + ')';
-    },
-
-    ObjectDeclaration: function(env, ctx, tctx) {
-        if (!this[symbols.IS_CONSTRUCTED]) return;
-
-        if (this.objConstructor) {
-            _node(this.objConstructor, env, ctx, tctx);
-        }
-
-        this.methods.forEach(method => _node(method, env, ctx, tctx));
-    },
-
-    Subscript: function(env, ctx, tctx) {
-        var baseType = this.base.resolveType(ctx);
-        var subscriptType = this.subscript.resolveType(ctx);
-
-        var baseOutput = _node(this.base, env, ctx, tctx);
-        var subscriptOutput = _node(this.subscript, env, ctx, tctx);
-
-        var temp;
-        if ((temp = env.registeredOperators[baseType.flatTypeName()]) &&
-            (temp = temp[subscriptType.flatTypeName()]) &&
-            '[]' in temp) {
-
-            var operatorStmtFunc = ctx.env.registeredOperators[baseType.flatTypeName()][subscriptType.flatTypeName()]['[]'];
-            return operatorStmtFunc + '(' + baseOutput + ',' + subscriptOutput + ')';
-        }
-
-        if (baseType._type === 'string') {
-            return baseOutput + '.charCodeAt(' + subscriptOutput + ')';
-        }
-
-        return baseOutput + '[' + subscriptOutput + ']';
     },
 
 };

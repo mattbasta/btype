@@ -32,15 +32,15 @@ function upliftExpressionsFromBody(ctx, body) {
         i++;
     }
 
-    function getTempDecl(type) {
+    function getTempDecl(type, value = null) {
         var name = ctx.env.namer();
 
         var litType = 'null';
-        var value = null;
+        var litValue = null;
 
         if (type._type === 'primitive') {
             litType = type.typeName === 'float' ? 'float' : (type.typeName === 'sfloat' ? 'sfloat' : 'int');
-            value = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
+            litValue = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
         }
 
         var type = new hlirNodes.TypeHLIR(type.typeName, []);
@@ -48,7 +48,7 @@ function upliftExpressionsFromBody(ctx, body) {
         var decl = new hlirNodes.DeclarationHLIR(
             type,
             name,
-            new hlirNodes.LiteralHLIR(litType, value)
+            value || new hlirNodes.LiteralHLIR(litType, litValue)
         );
         decl[symbols.CONTEXT] = ctx;
         decl[symbols.ASSIGNED_NAME] = name;
@@ -127,16 +127,16 @@ function upliftExpressionsFromBody(ctx, body) {
             }
 
             var type = node.resolveType(ctx);
-            var decl = getTempDecl(type);
+            var decl = getTempDecl(type, node);
             ctx.addVar(decl.name, type, decl[symbols.ASSIGNED_NAME]);
             injectBefore(decl);
 
-            injectBefore(
-                new hlirNodes.AssignmentHLIR(
-                    getDeclReference(decl, type),
-                    node
-                )
-            );
+            // injectBefore(
+            //     new hlirNodes.AssignmentHLIR(
+            //         getDeclReference(decl, type),
+            //         node
+            //     )
+            // );
 
             return getDeclReference(decl, type);
 
