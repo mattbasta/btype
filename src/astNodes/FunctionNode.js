@@ -78,9 +78,11 @@ export default class FunctionNode extends BaseBlockNode {
     }
 
     [symbols.FCONSTRUCT](builder, hlir) {
-        builder.pushCtx(hlir[symbols.CONTEXT]);
+        var ctx = hlir[symbols.CONTEXT];
+        builder.pushCtx(ctx);
         hlir.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
         builder.processFuncs();
+        hlir.settleTypes(ctx);
         builder.popCtx();
     }
 

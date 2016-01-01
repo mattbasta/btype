@@ -40,9 +40,6 @@ export default class ObjectDeclarationHLIR extends BaseHLIR {
     }
 
     settleTypes(ctx) {
-        if (this.objConstructor) this.objConstructor.settleTypes(ctx);
-        this.methods.forEach(m => m.settleTypes(ctx));
-        this.operatorStatements.forEach(o => o.settleTypes(ctx));
         this.members.forEach(m => m.resolveType(ctx));
     }
 

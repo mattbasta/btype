@@ -115,6 +115,7 @@ export default class Environment {
             var rootNode = tree[symbols.FMAKEHLIR](this, privileged);
             var ctx = rootNode[symbols.CONTEXT];
             rootNode.settleTypes(ctx);
+            // console.log('or', ctx.scope.toString());
 
             // Flatten lexical scope
             transform(ctx);

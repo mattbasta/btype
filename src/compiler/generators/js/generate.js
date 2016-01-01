@@ -16,22 +16,11 @@ function makeModule(env, ENV_VARS, body) {
     Math.fround = Math.fround || function fround(x) {
         return f32[0] = x, f32[0];
     };
-    var ret = module(this, {
-        ${env.foreigns.map(foreign => {
+    var ret = module(this, {${env.foreigns.map(foreign => {
             var base = JSON.stringify(foreign) + ':';
             base += foreign in externalFuncs ? externalFuncs[foreign]() : 'function() {}';
             return base;
-        }).join(',')}${env.foreigns.length ? ',' : ''}
-        arr2str:typeof TextDecoder !== \'undefined\' ? function(arr) {
-            return (new TextDecoder()).decode(arr);
-        } : function(arr) {
-            var out = "";
-            for (var i = 0; i < arr.length; i++) {
-                out += String.fromCharCode(arr[i]);
-            }
-            return out;
-        }
-    });
+        }).join(',')}${env.foreigns.length ? ',' : ''}});
     if (ret.$init) {
         ret.$init();
     }
@@ -150,9 +139,9 @@ export default function generate(env, ENV_VARS) {
     })
 
     // Pre-define any string literals
-    body += Object.keys(env.registeredStringLiterals).map(function(str) {
-        return 'var ' + env.registeredStringLiterals[str] + ' = ' + JSON.stringify(str) + ';';
-    }).join('\n');
+    env.registeredStringLiterals.forEach((name, text) => {
+        body += `var ${name} = ${JSON.stringify(text)};\n`;
+    });
 
     if (env.inits.length) {
         body += `
@@ -171,7 +160,7 @@ function $$init() {
             .join(',\n        ')}
     };`;
 
-    // body = postOptimizer.optimize(body);
+    body = postOptimizer.optimize(body);
 
     return makeModule(env, ENV_VARS, body);
 };

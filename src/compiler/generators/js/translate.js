@@ -129,7 +129,7 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     var output = 'var ' + this[symbols.ASSIGNED_NAME] + ' = ';
 
     if (this.value instanceof hlirNodes.LiteralHLIR) {
-        output += (this.value.value !== null ? this.value.value : 'null').toString() + ';';
+        output += _node(this.value, env, ctx, tctx) + ';';
         tctx.write(output);
         return;
     }
@@ -155,11 +155,11 @@ NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
 NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     var context = this[symbols.CONTEXT];
 
-    tctx.write('function ' + this[symbols.ASSIGNED_NAME] + '(');
-    tctx.push();
-    tctx.write(this.params.map(param => _node(param, env, context, tctx)).join(','));
-    tctx.pop();
-    tctx.write(') {');
+    tctx.write(
+        `function ${this[symbols.ASSIGNED_NAME]}(${
+            this.params.map(param => _node(param, env, context, tctx)).join(',')
+        }) {`
+    );
 
     tctx.push();
     this.body.forEach(stmt => _node(stmt, env, ctx, tctx));

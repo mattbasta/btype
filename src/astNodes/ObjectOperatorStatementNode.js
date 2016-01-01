@@ -45,7 +45,9 @@ export default class ObjectOperatorStatementNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        return OperatorStatementNode.prototype[symbols.FMAKEHLIR].call(this, builder);
+        var hlir = OperatorStatementNode.prototype[symbols.FMAKEHLIR].call(this, builder);
+        hlir[symbols.IS_METHOD] = true;
+        return hlir;
     }
 
     [symbols.FCONSTRUCT](builder, hlir) {

@@ -1,16 +1,6 @@
-import AssignmentHLIR from '../hlirNodes/AssignmentHLIR';
-import CallHLIR from '../hlirNodes/CallHLIR';
-import DeclarationHLIR from '../hlirNodes/DeclarationHLIR';
-import ExportHLIR from '../hlirNodes/ExportHLIR';
 import Func from './types/Func';
-import FunctionHLIR from '../hlirNodes/FunctionHLIR';
-import LiteralHLIR from '../hlirNodes/LiteralHLIR';
-import MemberHLIR from '../hlirNodes/MemberHLIR';
-import NewHLIR from '../hlirNodes/NewHLIR';
-import SymbolHLIR from '../hlirNodes/SymbolHLIR';
+import * as hlirNodes from '../hlirNodes';
 import * as symbols from '../symbols';
-import TypedIdentifierHLIR from '../hlirNodes/TypedIdentifierHLIR';
-import TypeHLIR from '../hlirNodes/TypeHLIR';
 
 
 const TRANSFORM_ENCOUNTERED_CTXS = Symbol();
@@ -32,12 +22,18 @@ export function markFirstClassFunctions(context) {
     var stack = [];
     context.scope.iterate(
         (node, marker) => {
-            if (!(node instanceof SymbolHLIR)) {
+            if (!(node instanceof hlirNodes.SymbolHLIR)) {
 
-                if (node instanceof FunctionHLIR) {
+                if (node instanceof hlirNodes.FunctionHLIR) {
                     if (marker === 'body') return;
                     if (marker === 'consequent') return;
                     if (marker === 'alternate') return;
+
+                    // From object declarations
+                    if (marker === 'objConstructor') return;
+                    if (marker === 'methods') return;
+                    if (marker === 'operators') return;
+
                     node[symbols.IS_FIRSTCLASS] = true;
                 }
 
@@ -50,10 +46,10 @@ export function markFirstClassFunctions(context) {
 
             // Ignore symbols that are the callees of Call nodes. Calling a
             // declared function doesn't make the function first-class.
-            if (stack[0] instanceof CallHLIR && marker === 'callee') return false;
+            if (stack[0] instanceof hlirNodes.CallHLIR && marker === 'callee') return false;
 
             // Ignore symbols that are the base of Export nodes.
-            if (stack[0] instanceof ExportHLIR) return false;
+            if (stack[0] instanceof hlirNodes.ExportHLIR) return false;
 
             // If it's falsey, it means that it's a variable declaration of
             // type `func`, not a function declaration.
@@ -81,7 +77,7 @@ function removeItem(array, item) {
 function updateSymbolReferences(funcNode, tree, rootContext, refType) {
     var targetContext = funcNode[symbols.CONTEXT].parent;
     tree.iterate(node => {
-        if (node instanceof SymbolHLIR &&
+        if (node instanceof hlirNodes.SymbolHLIR &&
             node[symbols.REFCONTEXT] === targetContext &&
             node.name === funcNode.name) {
 
@@ -108,7 +104,7 @@ function getFunctionContext(ctx, name) {
     var mapping = new Map();
     // Find the lexical lookups in each descendant context and put them into a mapping
     ctx.scope.iterate(node => {
-        if (!(node instanceof FunctionHLIR)) return;
+        if (!(node instanceof hlirNodes.FunctionHLIR)) return;
         if (node.sideEffectFree) return false;
 
         for (var lookup of node[symbols.CONTEXT].lexicalLookups.keys()) {
@@ -119,19 +115,23 @@ function getFunctionContext(ctx, name) {
         }
     });
 
-    var wrappedType = TypeHLIR.from(ctx.scope.resolveType(), ctx.scope.start, ctx.scope.end);
+    var wrappedType = hlirNodes.TypeHLIR.from(
+        ctx.scope.resolveType(),
+        ctx.scope.start,
+        ctx.scope.end
+    );
 
-    var reference = new SymbolHLIR(ctx.scope.name, 0, 0);
+    var reference = new hlirNodes.SymbolHLIR(ctx.scope.name, 0, 0);
     reference[symbols.REFCONTEXT] = ctx.parent;
     reference[symbols.REFTYPE] = ctx.scope.resolveType();
     reference[symbols.REFNAME] = ctx.scope[symbols.ASSIGNED_NAME];
 
-    var funcctx = new DeclarationHLIR(
+    var funcctx = new hlirNodes.DeclarationHLIR(
         wrappedType,
         name,
-        NewHLIR.asFuncRef(
+        hlirNodes.NewHLIR.asFuncRef(
             wrappedType,
-            [reference, new LiteralHLIR('null', null, 0, 0)],
+            [reference, new hlirNodes.LiteralHLIR('null', null, 0, 0)],
             ctx.scope.start,
             ctx.scope.end
         ),
@@ -152,28 +152,28 @@ function processRoot(rootContext) {
     var stack = [];
     var funcsToAppend = [];
     rootContext.scope.iterate((node, member) => {
-        if (!(node instanceof FunctionHLIR)) {
+        if (!(node instanceof hlirNodes.FunctionHLIR)) {
             stack.unshift(node);
             return;
         }
 
         // Ignore non-expression functions
-        if (member === 'body' || stack[0][symbols.IS_METHOD]) {
+        if (member === 'body' || node[symbols.IS_METHOD]) {
             return false;
         }
 
         funcsToAppend.push(node);
 
         var funcType = node.resolveType(rootContext);
-        var frefType = new TypeHLIR('func', [], node.start, node.end);
+        var frefType = new hlirNodes.TypeHLIR('func', [], node.start, node.end);
         frefType.forceType(funcType);
 
-        var refSym = new SymbolHLIR(node.name || node[symbols.ASSIGNED_NAME], node.start, node.end);
+        var refSym = new hlirNodes.SymbolHLIR(node.name || node[symbols.ASSIGNED_NAME], node.start, node.end);
         refSym[symbols.REFCONTEXT] = rootContext;
         refSym[symbols.REFTYPE] = funcType;
         refSym[symbols.REFNAME] = node[symbols.ASSIGNED_NAME];
 
-        stack[0][member] = new NewHLIR(
+        stack[0][member] = new hlirNodes.NewHLIR(
             frefType,
             [refSym],
             node.start,
@@ -224,10 +224,10 @@ function processFunc(rootContext, node, context) {
 
     function getContextReference() {
         if (!funcctx) {
-            return new LiteralHLIR('null', null, 0, 0);
+            return new hlirNodes.LiteralHLIR('null', null, 0, 0);
         }
 
-        var out = new SymbolHLIR(ctxName, 0, 0);
+        var out = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
         out[symbols.REFCONTEXT] = context;
         out[symbols.REFTYPE] = ctxType;
         out[symbols.REFNAME] = ctxName;
@@ -247,28 +247,28 @@ function processFunc(rootContext, node, context) {
         context.addVar(ctxName, ctxType, ctxName);
 
         function getReference(name) {
-            var base = new SymbolHLIR(ctxName, 0, 0);
+            var base = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
             base[symbols.REFCONTEXT] = context;
             base[symbols.REFTYPE] = ctxType;
             base[symbols.REFNAME] = ctxName;
-            return new MemberHLIR(base, name, 0, 0);
+            return new hlirNodes.MemberHLIR(base, name, 0, 0);
         }
 
         // Replace symbols referencing declarations that are now inside the
         // funcctx with member expressions
         node.findAndReplace(node => {
-            if (node instanceof SymbolHLIR &&
+            if (node instanceof hlirNodes.SymbolHLIR &&
                 node[symbols.REFCONTEXT] === context &&
                 ctxMapping.has(node[symbols.REFNAME])) {
 
                 return node => getReference(node[symbols.REFNAME]);
             }
 
-            if (node instanceof DeclarationHLIR &&
+            if (node instanceof hlirNodes.DeclarationHLIR &&
                 ctxMapping.has(node[symbols.ASSIGNED_NAME])) {
 
                 // Delete the node
-                return node => new AssignmentHLIR(
+                return node => new hlirNodes.AssignmentHLIR(
                     getReference(node[symbols.ASSIGNED_NAME]),
                     node.value,
                     node.start,
@@ -281,17 +281,23 @@ function processFunc(rootContext, node, context) {
         context.scope.params.forEach(param => {
             var assignedName = context.nameMap.get(param.name);
             if (!ctxMapping.has(assignedName)) return;
-            var sym = new SymbolHLIR(param.name, 0, 0);
+
+            var sym = new hlirNodes.SymbolHLIR(param.name, 0, 0);
             sym[symbols.REFCONTEXT] = context;
             sym[symbols.REFTYPE] = param.resolveType(context);
             sym[symbols.REFNAME] = assignedName;
-            var assign = new AssignmentHLIR(getReference(assignedName), sym, 0, 0);
+            var assign = new hlirNodes.AssignmentHLIR(
+                getReference(assignedName),
+                sym,
+                0,
+                0
+            );
             node.body.splice(1, 0, assign);
         });
 
         // Remove lexical lookups from the context objects and add the parameter
         node.iterate(node => {
-            if (!(node instanceof FunctionHLIR)) return;
+            if (!(node instanceof hlirNodes.FunctionHLIR)) return;
 
             if (!node[ORIG_TYPE]) {
                 node[ORIG_TYPE] = node.resolveType(node[symbols.CONTEXT]);
@@ -305,10 +311,10 @@ function processFunc(rootContext, node, context) {
                 ctx.lexicalLookups.delete(mem);
             }
 
-            var type = new TypeHLIR(funcctx[CTX_TYPEMAPPING].typeName, [], 0, 0);
+            var type = new hlirNodes.TypeHLIR(funcctx[CTX_TYPEMAPPING].typeName, [], 0, 0);
             type.forceType(funcctx[CTX_TYPEMAPPING]);
 
-            var ident = new TypedIdentifierHLIR(ctxName, type, 0, 0);
+            var ident = new hlirNodes.TypedIdentifierHLIR(ctxName, type, 0, 0);
             ident[symbols.ASSIGNED_NAME] = ctxName;
             ident[symbols.CONTEXT] = ctx;
             ident[symbols.REFCONTEXT] = context;
@@ -327,9 +333,9 @@ function processFunc(rootContext, node, context) {
         // Finally, find all of the calls to the functions and add the appropriate
         // new parameter.
         node.iterate(node => {
-            if (!(node instanceof CallHLIR)) return;
+            if (!(node instanceof hlirNodes.CallHLIR)) return;
             // Ignore calls to non-symbols
-            if (!(node.callee instanceof SymbolHLIR)) return;
+            if (!(node.callee instanceof hlirNodes.SymbolHLIR)) return;
             // Ignore calls to non-functions
             if (!node.callee[symbols.IS_FUNC]) return;
 
@@ -343,25 +349,25 @@ function processFunc(rootContext, node, context) {
         for (var i = 0; i < body.length; i++) {
             let iterNode = body[i];
 
-            if (!(iterNode instanceof FunctionHLIR)) return;
+            if (!(iterNode instanceof hlirNodes.FunctionHLIR)) return;
             if (!iterNode[symbols.IS_FIRSTCLASS]) return;
 
             let type = iterNode.resolveType(context);
             context.env.registerFunc(iterNode);
 
-            let typeIR = new TypeHLIR(type.typeName || type._type, [], 0, 0);
+            let typeIR = new hlirNodes.TypeHLIR(type.typeName || type._type, [], 0, 0);
             typeIR.forceType(type);
 
-            let ref = new SymbolHLIR(iterNode.name, 0, 0);
+            let ref = new hlirNodes.SymbolHLIR(iterNode.name, 0, 0);
             ref[symbols.REFCONTEXT] = iterNode[symbols.CONTEXT];
             ref[symbols.REFTYPE] = iterNode.resolveType();
             ref[symbols.REFNAME] = iterNode[symbols.ASSIGNED_NAME];
 
-            let decl = new DeclarationHLIR(
+            let decl = new hlirNodes.DeclarationHLIR(
                 type,
                 iterNode.name,
-                NewHLIR.asFuncRef(
-                    TypeHLIR.from(type),
+                hlirNodes.NewHLIR.asFuncRef(
+                    hlirNodes.TypeHLIR.from(type),
                     [ref, getContextReference()],
                     0,
                     0
@@ -378,7 +384,7 @@ function processFunc(rootContext, node, context) {
     node.iterate(node => {
 
         if (!stack[0] ||
-            !(node instanceof FunctionHLIR) ||
+            !(node instanceof hlirNodes.FunctionHLIR) ||
             !node[symbols.IS_FIRSTCLASS] ||
             stack[0][symbols.IS_FUNCREF]) {
             stack.unshift(node);
@@ -389,12 +395,12 @@ function processFunc(rootContext, node, context) {
             if (x !== node) return x;
             context.env.registerFunc(node);
             var funcType = node.resolveType();
-            var ref = new SymbolHLIR(node.name, 0, 0);
+            var ref = new hlirNodes.SymbolHLIR(node.name, 0, 0);
             ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
             ref[symbols.REFTYPE] = funcType;
             ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
-            return NewHLIR.asFuncRef(
-                TypeHLIR.from(funcType),
+            return hlirNodes.NewHLIR.asFuncRef(
+                hlirNodes.TypeHLIR.from(funcType),
                 [ref, getContextReference()]
             );
         });
@@ -408,19 +414,19 @@ function processCallNodes(node, context) {
     // Replace calls to function declarations with CallDecl nodes and calls to
     // references with CallRef.
     node.findAndReplace(node => {
-        if (!(node instanceof CallHLIR)) return;
+        if (!(node instanceof hlirNodes.CallHLIR)) return;
 
         var isDeclaration = context.isFuncSet.has(node.callee[symbols.REFNAME]);
-        if (!isDeclaration && node.callee instanceof MemberHLIR) {
+        if (!isDeclaration && node.callee instanceof hlirNodes.MemberHLIR) {
             var baseType = node.callee.base.resolveType(context);
             if (baseType._type === 'module' || baseType.flatTypeName() === 'foreign') {
                 isDeclaration = true;
             }
-        } else if (!isDeclaration && node.callee instanceof SymbolHLIR) {
+        } else if (!isDeclaration && node.callee instanceof hlirNodes.SymbolHLIR) {
             isDeclaration = node.callee[symbols.REFCONTEXT].isFuncSet.has(node.callee[symbols.REFNAME]);
         }
 
-        return node => new CallHLIR(node.callee, node.params, node.start, node.end);
+        return node => new hlirNodes.CallHLIR(node.callee, node.params, node.start, node.end);
 
     }, true);
 }
@@ -461,7 +467,7 @@ function upliftContext(rootContext, ctx) {
         } else {
             // Otherwise, replace the function with a symbol referencing the
             // function.
-            let newSymbol = stack[0][marker] = new SymbolHLIR(
+            let newSymbol = stack[0][marker] = new hlirNodes.SymbolHLIR(
                 node.name,
                 node.start,
                 node.end
@@ -483,7 +489,7 @@ function upliftContext(rootContext, ctx) {
     // Replace the old assigned name with the new one within the uplifted
     // function.
     node.iterate(x => {
-        if (!(x instanceof SymbolHLIR)) return;
+        if (!(x instanceof hlirNodes.SymbolHLIR)) return;
         if (x[symbols.REFNAME] !== oldName) return;
         x[symbols.REFNAME] = newName;
     });
@@ -492,12 +498,12 @@ function upliftContext(rootContext, ctx) {
     var stack = [];
     ctxparent.scope.iterate(
         x => {
-            if (!(x instanceof SymbolHLIR)) {
+            if (!(x instanceof hlirNodes.SymbolHLIR)) {
                 stack.unshift(x);
                 return;
             }
             if (!stack[0]) return;
-            if (!(stack[0] instanceof CallHLIR)) return;
+            if (!(stack[0] instanceof hlirNodes.CallHLIR)) return;
             if (x[symbols.REFNAME] !== oldName) return;
             x[symbols.REFNAME] = newName;
             x[symbols.REFCONTEXT] = rootContext;
