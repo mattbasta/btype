@@ -360,7 +360,7 @@ function processFunc(rootContext, node, context) {
 
             let ref = new hlirNodes.SymbolHLIR(iterNode.name, 0, 0);
             ref[symbols.REFCONTEXT] = iterNode[symbols.CONTEXT];
-            ref[symbols.REFTYPE] = iterNode.resolveType();
+            ref[symbols.REFTYPE] = iterNode.resolveType(iterNode[symbols.CONTEXT]);
             ref[symbols.REFNAME] = iterNode[symbols.ASSIGNED_NAME];
 
             let decl = new hlirNodes.DeclarationHLIR(
@@ -398,15 +398,13 @@ function processFunc(rootContext, node, context) {
             var ref = new hlirNodes.SymbolHLIR(node.name, 0, 0);
             ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
             ref[symbols.REFTYPE] = funcType;
-            ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
+            ref[symbols.REFNAME] = node[symbols.ASSIGNED_NAME] + '$$origFunc$';
             return hlirNodes.NewHLIR.asFuncRef(
                 hlirNodes.TypeHLIR.from(funcType),
                 [ref, getContextReference()]
             );
         });
-    }, function(node) {
-        stack.shift();
-    });
+    }, () => stack.shift());
 
 }
 

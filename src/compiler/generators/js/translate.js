@@ -261,6 +261,16 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
         return 'new Array(' + arrLength + ')';
     }
 
+    if (baseType._type === 'func') {
+        let funcRef = _node(this.args[0], env, ctx, tctx);
+        if (this.args.length === 1 ||
+            this.args[1] instanceof hlirNodes.LiteralHLIR && this.args[1].value === null) {
+            return funcRef;
+        }
+
+        return `${funcRef}.bind(null, ${this.args.slice(1).map(a => _node(a, env, ctx, tctx)).join(', ')})`;
+    }
+
     var output = 'new ' + baseType.flatTypeName();
 
     if (baseType instanceof Struct && baseType.objConstructor) {

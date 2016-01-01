@@ -53,17 +53,18 @@ export default class OperatorStatementNode extends BaseBlockNode {
             this.right[symbols.FMAKEHLIR](builder),
         ];
 
+        var assignedName = builder.env.namer();
         var node = new FunctionHLIR(
             returnTypeNode,
-            builder.env.namer(),
+            assignedName,
             paramNodes,
             this.start,
             this.end
         );
+        node[symbols.ASSIGNED_NAME] = assignedName;
         var ctx = builder.peekCtx();
         ctx.functions.add(node);
-        var assignedName = ctx.addVar(node.name, node.resolveType(ctx), node[symbols.ASSIGNED_NAME]);
-        node[symbols.ASSIGNED_NAME] = assignedName;
+        ctx.addVar(node.name, node.resolveType(ctx), assignedName);
         ctx.functionDeclarations.set(assignedName, node);
         ctx.isFuncSet.add(assignedName);
 

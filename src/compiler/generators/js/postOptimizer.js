@@ -153,39 +153,54 @@ function trimBody(body) {
 }
 
 function orderCode(body) {
+    var parts = new Array(5); // max type (4) + 1
+    body.body.forEach((node) => {
+        var type = getType(node);
+        if (!parts[type]) {
+            parts[type] = [];
+        }
+        parts[type].push(node)
+    });
+
     function getType(node) {
         if (node.type === 'VariableDeclaration') {
             var decl = node.declarations[0];
+            // stdlib lookups
             if (decl.init.type === 'MemberExpression') {
                 return 0;
             }
+            // Pre-initialization
             if (decl.init.type === 'NewExpression') {
                 return 1;
             }
+            // Function tables
             if (decl.init.type === 'ArrayExpression') {
                 return 3;
             }
             return 0;
         }
+        // Function declarations
         if (node.type === 'FunctionDeclaration') {
             return 2;
         }
+        // The exports
         if (node.type === 'ReturnStatement') {
             return 4;
         }
-        return -1;
+        return 3;
     }
-    body.body.sort(function(a, b) {
-        return getType(a) - getType(b);
-    });
+
+    // This used to be a call to sort() with getType() acting as a sort of
+    // cmp(). That's bad for two reasons:
+    // - It's O(Nlog(N)), while this is O(N). That matters for big programs.
+    // - sort() in V8 isn't always stable, so there could be side effects.
+    body.body = parts.reduce((a, b) => a.concat(b), []);
 
     // Sort function bodies
     traverse(body, function(node) {
         if (node.type !== 'FunctionDeclaration') return;
 
-        var params = node.params.map(function(p) {
-            return p.name;
-        });
+        var params = node.params.map(p => p.name);
 
         function isParamAnnotation(node) {
             if (node.type !== 'ExpressionStatement' ||
@@ -243,12 +258,8 @@ function orderCode(body) {
             i--;
         }
 
-        bodyPrefix = bodyPrefix.concat(origBody.filter(function(x) {
-            return x.type === 'VariableDeclaration';
-        }));
-        origBody = origBody.filter(function(x) {
-            return x.type !== 'VariableDeclaration';
-        });
+        bodyPrefix = bodyPrefix.concat(origBody.filter(x => x.type === 'VariableDeclaration'));
+        origBody = origBody.filter(x => x.type !== 'VariableDeclaration');
 
         node.body.body = bodyPrefix.concat(origBody);
     });

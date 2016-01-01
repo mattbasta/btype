@@ -3,7 +3,7 @@ import path from 'path';
 
 import * as externalFuncs from './externalFuncs';
 import jsTranslate from './translate';
-import * as postOptimizer from './postOptimizer';
+import {optimize as postOptimizer} from './postOptimizer';
 import * as symbols from '../../../symbols';
 
 
@@ -25,17 +25,15 @@ function makeModule(env, ENV_VARS, body) {
         ret.$init();
     }
     return {
-        $strings: {
-            read: function(x) {return x;}
-        },
+        $strings: {read: function(x) {return x;}},
         ${Array.from(env.requested.exports.keys())
             .filter(e => e !== '$init')
             .map(e => `${JSON.stringify(e)}: ret[${JSON.stringify(e)}]`)
             .join(',\n')}
     };
 }).call(typeof global !== "undefined" ? global : this, function app(stdlib, foreign) {
-    var fround = stdlib.Math.fround;
-    ${body}
+var fround = stdlib.Math.fround;
+${body}
 })`;
 }
 
@@ -51,7 +49,6 @@ function extend(base, members) {
 }
 
 function typeTranslate(type, context) {
-    var output = '';
     switch (type._type) {
         case 'primitive':
             return '/* primitive: ' + type.toString() + ' */';
@@ -59,27 +56,29 @@ function typeTranslate(type, context) {
             return '/* array type: ' + type.toString() + ' */';
 
         case 'struct':
-            var constructorFunc;
-            var selfName;
+            let output;
+            let constructorFunc;
+            let selfName;
 
             // Create the constructor
             if (type.objConstructor) {
                 constructorFunc = this.findFunctionByAssignedName(type.objConstructor);
                 selfName = constructorFunc.params[0][symbols.ASSIGNED_NAME];
 
-                output = 'function ' + type.flatTypeName() + '(' + constructorFunc.params.slice(1).map(function(param) {
-                    return param[symbols.ASSIGNED_NAME];
-                }).join(',') + ') { /* struct */';
+                output = 'function ' + type.flatTypeName() + '(' +
+                    constructorFunc.params.slice(1).map(p => p[symbols.ASSIGNED_NAME]).join(',') +
+                    ') { /* struct */';
 
             } else {
                 output = 'function ' + type.flatTypeName() + '() { /* struct */';
             }
 
             // Add all of the zeroed members
-            output += Object.keys(type.contentsTypeMap).map(function(contentsTypeName) {
+            output += Array.from(type.contentsTypeMap.keys()).map(memberName => {
                 var val = 'null';
-                if (type.contentsTypeMap[contentsTypeName]._type === 'primitive') {
-                    switch (type.contentsTypeMap[contentsTypeName].typeName) {
+                var member = type.contentsTypeMap.get(memberName);
+                if (member._type === 'primitive') {
+                    switch (member.typeName) {
                         case 'bool':
                             val = 'false';
                             break
@@ -91,30 +90,24 @@ function typeTranslate(type, context) {
                             val = '0';
                     }
                 }
-                return 'this.' + contentsTypeName + ' = ' + val + ';';
+                return `this.${memberName} = ${val};`;
             }).join('\n');
 
             // Add the constructor if there is one
             if (type.objConstructor) {
-                output += 'var ' + selfName + ' = this;\n';
-                constructorFunc.body.forEach(function(bodyItem) {
+                output += `var ${selfName} = this;\n`;
+                constructorFunc.body.forEach(bodyItem => {
                     output += jsTranslate(extend(context, {scope: bodyItem, env: this}));
-                }, this);
+                });
             }
             output += '}';
 
             return output;
 
         case 'tuple':
-            return [
-                'function ' + type.flatTypeName() + '() { /* tuple */',
-                '    this.data = [',
-                '    ' + type.contentsTypeArr.map(function(type) {
-                    return '0';
-                }).join('\n    '),
-                '    ];',
-                '}',
-            ].join('\n');
+            return `function ${type.flatTypeName()}() {
+                this.data = [${type.contentsTypeArr.map(() => '0').join(',\n        ')}];
+            }`;
         default:
             return '/* unknown type translation for ' + type.toString() + ' */';
     }
@@ -160,7 +153,7 @@ function $$init() {
             .join(',\n        ')}
     };`;
 
-    body = postOptimizer.optimize(body);
+    body = postOptimizer(body);
 
     return makeModule(env, ENV_VARS, body);
 };
