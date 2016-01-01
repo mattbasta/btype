@@ -114,10 +114,23 @@ NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
-    return _node(this.callee, env, ctx, tctx) +
-        '(' +
-        this.params.map(p => _node(p, env, ctx, tctx)).join(',') +
-        ')';
+    var params = () => this.params.map(p => _node(p, env, ctx, tctx)).join(',');
+
+    var temp;
+    if (this.callee instanceof hlirNodes.MemberHLIR &&
+        (temp = this.callee.base.resolveType(ctx)).hasMethod &&
+        temp.hasMethod(this.callee.child)) {
+
+        return temp.getMethod(this.callee.child) +
+            '(' +
+            _node(this.callee.base, env, ctx, tctx) +
+            (this.params.length ? ', ' : '') +
+            params() +
+            ')';
+    }
+
+    var callee = _node(this.callee, env, ctx, tctx);
+    return `${callee}(${params()})`;
 });
 
 NODES.set(hlirNodes.ContinueHLIR, function() {
@@ -406,46 +419,6 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
     return '[' + this.elements.map(x => _node(x, env, ctx, tctx)).join(',') + ']';
 });
 
-
-
-
-var NODES_OLD = {
-    CallRaw: function(env, ctx, tctx) {
-        return _node(this.callee, env, ctx, tctx) + '(/* CallRaw */' +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, tctx);
-            }).join(',') +
-            ')';
-    },
-    CallDecl: function(env, ctx, tctx) {
-        return _node(this.callee, env, ctx, tctx) +
-            '(/* CallDecl */' +
-            this.params.map(function(param) {
-                return _node(param, env, ctx, tctx);
-            }).join(',') +
-            ')';
-    },
-    CallRef: function(env, ctx, tctx) {
-        var funcType = this.callee.resolveType(ctx);
-
-        var paramList = this.params.map(function(param) {
-            return _node(param, env, ctx, tctx);
-        }).join(',');
-
-        var temp;
-        if (this.callee.type === 'Member' &&
-            (temp = this.callee.base.resolveType(ctx)).hasMethod &&
-            temp.hasMethod(this.callee.child)) {
-
-            return temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, tctx) + (paramList ? ', ' : '') + paramList + ')';
-        }
-
-        return _node(this.callee, env, ctx, tctx) +
-            '(/* CallRef */' + paramList + ')';
-    },
-
-};
 
 export default function translateJS(ctx) {
     var tctx = new TranslationContext(ctx.env, ctx);

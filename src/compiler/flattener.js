@@ -104,11 +104,6 @@ function upliftExpressionsFromBody(ctx, body) {
                 !(node instanceof hlirNodes.SymbolHLIR) &&
                 !(node instanceof hlirNodes.NewHLIR)) {
                 node[SHOULD_FLATTEN] = true;
-
-            } else if (stack[1] && stack[1] instanceof hlirNodes.MemberHLIR &&
-                stack[1].resolveType(ctx)[symbols.IS_METHOD] &&
-                (!stack[2] || stack[2] instanceof hlirNodes.CallHLIR)) {
-                stack[1][SHOULD_FLATTEN] = true;
             }
 
         }, () => stack.shift());

@@ -45,4 +45,8 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         return baseType.getMemberType(this.child);
     }
 
+    asString() {
+        return `${super.asString()} for ${this.child}`;
+    }
+
 };
