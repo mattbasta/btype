@@ -146,7 +146,6 @@ export default class Environment {
             return;
         }
         if (typeof e[symbols.ERR_START] !== 'undefined') {
-            debugger;
             e[symbols.ERR_LINE] = errorFormatter.getLine(e[symbols.ERR_START]);
             e[symbols.ERR_COL] = errorFormatter.getColumn(e[symbols.ERR_START]);
         }

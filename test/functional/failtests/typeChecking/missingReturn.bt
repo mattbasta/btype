@@ -1,0 +1,4 @@
+func float:foo() {
+    # no-op
+}
+export foo;

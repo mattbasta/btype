@@ -1,1 +1,5 @@
-TypeError: Non-void function with undefined return type: <double>
+TypeError: Could not resolve type "double"
+1 | func double:foo() {
+  |      ^ (1:6)
+2 |     return 1.0;
+

@@ -1,1 +1,5 @@
-TypeError: Function with parameter (0) with undefined type: TypedId(x: <double>)
+TypeError: Could not resolve type "double"
+1 | func foo(double:x) {
+  |          ^ (1:10)
+2 |     # noop
+

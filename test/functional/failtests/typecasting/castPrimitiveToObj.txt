@@ -1,1 +1,6 @@
-TypeError: Cannot typecast to non-primitive: int as foo
+TypeError: Cannot typecast "int" to non-primitive "foo"
+3 | func main() {
+4 |     var barInst = 3 as foo;
+  |                   ^ (4:19)
+5 | }
+

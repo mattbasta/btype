@@ -45,6 +45,9 @@ export default class TypeHLIR extends BaseHLIR {
                 }
                 throw e;
             }
+            if (!this[TYPE_CACHE]) {
+                throw this.TypeError(`Could not resolve type "${this.name}"`);
+            }
         }
 
         return this[TYPE_CACHE];

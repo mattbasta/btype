@@ -1,4 +1,5 @@
 import BaseHLIR from './BaseHLIR';
+import RootHLIR from './RootHLIR';
 
 
 export default class ReturnHLIR extends BaseHLIR {
@@ -9,22 +10,12 @@ export default class ReturnHLIR extends BaseHLIR {
     }
 
     settleTypes(ctx) {
-        var scopeReturnType = ctx.scope.returnType;
-        if (scopeReturnType && !this.value) {
-            throw this.TypeError('No value was returning when a return value was expected');
+        if (ctx.scope instanceof RootHLIR) {
+            throw this.TypeError('Return statements must be within functions');
         }
 
-        if (!scopeReturnType) {
-            if (this.value) {
-                throw this.TypeError('Returning value when no value was expected');
-            }
-            return;
-        }
-
-        var expectedReturnType = scopeReturnType.resolveType(ctx);
-        var returnType = this.value.resolveType(ctx);
-        if (!returnType.equals(expectedReturnType)) {
-            throw this.TypeError('Attempted to return ' + returnType.toString() + ' but expected a ' + expectedReturnType.toString());
+        if (this.value) {
+            this.value.resolveType(ctx);
         }
     }
 

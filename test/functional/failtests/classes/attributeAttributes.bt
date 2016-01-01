@@ -1,5 +1,5 @@
 object Foo<x> {
-    x<abc>:bar; # x cannot have attributes
+    x<int>:bar; # x cannot have attributes
 }
 
 var bar = new Foo<int>();

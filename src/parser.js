@@ -786,17 +786,21 @@ function parseObjectDeclaration(lex) {
     var name = lex.assert('identifier');
 
     var attributes = [];
+    var definedAttributes = new Set();
     if (lex.accept('<')) {
         while (true) {
             let ident = lex.assert('identifier')
             let attrIdent = ident.text;
-            if (attributes.indexOf(attrIdent) !== -1) {
-                throw new SyntaxError('Cannot declare attribute multiple times for the same object declaration');
+            if (definedAttributes.has(attrIdent)) {
+                throw new SyntaxError(
+                    `Cannot declare attribute "${attrIdent}" multiple times`
+                );
             }
 
             attributes.push(
                 new nodes.TypeNode(attrIdent, null, ident.start, ident.end)
             );
+            definedAttributes.add(attrIdent);
 
             if (lex.accept('>')) {
                 break;

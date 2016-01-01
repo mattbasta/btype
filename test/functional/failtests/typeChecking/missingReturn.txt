@@ -1,0 +1,5 @@
+TypeError: Expected float to be returned from function, but no returns found.
+1 | func float:foo() {
+  | ^ (1:1)
+2 |     # no-op
+

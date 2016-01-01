@@ -1,1 +1,6 @@
-TypeError: Cannot typecast non-primitive: foo as bar
+TypeError: Cannot typecast non-primitive "foo" to "bar"
+5 |     var inst = new foo();
+6 |     var barInst = inst as bar;
+  |                   ^ (6:19)
+7 | }
+

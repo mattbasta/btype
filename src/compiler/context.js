@@ -218,8 +218,8 @@ export class RootContext extends BaseContext {
             this.isFuncSet.add(assignedName);
 
             type.methods.set(m.name, assignedName);
-            if (m.isPrivate) type.privateMembers.add(m.name);
-            if (m.isFinal) type.finalMembers.add(m.name);
+            if (m[symbols.IS_PRIVATE]) type.privateMembers.add(m.name);
+            if (m[symbols.IS_FINAL]) type.finalMembers.add(m.name);
 
             m[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         });
@@ -309,7 +309,12 @@ export class Context extends BaseContext {
     }
 
     resolveType(typeName, attributes) {
-        if (this.typeDefs.has(typeName) && !attributes.length) {
+        if (this.typeDefs.has(typeName)) {
+            if (attributes.length) {
+                var err = new TypeError('Cannot apply attributes to aliased types');
+                err[symbols.ERR_MSG] = err.message;
+                throw err;
+            }
             return this.typeDefs.get(typeName);
         }
         return this.parent.resolveType(typeName, attributes);

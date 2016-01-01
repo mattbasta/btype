@@ -1,1 +1,5 @@
-TypeError: Cannot read property 'typeNameMap' of null
+SyntaxError: Cannot declare attribute "x" multiple times
+1 | object Foo<x, y, x> {
+  |                  ^ (1:18)
+2 | }
+

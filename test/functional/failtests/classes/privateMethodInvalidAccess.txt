@@ -1,1 +1,6 @@
 TypeError: Accessing private member "getXHidden" from outside object declaration
+13 |     var foo = new Point();
+14 |     foo.getXHidden();
+   |     ^ (14:5)
+15 | }
+

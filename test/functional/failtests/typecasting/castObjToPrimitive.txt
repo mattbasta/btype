@@ -1,1 +1,6 @@
-TypeError: Cannot typecast non-primitive: foo as int
+TypeError: Cannot typecast non-primitive "foo" to "int"
+4 |     var inst = new foo();
+5 |     return inst as int;
+  |            ^ (5:12)
+6 | }
+

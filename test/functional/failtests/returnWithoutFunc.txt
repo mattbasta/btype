@@ -1,1 +1,6 @@
 TypeError: Return statements must be within functions
+2 | export foo;
+3 | return;
+  | ^ (3:1)
+4 | 
+

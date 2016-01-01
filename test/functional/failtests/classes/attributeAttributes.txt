@@ -1,1 +1,6 @@
-TypeError: Cannot apply attributes to attributes defined in object declaration
+TypeError: Cannot apply attributes to aliased types
+1 | object Foo<x> {
+2 |     x<int>:bar; # x cannot have attributes
+  |     ^ (2:5)
+3 | }
+
