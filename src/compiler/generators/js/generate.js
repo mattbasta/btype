@@ -32,7 +32,6 @@ function makeModule(env, ENV_VARS, body) {
             .join(',\n')}
     };
 }).call(typeof global !== "undefined" ? global : this, function app(stdlib, foreign) {
-var fround = stdlib.Math.fround;
 ${body}
 })`;
 }

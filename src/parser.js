@@ -883,10 +883,10 @@ function parseObjectDeclaration(lex) {
 
             if (tempOpStmt.left.type.name !== name.text &&
                 tempOpStmt.right.type.name !== name.text) {
-                throw new SyntaxError(
+                raiseSyntaxError(
                     `Operator overload for ${name.text} of "${tempOpStmt.operator}" must include ${name.text} in its declaration`,
-                    tempOpStmt.line,
-                    tempOpStmt.column
+                    tempOpStmt.start,
+                    tempOpStmt.end
                 );
             }
 

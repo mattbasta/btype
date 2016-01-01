@@ -1,5 +1,6 @@
-SyntaxError: Operator overload for Foo of "+" must include Foo in its declaration.
+SyntaxError: Operator overload for Foo of "+" must include Foo in its declaration
+2 |     int:x;
+3 |     operator (float:left + int:right) Foo {
+  |     ^ (3:5)
 4 |         return new Foo((left as int) + right);
-5 |     }
-  |     ^ (5:5)
-6 | }
+

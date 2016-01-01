@@ -370,7 +370,7 @@ NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
                     }
                     return 'int2uint(' + base + ')';
                 case 'float': return '(+(' + base + '))';
-                case 'sfloat': return '(fround(' + base + '))';
+                case 'sfloat': return '(stdlib.Math.fround(' + base + '))';
                 case 'byte': return base;
                 case 'bool': return '(!!' + base + ')';
             }
@@ -378,13 +378,13 @@ NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
             switch (targetType.typeName) {
                 case 'int': return 'uint2int(' + base + ')';
                 case 'float': return '(+(' + base + '))';
-                case 'sfloat': return '(fround(' + base + '))';
+                case 'sfloat': return '(stdlib.Math.fround(' + base + '))';
                 case 'byte': return base;
                 case 'bool': return '(' + base + ' != 0)';
             }
         case 'float':
             switch (targetType.typeName) {
-                case 'sfloat': return '(fround(' + base + '))';
+                case 'sfloat': return '(stdlib.Math.fround(' + base + '))';
                 case 'uint': return 'float2uint(' + base + ')';
                 case 'int': return '(' + base + '|0)';
                 case 'byte': return '(' + base + '|0)';
@@ -403,7 +403,7 @@ NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
                 case 'uint': return base;
                 case 'int': return base;
                 case 'float': return '(+(' + base + '))';
-                case 'sfloat': return '(fround(' + base + '))';
+                case 'sfloat': return '(stdlib.Math.fround(' + base + '))';
                 case 'bool': return '(!!' + base + ')';
             }
         case 'bool':
