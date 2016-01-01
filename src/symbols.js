@@ -31,3 +31,5 @@ export const ERR_START = Symbol('error: start index of error in bt file');
 export const ERR_LINE = Symbol('error: line of error in bt file, optional instead of ERR_START');
 export const ERR_COL = Symbol('error: column of error in bt file, optional instead of ERR_START');
 export const ERR_END = Symbol('error: end index of error in bt file');
+
+export const IGNORE_ERRORS = Symbol('special flag for ignoring certain errors on generated functions');

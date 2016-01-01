@@ -19,7 +19,7 @@ export default class MemberHLIR extends BaseExpressionHLIR {
             let tmp = ctx;
             while (tmp) {
                 if (tmp[symbols.BASE_PROTOTYPE]) {
-                    if (tmp[symbols.BASE_PROTOTYPE].resolveType(ctx).equals(baseType)) {
+                    if (tmp[symbols.BASE_PROTOTYPE][symbols.ASSIGNED_NAME] === baseType[symbols.ASSIGNED_NAME]) {
                         insideObjectScope = true;
                     }
                     break;

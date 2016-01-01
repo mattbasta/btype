@@ -24,7 +24,8 @@
     "minimist": "^1.1.0"
   },
   "bin": {
-    "btype": "./bin/btype"
+    "btype": "./bin/btype",
+    "bt-run": "./bin/bt-run"
   },
   "preferGlobal": true,
   "engines": {

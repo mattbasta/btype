@@ -38,6 +38,12 @@ export default class RootNode extends BaseBlockNode {
         builder.pushCtx(rootCtx);
         rootHLIR.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
 
+        if (this[symbols.IGNORE_ERRORS]) {
+            builder.getFuncs().forEach(b => {
+                b[1][symbols.IGNORE_ERRORS] = true;
+            });
+        }
+
         builder.processFuncs();
 
         builder.popCtx();

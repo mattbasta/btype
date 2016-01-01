@@ -14,6 +14,30 @@ export unixfloat;
 
 object DateTime {
     uint:timestamp;
+
+    operator (DateTime:left - DateTime:right) TimeDelta {
+        # TODO: Make sure that this is safe, handles negatives properly
+        return new TimeDelta((left.timestamp as int) - (right.timestamp as int));
+    }
+
+    operator (DateTime:left + TimeDelta:right) DateTime {
+        var temp = new DateTime();
+        temp.timestamp = ((left.timestamp as int) + right.milliseconds) as uint;
+        return temp;
+    }
+
+    operator (TimeDelta:left + DateTime:right) DateTime {
+        var temp = new DateTime();
+        temp.timestamp = ((right.timestamp as int) + left.milliseconds) as uint;
+        return temp;
+    }
+
+    operator (DateTime:left - TimeDelta:right) DateTime {
+        var temp = new DateTime();
+        # TODO: Make sure that this works alright with uint
+        temp.timestamp = ((left.timestamp as int) - right.milliseconds) as uint;
+        return temp;
+    }
 }
 export DateTime;
 
@@ -49,63 +73,36 @@ object TimeDelta {
         self.milliseconds = self.milliseconds + weeks * 1000 * 60 * 60 * 24 * 7;
     }
 
+    operator (TimeDelta:left + TimeDelta:right) TimeDelta {
+        return new TimeDelta(left.milliseconds + right.milliseconds);
+    }
+
+    operator (TimeDelta:left - TimeDelta:right) TimeDelta {
+        return new TimeDelta(left.milliseconds - right.milliseconds);
+    }
+
+    operator (TimeDelta:left < TimeDelta:right) bool {
+        return left.milliseconds < right.milliseconds;
+    }
+
+    operator (TimeDelta:left == TimeDelta:right) bool {
+        return left.milliseconds == right.milliseconds;
+    }
+
+    operator (TimeDelta:left != TimeDelta:right) bool {
+        return left.milliseconds != right.milliseconds;
+    }
+
+    operator (TimeDelta:left > TimeDelta:right) bool {
+        return left.milliseconds > right.milliseconds;
+    }
+
+    operator (TimeDelta:left >= TimeDelta:right) bool {
+        return left.milliseconds >= right.milliseconds;
+    }
+
+    operator (TimeDelta:left <= TimeDelta:right) bool {
+        return left.milliseconds <= right.milliseconds;
+    }
 }
 export TimeDelta;
-
-
-
-operator (DateTime:left - DateTime:right) TimeDelta {
-    # TODO: Make sure that this is safe, handles negatives properly
-    return new TimeDelta((left.timestamp as int) - (right.timestamp as int));
-}
-
-operator (DateTime:left + TimeDelta:right) DateTime {
-    var temp = new DateTime();
-    temp.timestamp = ((left.timestamp as int) + right.milliseconds) as uint;
-    return temp;
-}
-
-operator (TimeDelta:left + DateTime:right) DateTime {
-    var temp = new DateTime();
-    temp.timestamp = ((right.timestamp as int) + left.milliseconds) as uint;
-    return temp;
-}
-
-operator (DateTime:left - TimeDelta:right) DateTime {
-    var temp = new DateTime();
-    # TODO: Make sure that this works alright with uint
-    temp.timestamp = ((left.timestamp as int) - right.milliseconds) as uint;
-    return temp;
-}
-
-operator (TimeDelta:left + TimeDelta:right) TimeDelta {
-    return new TimeDelta(left.milliseconds + right.milliseconds);
-}
-
-operator (TimeDelta:left - TimeDelta:right) TimeDelta {
-    return new TimeDelta(left.milliseconds - right.milliseconds);
-}
-
-operator (TimeDelta:left < TimeDelta:right) bool {
-    return left.milliseconds < right.milliseconds;
-}
-
-operator (TimeDelta:left == TimeDelta:right) bool {
-    return left.milliseconds == right.milliseconds;
-}
-
-operator (TimeDelta:left != TimeDelta:right) bool {
-    return left.milliseconds != right.milliseconds;
-}
-
-operator (TimeDelta:left > TimeDelta:right) bool {
-    return left.milliseconds > right.milliseconds;
-}
-
-operator (TimeDelta:left >= TimeDelta:right) bool {
-    return left.milliseconds >= right.milliseconds;
-}
-
-operator (TimeDelta:left <= TimeDelta:right) bool {
-    return left.milliseconds <= right.milliseconds;
-}

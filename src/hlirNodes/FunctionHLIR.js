@@ -20,7 +20,6 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
     setBody(body) {
         this.body = body;
         this.checkReturnType(this[symbols.CONTEXT]);
-        this.settleTypes();
     }
 
 
@@ -37,6 +36,10 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
     }
 
     checkReturnType(ctx) {
+        if (this[symbols.IGNORE_ERRORS]) {
+            return;
+        }
+
         var expectsReturn = !!this.returnType;
         var expectedReturnType;
         if (expectsReturn) {
@@ -45,7 +48,7 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
 
         var returnsSeen = 0;
 
-        this.traverseBodies(body => {
+        this.iterateBodies(body => {
             for (var i = 0; i < body.length; i++) {
                 let node = body[i];
                 if (!(node instanceof ReturnHLIR)) continue;
@@ -77,7 +80,7 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
                     );
                 }
             }
-        });
+        }, null, node => !(node instanceof FunctionHLIR) || node === this);
 
         if (expectsReturn && !returnsSeen) {
             throw this.TypeError(

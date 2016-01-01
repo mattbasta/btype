@@ -36,7 +36,7 @@ export default class ObjectDeclarationHLIR extends BaseHLIR {
 
 
     resolveType(ctx) {
-        throw new Exception('Use Context.resolvePrototype instead.');
+        throw new Error('Use Context.resolvePrototype instead.');
     }
 
     settleTypes(ctx) {

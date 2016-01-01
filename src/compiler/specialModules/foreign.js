@@ -61,7 +61,9 @@ class StdlibType extends BaseForeignType {
         super(env);
         this.name = name;
         var parsed = parser(lexer(raw));
-        this[RAW] = parsed[symbols.FMAKEHLIR](env, true)[symbols.CONTEXT];
+        parsed[symbols.IGNORE_ERRORS] = true;
+        var hlir = parsed[symbols.FMAKEHLIR](env, true);
+        this[RAW] = hlir[symbols.CONTEXT];
 
         this._type = '_stdlib';
     }
@@ -127,7 +129,8 @@ class CurriedForeignType extends BaseForeignType {
 
 export function get(env) {
     var fakeRoot = new RootNode([], 0, 0);
-    var ctx = fakeRoot[symbols.FMAKEHLIR](env, true)[symbols.CONTEXT];
+    var hlir = fakeRoot[symbols.FMAKEHLIR](env, true);
+    var ctx = hlir[symbols.CONTEXT];
 
     ctx.exports.set('Math', ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw)));
     ctx.exports.set('external', ctx.addVar('external', new ForeignType(env)));

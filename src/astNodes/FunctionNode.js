@@ -59,6 +59,7 @@ export default class FunctionNode extends BaseBlockNode {
             this.start,
             this.end
         );
+
         node[symbols.ASSIGNED_NAME] = assignedName;
         var ctx = builder.peekCtx();
         ctx.functions.add(node);

@@ -58,8 +58,8 @@ export default class BaseHLIR {
                 if (ret === false) return;
                 if (afterCB) afterCB(body, member);
             });
+            this.iterate(node => node.iterateBodies(cb, afterCB, filter));
         }
-        this.iterate(node => node.iterateBodies(cb, afterCB, filter));
     }
 
     iterateWithSelf(cb, afterCB = null) {
