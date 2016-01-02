@@ -93,6 +93,10 @@ export class RootContext extends BaseContext {
         this.initializer = null;
     }
 
+    getRoot() {
+        return this;
+    }
+
     /**
      * Retrieves the name of the variable with the given name varName
      * @param  {string} varName
@@ -263,6 +267,10 @@ export class Context extends BaseContext {
         this.sideEffectFree = true;
 
         this.typeNameMap = parent.typeNameMap;
+    }
+
+    getRoot() {
+        return this.parent.getRoot();
     }
 
     /**

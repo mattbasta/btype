@@ -22,10 +22,20 @@ export default class DeclarationHLIR extends BaseHLIR {
             var baseType = this.type.resolveType(ctx);
             var valueType = this.value.resolveType(ctx, baseType);
             if (!baseType.equals(valueType)) {
-                throw new TypeError('Cannot assign type ' + valueType + ' to variable of type ' + baseType);
+                throw this.TypeError(
+                    `Cannot assign type ${valueType} to variable of type ${baseType}`
+                );
             }
         } else {
             this.value.resolveType(ctx);
+        }
+    }
+
+    resolveType(ctx) {
+        if (this.type) {
+            return this.type.resolveType(ctx);
+        } else {
+            return this.value.resolveType(ctx);
         }
     }
 

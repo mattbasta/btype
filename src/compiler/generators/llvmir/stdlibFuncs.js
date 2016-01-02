@@ -1,3 +1,6 @@
+export const STDLIB_REQUESTED = Symbol();
+
+
 function include(env, func) {
     if (!(func in exports)) {
         throw new TypeError('Invalid include: ' + func);

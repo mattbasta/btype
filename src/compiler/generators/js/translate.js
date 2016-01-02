@@ -5,7 +5,7 @@ import TranslationContext from './TranslationContext';
 import * as types from '../../types';
 
 
-const GLOBAL_PREFIX = '';
+const GLOBAL_PREFIX = Symbol();
 
 
 function _binop(env, ctx, tctx) {

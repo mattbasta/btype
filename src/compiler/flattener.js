@@ -43,10 +43,10 @@ function upliftExpressionsFromBody(ctx, body) {
             litValue = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
         }
 
-        var type = new hlirNodes.TypeHLIR(type.typeName, []);
-        type.forceType(type);
+        var typeNode = new hlirNodes.TypeHLIR(type.typeName, []);
+        typeNode.forceType(type);
         var decl = new hlirNodes.DeclarationHLIR(
-            type,
+            typeNode,
             name,
             value || new hlirNodes.LiteralHLIR(litType, litValue)
         );

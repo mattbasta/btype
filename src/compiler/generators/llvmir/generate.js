@@ -1,22 +1,21 @@
-var fs = require('fs');
-var path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-// var externalFuncs = require('../js/externalFuncs');
-var llvmTranslate = require('./translate');
-
-var getLLVMType = require('./util').getLLVMType;
-var makeName = require('./util').makeName;
+import * as hlirNodes from '../../../hlirNodes';
+import * as llvmTranslate from './translate';
+import * as symbols from '../../../symbols';
+import {getLLVMType, makeName} from './util';
 
 
 function translateArrayTypes(env) {
-    return Object.keys(env.__arrayTypes).map(function(arr) {
-        var type = env.__arrayTypes[arr];
+    var out = '';
+    env[llvmTranslate.ARRAY_TYPES].forEach(type => {
         var typeName = getLLVMType(type);
         typeName = typeName.substr(0, typeName.length - 1)
         var innerTypeName = getLLVMType(type.contentsType);
         var typeSize = type.contentsType.getSize() || 4
 
-        var out = [
+        var innerOut = [
             typeName + ' = type { i32, ' + innerTypeName + '* }',
 
             'define ' + typeName + '* @btmake_' + typeName.substr(1) + '(i32 %param_length) nounwind {',
@@ -35,20 +34,20 @@ function translateArrayTypes(env) {
             '}',
         ];
 
-        return out.join('\n');
-    }).join('\n');
+        out += innerOut.join('\n') + '\n';
+    });
+    return out;
 }
 
 function translateTupleTypes(env) {
-    return Object.keys(env.__tupleTypes).map(function(arr) {
-        var type = env.__tupleTypes[arr];
+    var out = '';
+    env[llvmTranslate.TUPLE_TYPES].forEach(type => {
         var typeName = getLLVMType(type);
         typeName = typeName.substr(0, typeName.length - 1)
 
-        return typeName + ' = type { ' + type.contentsTypeArr.map(function(x) {
-            return getLLVMType(x);
-        }).join(', ') + ' }';
-    }).join('\n');
+        out += `${typeName} = type { ${type.contentsTypeArr.map(getLLVMType).join(', ')} }`;
+    });
+    return out;
 }
 
 function getRuntime(env) {
@@ -60,12 +59,12 @@ function getRuntime(env) {
 
     var entry = env.getConfig('runtimeEntry');
     if (entry) {
-        if (!(entry in env.requested.exports)) {
+        if (!env.requested.exports.has(entry)) {
             throw new TypeError('Cannot find requested runtime entry point in exported functions: ' + entry);
         }
 
-        var funcName = env.requested.exports[entry];
-        var func = env.requested.typeMap[funcName];
+        let funcName = env.requested.exports.get(entry);
+        let func = env.requested.typeMap.get(funcName);
 
         if (func.returnType || func.args.length) {
             throw new TypeError('Cannot use "' + entry + '" as entry point because it has incompatible signature: ' + func.toString());
@@ -112,27 +111,27 @@ function registerAllUsedMethods(env) {
     // because the order in which the methods are accessed does not guarantee
     // the order in which they will be used.
 
-    var knownMethods = {};
-    env.types.forEach(function(type) {
+    var knownMethods = new Set();
+    env.types.forEach(type => {
         if (!type.methods) return;
 
-        for (var i in type.methods) {
-            knownMethods[type.methods[i]] = true;
+        for (var i of type.methods.values()) {
+            knownMethods.add(i);
         }
     });
 
-    env.included.forEach(function(ctx) {
+    env.included.forEach(ctx => {
         ctx.scope.iterate(node => {
-            if (node.type === 'ObjectDeclaration' && !node.__isConstructed) return false;
+            if (node instanceof hlirNodes.ObjectDeclarationHLIR && !node[symbols.IS_CONSTRUCTED]) return false;
 
-            if (node.type !== 'Member') return;
+            if (!(node instanceof hlirNodes.MemberHLIR)) return;
 
-            var baseType = node.base.getType(ctx);
+            var baseType = node.base.resolveType(ctx);
             if (!baseType.hasMethod || !baseType.hasMethod(node.child)) return;
 
             var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
 
-            if (!(funcNode.__assignedName in knownMethods)) return;
+            if (!knownMethods.has(funcNode[symbols.ASSIGNED_NAME])) return;
 
             env.registerFunc(funcNode);
         });
@@ -207,20 +206,23 @@ export default function generate(env, ENV_VARS) {
 
     // Declare all of the types
     body += '%string = type { i32, i32, i16* }\n';
-    body += env.types.map(typeTranslate, env).join('\n\n') + '\n';
+    env.types.forEach(type => {
+        body += typeTranslate(type) + '\n\n';
+    });
 
-    var generatedContent = env.included.map(llvmTranslate).join('\n\n');
+    var generatedContent = '';
+    env.included.forEach(inc => {
+        body += llvmTranslate.default(inc) + '\n\n';
+    });
 
     // Pre-define any string literals
-    body += Object.keys(env.registeredStringLiterals).map(function(strVal) {
+    env.registeredStringLiterals.forEach((str, strVal) => {
         var str = env.registeredStringLiterals[strVal];
-        return '@string.' + makeName(str) + ' = private unnamed_addr constant [' + (strVal.length + 1) + ' x i16] [' +
-        strVal.split('').map(function(c) {
-            return 'i16 ' + c.charCodeAt(0);
-        }).join(', ') +
-        (strVal.length ? ', ' : '') +
-        'i16 0], align 2';
-    }).join('\n');
+        body += '@string.' + makeName(str) + ' = private unnamed_addr constant [' + (strVal.length + 1) + ' x i16] [' +
+            strVal.split('').map(c => 'i16 ' + c.charCodeAt(0)).join(', ') +
+            (strVal ? ', ' : '') +
+            'i16 0], align 2\n';
+    });
 
     // Translate and output each included context
     body += generatedContent;
