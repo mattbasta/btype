@@ -5,7 +5,6 @@ import ObjectDeclarationHLIR from '../hlirNodes/ObjectDeclarationHLIR';
 import * as symbols from '../symbols';
 
 
-const IS_MADE = Symbol();
 const BUILDER = Symbol();
 
 export default class ObjectDeclarationNode extends BaseBlockNode {
@@ -61,19 +60,11 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        if (this[IS_MADE]) {
-            throw new Error('Object instance constructed as HLIR more than once.');
-        }
         builder.peekCtx().registerPrototype(this.name, this);
-        this[IS_MADE] = true;
         return [];
     }
 
     [symbols.FCONSTRUCT](rootCtx, attributes) {
-        if (!this[IS_MADE]) {
-            throw new Error('FCONSTRUCT called prematurely');
-        }
-
         if (attributes.length !== this.attributes.length) {
             let passedAttrs = '<' + attributes.map(a => a.toString()).join(', ') + '>';
             let currentAttrs = '<' + this.attributes.join(', ') + '>';

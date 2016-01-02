@@ -1,3 +1,8 @@
+import {GLOBAL_PREFIX} from './translate';
+
+
+const HAS_FOREIGN_PRINTF = Symbol();
+
 
 exports.error = function() {
     // return 'function() {throw new Error("Error!")}';
@@ -24,20 +29,20 @@ exports.Performancenow = function() {
 
 
 function addPrintf(env) {
-    if (env.__hasForeignPrintf) {
+    if (env[HAS_FOREIGN_PRINTF]) {
         return;
     }
 
-    env.__globalPrefix += [
-        '@.str.percd = private unnamed_addr constant [4 x i8] c"%d\\0A\\00", align 1',
-        '@.str.percf = private unnamed_addr constant [5 x i8] c"%#g\\0A\\00", align 1',
-        '@.str.percs = private unnamed_addr constant [4 x i8] c"%s\\0A\\00", align 1',
-        '@.str.true = private unnamed_addr constant [6 x i8] c"true\\0A\\00", align 1',
-        '@.str.false = private unnamed_addr constant [7 x i8] c"false\\0A\\00", align 1',
-        'declare i32 @printf(i8*, ...)',
-    ].join('\n') + '\n';
+    env[GLOBAL_PREFIX] += `
+@.str.percd = private unnamed_addr constant [4 x i8] c"%d\\0A\\00", align 1
+@.str.percf = private unnamed_addr constant [5 x i8] c"%#g\\0A\\00", align 1
+@.str.percs = private unnamed_addr constant [4 x i8] c"%s\\0A\\00", align 1
+@.str.true = private unnamed_addr constant [6 x i8] c"true\\0A\\00", align 1
+@.str.false = private unnamed_addr constant [7 x i8] c"false\\0A\\00", align 1
+declare i32 @printf(i8*, ...)
+`;
 
-    env.__hasForeignPrintf = true;
+    env[HAS_FOREIGN_PRINTF] = true;
 }
 
 exports.Consolelogint = function(env) {

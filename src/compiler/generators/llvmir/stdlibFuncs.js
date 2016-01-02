@@ -1,3 +1,5 @@
+import {GLOBAL_PREFIX} from './translate';
+
 export const STDLIB_REQUESTED = Symbol();
 
 
@@ -6,13 +8,13 @@ function include(env, func) {
         throw new TypeError('Invalid include: ' + func);
     }
 
-    if (func in env.__stdlibRequested) {
+    if (env[STDLIB_REQUESTED].has(func)) {
         return;
     }
 
-    env.__stdlibRequested[func] = true;
+    env[STDLIB_REQUESTED].add(func);
     var val = exports[func](env);
-    env.__globalPrefix += val;
+    env[GLOBAL_PREFIX] += val;
 }
 
 exports.registerFunc = function registerFunc(env, funcName) {

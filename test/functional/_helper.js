@@ -6,6 +6,7 @@ import path from 'path';
 import bitstring from 'bitstring';
 
 import compiler from '../../src/compiler/compiler';
+import {buildEnv} from '../../src/compiler/compiler';
 import ErrorFormatter from '../../src/errorFormatter';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
@@ -37,7 +38,7 @@ function compile(code, format) {
 }
 
 
-describe('Parity tests', function() {
+describe('Parity tests', () => {
 
     function run(code, format, expectation) {
         var compiled = compile(code, format);
@@ -69,36 +70,37 @@ describe('Parity tests', function() {
             var read = fs.readFileSync(btPath).toString();
             var readExpectation = fs.readFileSync(btPath + '.txt').toString().trim();
 
-            describe(btPath, function() {
+            describe(btPath, () => {
 
-                describe('source transformations', function() {
+                describe('source transformations', () => {
                     var parsed;
                     try {
                         parsed = parser(lexer(read));
                     } catch (e) {
                         e.message += `\n${btPath}\n`;
+                        throw e;
                     }
 
-                    it('should be able to use toString()', function() {
+                    it('should be able to use toString()', () => {
                         assert.ok(parsed.toString());
                     });
-                    it('should be packable', function() {
+                    it('should be packable', () => {
                         var bitstr = new bitstring();
                         parsed.pack(bitstr);
                         assert.ok(bitstr.hex());
                     });
                 });
 
-                it('formats with debug-tree', function jsFunctionalTestBody() {
+                it('formats with debug-tree', () => {
                     var output = compile(read, 'debug-tree');
                     assert.ok(output);
                 });
 
-                it('in JS', function jsFunctionalTestBody() {
+                it('in JS', () => {
                     run(read, 'js', readExpectation);
                 });
 
-                it('in Asm.js', function asmjsFunctionalTestBody() {
+                it('in Asm.js', () => {
                     run(read, 'asmjs', readExpectation);
                 });
 
@@ -106,20 +108,19 @@ describe('Parity tests', function() {
                     this.timeout(5000);
                     this.slow(1000);
 
-                    var parsed;
-                    var compiled;
-                    try {
-                        parsed = parser(lexer(read));
-                        compiled = compiler({
-                            filename: 'test',
-                            tree: parsed,
-                            format: 'llvmir',
-                            sourceCode: read,
-                        });
-                    } catch (e) {
-                        done(e);
-                        return;
-                    }
+                    // var compiled;
+                    const compilerOptions = {
+                        'filename': btPath,
+                        format: 'llvmir',
+                        sourceCode: read,
+                    };
+
+                    // try {
+                    //     compiled = compiler(compilerOptions);
+                    // } catch (e) {
+                    //     done(e);
+                    //     return;
+                    // }
 
                     var cp = child_process.exec(
                         path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S -O1 | lli',
@@ -144,14 +145,13 @@ describe('Parity tests', function() {
                     cp.stdin.end();
 
                     function getRunnable(read) {
-                        var parsed = parser(lexer(read));
-                        var env = compiler.buildEnv({filename: 'test', tree: parsed});
-                        var mainFunc = env.requested.exports.main;
-                        var mainFuncDef = env.requested.functionDeclarations[mainFunc];
+                        var env = buildEnv(compilerOptions);
+                        var mainFunc = env.requested.exports.get('main');
+                        var mainFuncDef = env.requested.functionDeclarations.get(mainFunc);
 
                         var raw = 'import debug;\n';
                         raw += read + '\n';
-                        switch (mainFuncDef.getType(env.requested).getReturnType().typeName) {
+                        switch (mainFuncDef.resolveType(env.requested).getReturnType().typeName) {
                             case 'int':
                                 raw += 'func testmain() {\n    debug.printint(main());\n}\nexport testmain;';
                                 break;
@@ -176,30 +176,29 @@ describe('Parity tests', function() {
 
 });
 
-describe('Compile tests', function() {
+describe('Compile tests', () => {
 
     globEach(
         path.resolve(__dirname, 'compiletests'),
         '.bt',
-        function(btPath) {
+        btPath => {
             var read = fs.readFileSync(btPath).toString();
 
 
-            describe(btPath, function() {
-                describe('source transformations', function() {
-                    var parsed = parser(lexer(read));
+            describe(btPath, () => {
+                var parsed = parser(lexer(read));
 
-                    it('should be able to use toString()', function() {
+                describe('source transformations', () => {
+                    it('should be able to use toString()', () => {
                         assert.ok(parsed.toString());
                     });
-                    it('should be packable', function() {
+                    it('should be packable', () => {
                         var bitstr = new bitstring();
                         parsed.pack(bitstr);
                         assert.ok(bitstr.hex());
                     });
                 });
-                it('compiles to JS', function compileTestBody() {
-                    var parsed = parser(lexer(read));
+                it('compiles to JS', () => {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
@@ -208,8 +207,7 @@ describe('Compile tests', function() {
                     });
                     assert.ok(compiled);
                 });
-                it('compiles to Asm.js', function compileTestBody() {
-                    var parsed = parser(lexer(read));
+                it('compiles to Asm.js', () => {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
@@ -218,8 +216,7 @@ describe('Compile tests', function() {
                     });
                     assert.ok(compiled);
                 });
-                it('compiles to LLVM IR', function compileTestBody() {
-                    var parsed = parser(lexer(read));
+                it('compiles to LLVM IR', () => {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
@@ -228,8 +225,7 @@ describe('Compile tests', function() {
                     });
                     assert.ok(compiled);
                 });
-                it('formats with debug-tree', function compileTestBody() {
-                    var parsed = parser(lexer(read));
+                it('formats with debug-tree', () => {
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
@@ -245,28 +241,28 @@ describe('Compile tests', function() {
 
 });
 
-describe('Failure tests', function() {
+describe('Failure tests', () => {
 
     globEach(
         path.resolve(__dirname, 'failtests'),
         '.bt',
-        function(btPath) {
+        btPath => {
             var read = fs.readFileSync(btPath).toString();
 
             var expectedExceptionPath = path.dirname(btPath);
             expectedExceptionPath += path.sep;
             expectedExceptionPath += path.basename(btPath, '.bt') + '.txt';
 
-            it(btPath, function failTestBody() {
+            it(btPath, () => {
                 assert.throws(
-                    function() {
+                    () => {
                         compiler({
                             filename: btPath,
                             sourceCode: read,
                             format: 'debug-tree',
                         });
                     },
-                    function(err) {
+                    err => {
                         if (fs.existsSync(expectedExceptionPath)) {
                             var exceptionText = fs.readFileSync(expectedExceptionPath).toString();
                             return exceptionText === err.toString();
@@ -284,7 +280,7 @@ describe('Failure tests', function() {
 
 });
 
-describe('String tests', function() {
+describe('String tests', () => {
 
     function run(code, format, expectation) {
         var compiled = compile(code, format);
@@ -311,21 +307,21 @@ describe('String tests', function() {
     globEach(
         path.resolve(__dirname, 'strings'),
         '.bt',
-        function(btPath) {
+        btPath => {
             var read = fs.readFileSync(btPath).toString();
             var readExpectation = fs.readFileSync(btPath + '.txt').toString().trim();
 
-            describe(btPath, function() {
+            describe(btPath, () => {
 
-                it('runs in JS', function jsStringTestBody() {
+                it('runs in JS', () => {
                     run(read, 'js', readExpectation);
                 });
 
-                it('runs in Asm.js', function asmjsStringTestBody() {
+                it('runs in Asm.js', () => {
                     run(read, 'asmjs', readExpectation);
                 });
 
-                it('formats in debug-tree', function debugTreeStringTestBody() {
+                it('formats in debug-tree', () => {
                     assert.ok(compile(read, 'debug-tree'));
                 });
 

@@ -8,8 +8,12 @@ import parse from '../parser';
 
 function help() {
     console.log(`Usage:
-    btype <file path>
-    `);
+    btype <file path>[ --target=<target>][ --runtime --runtime-entry=<funcName>]
+
+    --target:        The compile target (llvmir, js, asmjs, debug-tree)
+    --runtime:       Adds the BType runtime
+    --runtime-entry: Sets the entry point for the application
+`);
 }
 
 export default function(argv) {
@@ -43,11 +47,11 @@ export default function(argv) {
 };
 
 function processData(data, argv) {
-    var parsed = parse(lexer(data.toString()));
+    var source = data.toString();
     var compiled = compiler({
         filename: argv._[0],
-        tree: parsed,
         format: argv.target,
+        sourceCode: source,
         config: {
             // Used to define a runtime environment to make application
             // standalone
@@ -56,7 +60,7 @@ function processData(data, argv) {
             // Used to output debugging information into compiled files
             debugInfo: 'debug-info' in argv,
             debugInfoOutput: argv['debug-info-path'],
-        }
+        },
     });
 
     console.log(compiled);

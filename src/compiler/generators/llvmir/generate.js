@@ -217,7 +217,6 @@ export default function generate(env, ENV_VARS) {
 
     // Pre-define any string literals
     env.registeredStringLiterals.forEach((str, strVal) => {
-        var str = env.registeredStringLiterals[strVal];
         body += '@string.' + makeName(str) + ' = private unnamed_addr constant [' + (strVal.length + 1) + ' x i16] [' +
             strVal.split('').map(c => 'i16 ' + c.charCodeAt(0)).join(', ') +
             (strVal ? ', ' : '') +

@@ -8,8 +8,8 @@ import * as types from '../../types';
 import {getAlignment, getFunctionSignature, getLLVMType, makeName} from './util';
 
 
-const GLOBAL_PREFIX = Symbol();
-const FOREIGN_REQUESTED = Symbol();
+export const GLOBAL_PREFIX = Symbol();
+export const FOREIGN_REQUESTED = Symbol();
 export const ARRAY_TYPES = Symbol();
 export const TUPLE_TYPES = Symbol();
 export const FUNCREF_TYPES = Symbol();
@@ -210,7 +210,7 @@ NODES.set(hlirNodes.RootHLIR, function(env, ctx, tctx) {
     env[FUNCREF_TYPES] = env[FUNCREF_TYPES] || new Set();
 
     this.body.forEach(stmt => {
-        tctx.write('; Statement: ' + stmt.type);
+        tctx.write('; Statement: ' + stmt.constructor.name);
         _node(stmt, env, ctx, tctx, 'root');
     });
     if (env[GLOBAL_PREFIX]) {
@@ -227,11 +227,11 @@ NODES.set(hlirNodes.AssignmentHLIR, function(env, ctx, tctx) {
     var base = _node(this.base, env, ctx, tctx, 'lvalue');
 
     var annotation = '';
-    if (this.base.type === 'Symbol') {
+    if (this.base instanceof hlirNodes.SymbolHLIR) {
         annotation = ' ; ' + this.base.name;
-    } else if (this.base.type === 'Member') {
+    } else if (this.base instanceof hlirNodes.MemberHLIR) {
         annotation = ' ; ';
-        if (this.base.base.type === 'Symbol') annotation += this.base.base.name;
+        if (this.base.base instanceof hlirNodes.SymbolHLIR) annotation += this.base.base.name;
         else annotation += '?';
 
         annotation += '.';
@@ -327,7 +327,7 @@ NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
     tctx.pushLoop(loopLbl, afterLbl);
 
     this.body.forEach(stmt => {
-        tctx.write('; Statement: ' + stmt.type);
+        tctx.write('; Statement: ' + stmt.constructor.name);
         _node(stmt, env, ctx, tctx);
     });
 
@@ -373,7 +373,7 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     });
 
     this.body.forEach(stmt => {
-        tctx.write('; Statement: ' + stmt.type);
+        tctx.write('; Statement: ' + stmt.constructor.name);
         _node(stmt, env, context, tctx);
     });
 
@@ -405,7 +405,7 @@ NODES.set(hlirNodes.IfHLIR, function(env, ctx, tctx) {
     tctx.writeLabel(consequentLbl);
 
     this.consequent.forEach(stmt => {
-        tctx.write('; Statement: ' + stmt.type);
+        tctx.write('; Statement: ' + stmt.constructor.name);
         _node(stmt, env, ctx, tctx);
     });
 
@@ -414,7 +414,7 @@ NODES.set(hlirNodes.IfHLIR, function(env, ctx, tctx) {
     if (this.alternate) {
         tctx.writeLabel(alternateLbl);
         this.alternate.forEach(stmt => {
-            tctx.write('; Statement: ' + stmt.type);
+            tctx.write('; Statement: ' + stmt.constructor.name);
             _node(stmt, env, ctx, tctx);
         });
         tctx.write('br label %' + afterLbl);
@@ -465,7 +465,7 @@ NODES.set(hlirNodes.LoopHLIR, function(env, ctx, tctx) {
     tctx.writeLabel(loopLbl);
 
     this.body.forEach(stmt => {
-        tctx.write('; Statement: ' + stmt.type);
+        tctx.write('; Statement: ' + stmt.constructor.name);
         _node(stmt, env, ctx, tctx);
     });
 
@@ -566,6 +566,7 @@ NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
     var out = _node(this.base, env, ctx, tctx);
     var reg = tctx.getRegister();
     tctx.write(reg + ' = xor i1 ' + out + ', 1');
+    return reg;
 });
 
 NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
@@ -834,7 +835,7 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
     tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + typeName);
 
     // Assign all the tuple values
-    this.content.forEach((exp, i) => {
+    this.elements.forEach((exp, i) => {
         var value = _node(exp, env, ctx, tctx);
         var valueType = getLLVMType(exp.resolveType(ctx));
 
@@ -860,7 +861,7 @@ var NODES_OLD = {
         var callBody;
 
         var temp;
-        if (this.callee.type === 'Member' &&
+        if (this.callee instanceof hlirNodes.MemberHLIR &&
             (temp = this.callee.base.resolveType(ctx)).hasMethod &&
             temp.hasMethod(this.callee.child)) {
 
@@ -1012,7 +1013,7 @@ var NODES_OLD = {
 
         var ctxLocPtr = tctx.getRegister();
         tctx.write(ctxLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
-        if (this.ctx && !(this.ctx.type === 'Literal' && this.ctx.value === null)) {
+        if (this.ctx && !(this.ctx instanceof hlirNodes.LiteralHLIR && this.ctx.value === null)) {
             var ctxType = this.ctx.resolveType(ctx);
             var ctxTypeName = getLLVMType(ctxType);
             var ctxCastLocPtr = tctx.getRegister();

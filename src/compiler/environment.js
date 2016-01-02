@@ -78,7 +78,7 @@ export default class Environment {
     }
 
     getConfig(name) {
-        this.config.get(name);
+        return this.config.get(name);
     }
 
 
