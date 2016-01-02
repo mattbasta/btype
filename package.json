@@ -19,8 +19,8 @@
     "babel-preset-node5": "10.1.*",
     "babel-register": "^6.3.13",
     "bitstring": "^1.0.0",
-    "escodegen": "^1.4.2",
-    "esprima": "^1.1.1",
+    "escodegen": "^1.7.1",
+    "esprima": "^2.7.1",
     "minimist": "^1.1.0"
   },
   "bin": {

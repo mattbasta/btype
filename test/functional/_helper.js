@@ -100,7 +100,7 @@ describe('Parity tests', () => {
                     run(read, 'js', readExpectation);
                 });
 
-                it('in Asm.js', () => {
+                it('in asm.js', () => {
                     run(read, 'asmjs', readExpectation);
                 });
 
@@ -207,7 +207,9 @@ describe('Compile tests', () => {
                     });
                     assert.ok(compiled);
                 });
-                it('compiles to Asm.js', () => {
+                it('compiles to asm.js', function() {
+                    this.slow(250);
+                    this.timeout(500);
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,
@@ -216,7 +218,9 @@ describe('Compile tests', () => {
                     });
                     assert.ok(compiled);
                 });
-                it('compiles to LLVM IR', () => {
+                it('compiles to LLVM IR', function() {
+                    this.slow(500);
+                    this.timeout(1000);
                     var compiled = compiler({
                         filename: btPath,
                         tree: parsed,

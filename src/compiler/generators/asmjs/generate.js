@@ -1,9 +1,12 @@
-var fs = require('fs');
-var path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-var externalFuncs = require('../js/externalFuncs');
-var jsTranslate = require('./translate');
-var postOptimizer = require('../js/postOptimizer');
+import * as hlirNodes from '../../../hlirNodes';
+import externalFuncs from '../js/externalFuncs';
+import jsTranslate from './translate';
+import {HEAP_MODIFIERS, heapName, typeAnnotation} from './translate';
+import {optimize as postOptimizer} from '../js/postOptimizer';
+import * as symbols from '../../../symbols';
 
 var argv = require('minimist')(process.argv.slice(2));
 
@@ -28,9 +31,9 @@ function makeModule(env, ENV_VARS, body) {
         'var f32_ = new Float32Array(1);',
         'this.Math.fround = this.Math.fround || function fround(x) {return f32[0] = x, f32[0];};',
         // String literal initialization
-        'var strings = [' + Object.keys(env.registeredStringLiterals).sort().map(function(str) {
-            return JSON.stringify(str);
-        }).join(',') + '];',
+        'var strings = [' +
+            Array.from(env.registeredStringLiterals.keys()).sort().map(s => env.registeredStringLiterals.get(s)).join(',') +
+            '];',
         'var stringsPtr = 0;',
         'var u32 = new Uint32Array(heap);',
         'function initString(ptr) {',
@@ -54,24 +57,26 @@ function makeModule(env, ENV_VARS, body) {
         '    return out;',
         '}',
         // Get an instance of the asm module, passing in all of the externally requested items
-        'var ret = module(this, {__initString: initString,' + env.foreigns.map(function(foreign) {
-            var base = JSON.stringify(foreign) + ':';
-            if (foreign in externalFuncs) {
-                base += externalFuncs[foreign]();
-            } else {
-                base += 'function() {}';
-            }
-            return base;
-        }).join(',') + '}, heap);',
+        'var ret = module(this, {__initString: initString,' +
+            env.foreigns.map(foreign => {
+                var base = JSON.stringify(foreign) + ':';
+                if (foreign in externalFuncs) {
+                    base += externalFuncs[foreign]();
+                } else {
+                    base += 'function() {}';
+                }
+                return base;
+            }).join(',') + '}, heap);',
         // If there's an init method, call it and remove it.
-        'if (ret.$init) {ret.$init();}',
+        'if (ret.$$init) {ret.$$init();}',
         // Return the processed asm module
         'return {',
         '$internal:{heap:heap, malloc: ret.malloc, free: ret.free, calloc: ret.calloc},',
         '$strings:{read: readString},',
-        Object.keys(env.requested.exports).map(function(e) {
-            return e + ': ret.' + e;
-        }).join(',\n'),
+        Array.from(env.requested.exports.keys())
+            .filter(e => e !== '$$init')
+            .map(e => `${e}: ret.${e}`)
+            .join(',\n'),
         '};',
         // Declare the asm module
         '})(function module_(stdlib, foreign, heap) {',
@@ -95,30 +100,32 @@ function registerAllUsedMethods(env) {
     // because the order in which the methods are accessed does not guarantee
     // the order in which they will be used.
 
-    var knownMethods = {};
-    env.types.forEach(function(type) {
+    var knownMethods = new Set();
+    env.types.forEach(type => {
         if (!type.methods) return;
 
-        for (var i in type.methods) {
-            knownMethods[type.methods[i]] = true;
+        for (var i of type.methods.values()) {
+            knownMethods.add(i);
         }
     });
 
-    env.included.forEach(function(ctx) {
+    env.included.forEach(ctx => {
         ctx.scope.iterate(node => {
-            if (node.type === 'ObjectDeclaration' && !node.__isConstructed) return false;
-            if (node.type !== 'Member') return;
+            if (node instanceof hlirNodes.ObjectDeclarationHLIR && !node[symbols.IS_CONSTRUCTED]) return false;
 
-            var baseType = node.base.getType(ctx);
+            if (!(node instanceof hlirNodes.MemberHLIR)) return;
+
+            var baseType = node.base.resolveType(ctx);
             if (!baseType.hasMethod || !baseType.hasMethod(node.child)) return;
 
             var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
 
-            if (!(funcNode.__assignedName in knownMethods)) return;
+            if (!knownMethods.has(funcNode[symbols.ASSIGNED_NAME])) return;
 
             env.registerFunc(funcNode);
         });
     });
+
 }
 
 
@@ -145,30 +152,28 @@ export default function generate(env, ENV_VARS) {
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/memory-' + asmMemoryMode + '.js')).toString();
 
     // Translate and output each included context
-    body += env.included.map(jsTranslate).join('\n\n');
+    env.included.forEach(x => {
+        body += jsTranslate(x) + '\n\n';
+    });
 
     // Pre-define any string literals
-    var registeredStringLiterals = Object.keys(env.registeredStringLiterals).sort();
+    var registeredStringLiterals = Array.from(env.registeredStringLiterals.keys()).sort();
     if (registeredStringLiterals.length) {
         body += 'var initString = foreign.__initString;'
-        body += registeredStringLiterals.map(function(str) {
-            return 'var ' + env.registeredStringLiterals[str] + ' = 0;';
-        }).join('\n');
+        body += registeredStringLiterals.map(str => 'var ' + env.registeredStringLiterals.get(str) + ' = 0;').join('\n');
     }
 
     if (env.inits.length || registeredStringLiterals.length) {
-        body += '\nfunction $init() {\n';
-        body += '    ' + registeredStringLiterals.map(function(str) {
-            var name = env.registeredStringLiterals[str];
+        body += '\nfunction $$init() {\n';
+        body += '    ' + registeredStringLiterals.map(str => {
+            var name = env.registeredStringLiterals.get(str);
             var out = name + ' = gcref(malloc(' + (str.length * 4 + 8) + ')|0)|0;\n    ';
             out += 'initString(' + name + '|0);'
             return out;
         }).join('\n    ') + '\n';
-        body += '    ' + env.inits.map(function(init) {
-            return init.__assignedName + '();';
-        }).join('\n    ') + '\n';
+        body += '    ' + env.inits.map(init => init[symbols.ASSIGNED_NAME] + '();').join('\n    ') + '\n';
         body += '}\n';
-        env.requested.exports['$init'] = '$init';
+        env.requested.exports['$$init'] = '$$init';
     }
 
     // Compile function list callers
@@ -192,7 +197,7 @@ export default function generate(env, ENV_VARS) {
         output += '    $$ctx = $$ctx | 0;\n';
         funcType.args.forEach(function(arg, i) {
             var base = '$param' + i;
-            output += '    ' + base + ' = ' + jsTranslate.typeAnnotation(base, arg) + ';\n';
+            output += '    ' + base + ' = ' + typeAnnotation(base, arg) + ';\n';
         });
 
         output += '    var funcId = 0;\n';
@@ -203,51 +208,49 @@ export default function generate(env, ENV_VARS) {
         var callBase = flist + '[funcId & ' + (funcList.length - 1) + ']';
         var rawCall = callBase + '(' + paramList.join(', ') + ')';
         output += '    if (!funcCtx) {\n';
-        output += '        return ' + jsTranslate.typeAnnotation(rawCall, funcType.returnType) + ';\n';
+        output += '        return ' + typeAnnotation(rawCall, funcType.returnType) + ';\n';
         output += '    }\n';
 
         var fullCall = callBase + '(funcCtx | 0' + (paramList.length ? ', ' + paramList.join(', ') : '') + ')';
-        output += '    return ' + jsTranslate.typeAnnotation(fullCall, funcType.returnType) + ';\n';
+        output += '    return ' + typeAnnotation(fullCall, funcType.returnType) + ';\n';
 
         output += '}';
         return output;
 
     }).join('\n');
 
-    body += env.types.map(function(type) {
-        if (type._type !== 'tuple') return '';
-        return 'function makeTuple$' + type.flatTypeName() + '(' +
-            type.contentsTypeArr.map(function(x, i) {return 'm' + i;}).join(',') +
+    env.types.forEach(type => {
+        if (type._type !== 'tuple') return;
+
+        body += 'function makeTuple$' + type.flatTypeName() + '(' +
+            type.contentsTypeArr.map((x, i) => 'm' + i).join(',') +
             ') {\n' +
-            type.contentsTypeArr.map(function(x, i) {
-                return '    m' + i + ' = ' + jsTranslate.typeAnnotation('m' + i, x) + ';\n';
-            }).join('') +
+            type.contentsTypeArr.map((x, i) => '    m' + i + ' = ' + typeAnnotation('m' + i, x) + ';\n').join('') +
             '    var x = 0;\n' +
             '    x = gcref(malloc(' + (type.getSize() + 8) + '|0)|0);\n' +
-            type.contentsTypeArr.map(function(x, i) {
-                var typedArr = jsTranslate.heapName(x);
-                return '    ' + typedArr + '[x + ' + (type.getLayoutIndex(i) + 8) + jsTranslate.HEAP_MODIFIERS[typedArr] + '] = ' +
-                    jsTranslate.typeAnnotation('m' + i, x) + ';\n';
+            type.contentsTypeArr.map((x, i) => {
+                var typedArr = heapName(x);
+                return '    ' + typedArr + '[x + ' + (type.getLayoutIndex(i) + 8) + HEAP_MODIFIERS[typedArr] + '] = ' +
+                    typeAnnotation('m' + i, x) + ';\n';
             }).join('') +
             '    return x | 0;\n' +
             '}';
-    }, env).join('\n\n') + '\n';
+    });
 
 
     // Compile function lists
-    body += '\n' + Object.keys(env.funcList).map(function(flist) {
-        if (env.funcList[flist].length === 1) return '';
-        return '    var ' + flist + ' = [' + env.funcList[flist].join(',') + '];';
-    }).filter(function(x) {return !!x;}).join('\n');
+    env.funcList.forEach(flist => {
+        if (flist.length === 1) return;
+        body += '    var ' + flist + ' = [' + flist.join(',') + '];\n';
+    });
 
     // Compile exports for the code.
     body += '\n    return {\n        ' +
         'malloc: malloc,\n        free: free,\n        calloc: calloc,\n        ' +
-        Object.keys(env.requested.exports).map(function(e) {
-        return e + ': ' + env.requested.exports[e];
-    }).join(',\n        ') + '\n    };';
+        Array.from(env.requested.exports.keys()).map(e => e + ': ' + env.requested.exports.get(e)).join(',\n        ') +
+        '\n    };';
 
-    body = postOptimizer.optimize(body);
+    body = postOptimizer(body);
 
     Object.keys(ENV_VARS).forEach(function(var_) {
         body = body.replace(new RegExp(var_, 'g'), ENV_VARS[var_].toString());

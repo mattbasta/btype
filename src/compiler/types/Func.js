@@ -26,9 +26,9 @@ export default class Func {
 
     flatTypeName() {
         return 'func$' +
-            (this.returnType ? this.returnType.toString() : 'null') +
+            (this.returnType ? this.returnType.flatTypeName() : 'null') +
             (this.args.length ? '$' + this.args.map(function(arg) {
-                return arg.toString();
+                return arg.flatTypeName();
             }).join('$') : '') +
             '$$';
     }
