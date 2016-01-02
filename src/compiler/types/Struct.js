@@ -50,7 +50,7 @@ export default class Struct {
 
     getLayoutIndex(name) {
         if (this[LAYOUT_INDICES_CACHE]) return this[LAYOUT_INDICES_CACHE].get(name);
-        var layout = getLayout();
+        var layout = this.getLayout();
         var indices = this[LAYOUT_INDICES_CACHE] = new Map();
         this.getOrderedLayout().forEach((key, i) => indices.set(key, i));
         return indices.get(name);

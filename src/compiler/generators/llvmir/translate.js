@@ -252,6 +252,40 @@ NODES.set(hlirNodes.BreakHLIR, function(env, ctx, tctx) {
 });
 
 
+NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx, extra) {
+    var output = extra === 'stmt' ? 'call ' : ' = call ';
+
+    // Add the expected return type
+    if (extra === 'stmt') {
+        // Tell LLVM that we don't care about the return type because this
+        // is a call statement.
+        // TODO: Is this correct?
+        output += 'void ';
+    } else {
+        output += getLLVMType(this.resolveType(ctx)) + ' ';
+    }
+
+    output += _node(this.callee, env, ctx, tctx, 'callee');
+
+    output += '(';
+
+    output += this.params.map(function(param) {
+        return getLLVMType(param.resolveType(ctx)) + ' ' + _node(param, env, ctx, tctx);
+    }).join(', ');
+
+    output += ')';
+
+    if (extra !== 'stmt') {
+        var outReg = tctx.getRegister();
+        output = outReg + output;
+        tctx.write(output);
+        return outReg;
+    } else {
+        tctx.write(output);
+    }
+});
+
+
 NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
     _node(this.call, env, ctx, tctx, 'stmt');
 });
@@ -440,7 +474,7 @@ NODES.set(hlirNodes.LoopHLIR, function(env, ctx, tctx) {
     tctx.popLoop();
 });
 
-NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx) {
+NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
     var baseType = this.base.resolveType(ctx);
     var base;
     if (baseType._type === 'module') {
@@ -815,39 +849,6 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
 
 
 var NODES_OLD = {
-    CallRaw: function(env, ctx, tctx, extra) {
-        var output = extra === 'stmt' ? 'call ' : ' = call ';
-
-        // Add the expected return type
-        if (extra === 'stmt') {
-            // Tell LLVM that we don't care about the return type because this
-            // is a call statement.
-            // TODO: Is this correct?
-            output += 'void ';
-        } else {
-            output += getLLVMType(this.resolveType(ctx)) + ' ';
-        }
-
-        output += _node(this.callee, env, ctx, tctx, 'callee');
-
-        output += '(';
-
-        output += this.params.map(function(param) {
-            return getLLVMType(param.resolveType(ctx)) + ' ' + _node(param, env, ctx, tctx);
-        }).join(', ');
-
-        output += ')';
-
-        if (extra !== 'stmt') {
-            var outReg = tctx.getRegister();
-            output = outReg + output;
-            tctx.write(output);
-            return outReg;
-        } else {
-            tctx.write(output);
-        }
-
-    },
     CallRef: function(env, ctx, tctx, extra) {
         var type = this.callee.resolveType(ctx);
         var typeName = getLLVMType(type);
