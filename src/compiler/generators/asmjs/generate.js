@@ -32,7 +32,7 @@ function makeModule(env, ENV_VARS, body) {
         'this.Math.fround = this.Math.fround || function fround(x) {return f32[0] = x, f32[0];};',
         // String literal initialization
         'var strings = [' +
-            Array.from(env.registeredStringLiterals.keys()).sort().map(s => env.registeredStringLiterals.get(s)).join(',') +
+            Array.from(env.registeredStringLiterals.keys()).sort().map(s => JSON.stringify(s)).join(', ') +
             '];',
         'var stringsPtr = 0;',
         'var u32 = new Uint32Array(heap);',
@@ -71,15 +71,15 @@ function makeModule(env, ENV_VARS, body) {
         'if (ret.$$init) {ret.$$init();}',
         // Return the processed asm module
         'return {',
-        '$internal:{heap:heap, malloc: ret.malloc, free: ret.free, calloc: ret.calloc},',
-        '$strings:{read: readString},',
+        '$internal: {heap: heap, malloc: ret.malloc, free: ret.free, calloc: ret.calloc},',
+        '$strings: {read: readString},',
         Array.from(env.requested.exports.keys())
             .filter(e => e !== '$$init')
             .map(e => `${e}: ret.${e}`)
             .join(',\n'),
         '};',
         // Declare the asm module
-        '})(function module_(stdlib, foreign, heap) {',
+        '}).call(typeof global !== "undefined" ? global : this, function module_(stdlib, foreign, heap) {',
         // asm.js pragma
         '    "use asm";',
         // Always add imul since it's used for integer multiplication
@@ -156,46 +156,39 @@ export default function generate(env, ENV_VARS) {
         body += jsTranslate(x) + '\n\n';
     });
 
-    // Pre-define any string literals
-    var registeredStringLiterals = Array.from(env.registeredStringLiterals.keys()).sort();
-    if (registeredStringLiterals.length) {
-        body += 'var initString = foreign.__initString;'
-        body += registeredStringLiterals.map(str => 'var ' + env.registeredStringLiterals.get(str) + ' = 0;').join('\n');
-    }
-
-    if (env.inits.length || registeredStringLiterals.length) {
+    if (env.inits.length || env.registeredStringLiterals.size) {
+        let registeredStringLiterals = Array.from(env.registeredStringLiterals.keys()).sort();
+        if (registeredStringLiterals.length) {
+            body += 'var initString = foreign.__initString;\n';
+            registeredStringLiterals.forEach(str => body += `var ${env.registeredStringLiterals.get(str)} = 0;\n`);
+        }
         body += '\nfunction $$init() {\n';
-        body += '    ' + registeredStringLiterals.map(str => {
+        registeredStringLiterals.forEach(str => {
             var name = env.registeredStringLiterals.get(str);
-            var out = name + ' = gcref(malloc(' + (str.length * 4 + 8) + ')|0)|0;\n    ';
-            out += 'initString(' + name + '|0);'
-            return out;
-        }).join('\n    ') + '\n';
-        body += '    ' + env.inits.map(init => init[symbols.ASSIGNED_NAME] + '();').join('\n    ') + '\n';
+            body += `    ${name} = gcref(malloc(${str.length * 4 + 8})|0)|0;\n    initString(${name}|0);\n`;
+        });
+        body += env.inits.map(init => `    ${init[symbols.ASSIGNED_NAME]}();\n`).join();
         body += '}\n';
-        env.requested.exports['$$init'] = '$$init';
+        env.requested.exports.set('$$init', '$$init');
     }
 
     // Compile function list callers
-    body += '\n' + Object.keys(env.funcList).map(function(flist) {
+    Object.keys(env.funcList).forEach(flist => {
         if (env.funcList[flist].length === 1) return '';
         var funcList = env.funcList[flist];
         var funcType = env.funcListReverseTypeMap[flist];
-        var paramList = funcType.args.map(function(param, i) {
-            return '$param' + i;
-        });
 
-        var output = 'function ' + flist + '$$call($$ctx';
+        var output = `function ${flist}$$call($$ctx`;
 
+        var paramList = funcType.args.map((param, i) => '$param' + i);
         if (paramList.length) {
-            output += ', ';
-            output += paramList.join(', ');
+            output += `, ${paramList.join(', ')}`;
         }
 
         output += ') {\n';
 
         output += '    $$ctx = $$ctx | 0;\n';
-        funcType.args.forEach(function(arg, i) {
+        funcType.args.forEach((arg, i) => {
             var base = '$param' + i;
             output += '    ' + base + ' = ' + typeAnnotation(base, arg) + ';\n';
         });
@@ -214,45 +207,45 @@ export default function generate(env, ENV_VARS) {
         var fullCall = callBase + '(funcCtx | 0' + (paramList.length ? ', ' + paramList.join(', ') : '') + ')';
         output += '    return ' + typeAnnotation(fullCall, funcType.returnType) + ';\n';
 
-        output += '}';
-        return output;
+        output += '}\n';
+        body += output;
 
-    }).join('\n');
+    });
 
     env.types.forEach(type => {
         if (type._type !== 'tuple') return;
-
-        body += 'function makeTuple$' + type.flatTypeName() + '(' +
-            type.contentsTypeArr.map((x, i) => 'm' + i).join(',') +
-            ') {\n' +
-            type.contentsTypeArr.map((x, i) => '    m' + i + ' = ' + typeAnnotation('m' + i, x) + ';\n').join('') +
-            '    var x = 0;\n' +
-            '    x = gcref(malloc(' + (type.getSize() + 8) + '|0)|0);\n' +
-            type.contentsTypeArr.map((x, i) => {
+        body += `function makeTuple$${type.flatTypeName()}(${type.contentsTypeArr.map((x, i) => 'm' + i).join(',')}) {
+            ${type.contentsTypeArr.map((x, i) => `m${i} = ${typeAnnotation(`m${i}`, x)};`).join('\n    ')}
+            var x = 0;
+            x = gcref(malloc(${type.getSize() + 8} | 0) | 0);
+            ${type.contentsTypeArr.map((x, i) => {
                 var typedArr = heapName(x);
-                return '    ' + typedArr + '[x + ' + (type.getLayoutIndex(i) + 8) + HEAP_MODIFIERS[typedArr] + '] = ' +
-                    typeAnnotation('m' + i, x) + ';\n';
-            }).join('') +
-            '    return x | 0;\n' +
-            '}';
+                var subscript = `x + ${(type.getLayoutIndex(i) + 8) + HEAP_MODIFIERS[typedArr]}`;
+                return `${typedArr}[${subscript}] = ${typeAnnotation(`m${i}`, x)};`;
+            }).join('\n    ')}
+            return x | 0;
+        }`;
     });
 
 
     // Compile function lists
-    env.funcList.forEach(flist => {
+    env.funcList.forEach((flist, name) => {
         if (flist.length === 1) return;
-        body += '    var ' + flist + ' = [' + flist.join(',') + '];\n';
+        body += `    var ${name} = [${flist.join(',')}];\n`;
     });
 
     // Compile exports for the code.
-    body += '\n    return {\n        ' +
-        'malloc: malloc,\n        free: free,\n        calloc: calloc,\n        ' +
-        Array.from(env.requested.exports.keys()).map(e => e + ': ' + env.requested.exports.get(e)).join(',\n        ') +
-        '\n    };';
+    body += `
+    return {
+        malloc: malloc,
+        free: free,
+        calloc: calloc,
+        ${Array.from(env.requested.exports).map(([key, value]) => `${key}: ${value},`).join('\n        ')}
+    };`;
 
-    body = postOptimizer(body);
+    // body = postOptimizer(body);
 
-    Object.keys(ENV_VARS).forEach(function(var_) {
+    Object.keys(ENV_VARS).forEach(var_ => {
         body = body.replace(new RegExp(var_, 'g'), ENV_VARS[var_].toString());
     });
 

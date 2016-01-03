@@ -207,7 +207,8 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     var type = this.value.resolveType(ctx);
     var output = 'var ' + this[symbols.ASSIGNED_NAME] + ' = ';
 
-    if (this.value instanceof hlirNodes.LiteralHLIR) {
+    if (this.value instanceof hlirNodes.LiteralHLIR &&
+        this.value.litType !== 'str') {
         output += (this.value.value || '0').toString() + ';';
         tctx.write(output);
         return;
@@ -303,7 +304,7 @@ NODES.set(hlirNodes.LoopHLIR, function(env, ctx, tctx) {
 
 NODES.set(hlirNodes.LiteralHLIR, function(env, ctx, tctx) {
     if (this.litType === 'str') {
-        return '(' +  env.getStrLiteralIdentifier(this.value) + '|0)';
+        return '(gcref(' + env.getStrLiteralIdentifier(this.value) + '|0)|0)';
     }
 
     if (this.value === true) return '1';

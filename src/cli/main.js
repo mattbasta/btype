@@ -1,22 +1,10 @@
-var fs = require('fs');
-var path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 import compiler from '../compiler/compiler';
-import lexer from '../lexer';
-import parse from '../parser';
 
 
-function help() {
-    console.log(`Usage:
-    btype <file path>[ --target=<target>][ --runtime --runtime-entry=<funcName>]
-
-    --target:        The compile target (llvmir, js, asmjs, debug-tree)
-    --runtime:       Adds the BType runtime
-    --runtime-entry: Sets the entry point for the application
-`);
-}
-
-export default function(argv) {
+export default function(argv, help) {
     var incomingStdin = !('isTTY' in process.stdin);
 
     if (process.argv.length < 3 && !incomingStdin) {
@@ -39,29 +27,35 @@ export default function(argv) {
         });
     } else {
         let incomingData = '';
-        process.stdin.on('data', data => {
-            incomingData += data;
-        });
+        process.stdin.on('data', data => incomingData += data);
         process.stdin.on('end', () => processData(incomingData, argv));
     }
 };
 
 function processData(data, argv) {
-    var source = data.toString();
+    var runtimeEntry = argv['runtime-entry'];
     var compiled = compiler({
-        filename: argv._[0],
+        filename: argv._[0] || 'stdin',
         format: argv.target,
-        sourceCode: source,
+        sourceCode: data.toString(),
         config: {
             // Used to define a runtime environment to make application
             // standalone
             runtime: 'runtime' in argv,
-            runtimeEntry: argv['runtime-entry'],
+            runtimeEntry: runtimeEntry,
             // Used to output debugging information into compiled files
             debugInfo: 'debug-info' in argv,
             debugInfoOutput: argv['debug-info-path'],
         },
     });
 
-    console.log(compiled);
+    if (!argv.exec) {
+        console.log(compiled);
+        return;
+    }
+    if (runtimeEntry) {
+        console.log(eval(`${compiled}[${JSON.stringify(runtimeEntry)}]();`));
+    } else {
+        eval(compiled + ';');
+    }
 }

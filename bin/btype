@@ -3,4 +3,16 @@
 require('babel-register');
 
 var argv = require('minimist')(process.argv.slice(2));
-require('../src/cli/main').default(argv);
+require('../src/cli/main').default(argv, help);
+
+
+function help() {
+    console.log([
+        'Usage:',
+        '    btype <file path>[ --target=<target>][ --runtime --runtime-entry=<funcName>]',
+        '',
+        '    --target:        The compile target (llvmir, js, asmjs, debug-tree)',
+        '    --runtime:       Adds the BType runtime',
+        '    --runtime-entry: Sets the entry point for the application',
+    ].join('\n') + '\n');
+}
