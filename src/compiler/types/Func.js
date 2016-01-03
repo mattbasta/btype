@@ -49,4 +49,8 @@ export default class Func {
     isSubscriptable() {
         return false;
     }
+
+    hasStaticMethod() {
+        return false;
+    }
 };

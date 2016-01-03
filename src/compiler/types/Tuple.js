@@ -83,4 +83,8 @@ export default class Tuple {
         return this.contentsTypeArr[index];
     }
 
+    hasStaticMethod() {
+        return false;
+    }
+
 };

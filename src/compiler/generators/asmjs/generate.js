@@ -243,7 +243,7 @@ export default function generate(env, ENV_VARS) {
         ${Array.from(env.requested.exports).map(([key, value]) => `${key}: ${value},`).join('\n        ')}
     };`;
 
-    // body = postOptimizer(body);
+    body = postOptimizer(body);
 
     Object.keys(ENV_VARS).forEach(var_ => {
         body = body.replace(new RegExp(var_, 'g'), ENV_VARS[var_].toString());

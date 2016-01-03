@@ -6,23 +6,38 @@ import * as symbols from '../../symbols';
 import * as types from '../types';
 
 
-var MathRaw = [
-    'func int:abs(int:i) {}',
-    'func float:acos(float:i) {}',
-    'func float:asin(float:i) {}',
-    'func float:atan(float:i) {}',
-    'func float:cos(float:i) {}',
-    'func float:sin(float:i) {}',
-    'func float:tan(float:i) {}',
-    'func int:ceil(float:i) {}',
-    'func int:floor(float:i) {}',
-    'func float:exp(float:i) {}',
-    'func float:log(float:i) {}',
-    'func float:sqrt(float:i) {}',
-    'func float:atan2(float:y, float:x) {}',
-    'func float:pow(float:y, float:x) {}',
-    'func float:getNaN() {}',
-].join('\n');
+var MathRaw = `
+    func int:abs(int:i) {}
+    export abs;
+    func float:acos(float:i) {}
+    export acos;
+    func float:asin(float:i) {}
+    export asin;
+    func float:atan(float:i) {}
+    export atan;
+    func float:cos(float:i) {}
+    export cos;
+    func float:sin(float:i) {}
+    export sin;
+    func float:tan(float:i) {}
+    export tan;
+    func int:ceil(float:i) {}
+    export ceil;
+    func int:floor(float:i) {}
+    export floor;
+    func float:exp(float:i) {}
+    export exp;
+    func float:log(float:i) {}
+    export log;
+    func float:sqrt(float:i) {}
+    export sqrt;
+    func float:atan2(float:y, float:x) {}
+    export atan2;
+    func float:pow(float:y, float:x) {}
+    export pow;
+    func float:getNaN() {}
+    export getNaN;
+`;
 
 
 const RAW = Symbol('raw');
@@ -47,10 +62,11 @@ class BaseForeignType {
         return true;
     }
 
-    hasMethod() {
+    isSubscriptable() {
         return false;
     }
-    isSubscriptable() {
+
+    hasStaticMethod() {
         return false;
     }
 }
@@ -81,6 +97,10 @@ class ForeignType extends BaseForeignType {
     constructor(env) {
         super(env);
         this._type = '_foreign';
+    }
+
+    hasMethod() {
+        return false;
     }
 
     getMemberType(name) {
@@ -122,6 +142,10 @@ class CurriedForeignType extends BaseForeignType {
 
     getArgs() {
         return this.typeChain.slice(1).map(types.resolve);
+    }
+
+    hasMethod() {
+        return false;
     }
 
 }

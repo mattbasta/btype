@@ -132,4 +132,8 @@ export default class Struct {
         return false;
     }
 
+    hasStaticMethod() {
+        return false;
+    }
+
 };

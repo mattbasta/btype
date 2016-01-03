@@ -36,4 +36,8 @@ export default class Primitive {
         return false;
     }
 
+    hasStaticMethod() {
+        return false;
+    }
+
 };

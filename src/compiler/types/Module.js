@@ -38,4 +38,12 @@ export default class Module {
         return false;
     }
 
+    hasStaticMethod(name) {
+        return this.memberMapping.has(name);
+    }
+
+    getStaticMethod(name) {
+        return this.memberMapping.get(name);
+    }
+
 };

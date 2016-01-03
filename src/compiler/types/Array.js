@@ -48,4 +48,8 @@ export default class Array {
         return publicTypes.int;
     }
 
+    hasStaticMethod(name) {
+        return false;
+    }
+
 };

@@ -253,6 +253,32 @@ NODES.set(hlirNodes.BreakHLIR, function(env, ctx, tctx) {
 
 
 NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx, extra) {
+    if (this.callee instanceof hlirNodes.MemberHLIR) {
+        let baseType = this.callee.base.resolveType(ctx);
+        if (baseType.hasMethod && baseType.hasMethod(this.callee.child)) {
+            let methodBase = _node(this.callee.base, env, ctx, tctx);
+            let params = this.params.map(p => {
+                return getLLVMType(p.resolveType(ctx)) + ' ' + _node(p, env, ctx, tctx);
+            }).join(', ');
+
+            let callBody = 'call ' +
+                getLLVMType(this.resolveType(ctx)) + ' @' +
+                makeName(baseType.getMethod(this.callee.child)) + '(' +
+                getLLVMType(this.callee.base.resolveType(ctx)) + ' ' +
+                methodBase + (params ? ', ' : '') +
+                params + ')';
+
+            if (extra === 'stmt') {
+                tctx.write(callBody);
+                return;
+            }
+
+            let outReg = tctx.getRegister();
+            tctx.write(outReg + ' = ' + callBody);
+            return outReg;
+        }
+    }
+
     var output = extra === 'stmt' ? 'call ' : ' = call ';
 
     // Add the expected return type
@@ -276,7 +302,7 @@ NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx, extra) {
     output += ')';
 
     if (extra !== 'stmt') {
-        var outReg = tctx.getRegister();
+        let outReg = tctx.getRegister();
         output = outReg + output;
         tctx.write(output);
         return outReg;
@@ -859,35 +885,6 @@ var NODES_OLD = {
         var params;
 
         var callBody;
-
-        var temp;
-        if (this.callee instanceof hlirNodes.MemberHLIR &&
-            (temp = this.callee.base.resolveType(ctx)).hasMethod &&
-            temp.hasMethod(this.callee.child)) {
-
-            var methodBase = _node(this.callee.base, env, ctx, tctx);
-            var params = this.params.map(function(p) {
-                var type = p.resolveType(ctx);
-                var typeName = getLLVMType(type);
-                return typeName + ' ' + _node(p, env, ctx, tctx);
-            }).join(', ');
-
-            callBody = 'call ' +
-                getLLVMType(this.resolveType(ctx)) + ' @' +
-                makeName(temp.getMethod(this.callee.child)) + '(' +
-                getLLVMType(this.callee.base.resolveType(ctx)) + ' ' +
-                methodBase + (params ? ', ' : '') +
-                params + ')';
-
-            if (extra === 'stmt') {
-                tctx.write(callBody);
-                return;
-            }
-
-            var outReg = tctx.getRegister();
-            tctx.write(outReg + ' = ' + callBody);
-            return outReg;
-        }
 
         var callee = _node(this.callee, env, ctx, tctx);
 

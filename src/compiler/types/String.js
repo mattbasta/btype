@@ -44,4 +44,8 @@ export default class String {
         return types.publicTypes.int;
     }
 
+    hasStaticMethod() {
+        return false;
+    }
+
 };

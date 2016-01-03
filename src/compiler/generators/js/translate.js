@@ -91,11 +91,6 @@ NODES.set(hlirNodes.RootHLIR, function(env, ctx, tctx) {
     env[GLOBAL_PREFIX] = '';
 });
 
-NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
-    // Precedence here will always be 4.
-    return '!' + _node(this.base, env, ctx, tctx);
-});
-
 NODES.set(hlirNodes.AssignmentHLIR, function(env, ctx, tctx) {
     tctx.write(_node(this.base, env, ctx, tctx) + ' = ' + _node(this.value, env, ctx, tctx) + ';');
 });
@@ -255,6 +250,11 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx) {
     }
 
     return base + '.' + this.child;
+});
+
+NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
+    // Precedence here will always be 4.
+    return '!' + _node(this.base, env, ctx, tctx);
 });
 
 NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {

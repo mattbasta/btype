@@ -1,4 +1,6 @@
+import Func from '../../types/Func';
 import * as hlirNodes from '../../../hlirNodes';
+import Module from '../../types/Module';
 import Struct from '../../types/Struct';
 import * as symbols from '../../../symbols';
 import TranslationContext from '../js/TranslationContext';
@@ -61,8 +63,8 @@ function _binop(env, ctx, tctx) {
                 break;
             }
         default:
-            if (this.left.type !== 'Literal') left = '(' + typeAnnotation(left, leftTypeRaw) + ')';
-            if (this.right.type !== 'Literal') right = '(' + typeAnnotation(right, rightTypeRaw) + ')';
+            if (!(this.left instanceof hlirNodes.LiteralHLIR)) left = '(' + typeAnnotation(left, leftTypeRaw) + ')';
+            if (!(this.right instanceof hlirNodes.LiteralHLIR)) right = '(' + typeAnnotation(right, rightTypeRaw) + ')';
             out = left + ' ' + this.operator + ' ' + right;
     }
 
@@ -100,42 +102,38 @@ export function typeAnnotation(base, type) {
     if (!type) return base;
     if (/^\-?[\d\.]+$/.exec(base)) return base;
 
-    var origBase = base;
-    base = '(' + base + ')';
-
     switch (type.typeName) {
         case 'sfloat':
-            return 'fround' + base + '';
+            return 'fround(' + base + ')';
         case 'float':
-            if (origBase[0] === '+') return base;
-            return '+' + base;
+            if (base[0] === '+') return base;
+            return '+(' + base + ')';
         case 'byte':
         case 'int':
         case 'uint':
         default:
-            if (origBase.substr(-2) === '|0') return base;
-            return base + '|0';
+            if (base.substr(-2) === '|0') return base;
+            return '(' + base + ')|0';
     }
 
 }
 
 function getFunctionDerefs(ctx, exclude) {
     var output = '';
-    var params;
-    params = ctx.scope.params.map(p => p[symbols.ASSIGNED_NAME]);
+    var params = ctx.scope.params.map(p => p[symbols.ASSIGNED_NAME]);
     ctx.typeMap.forEach((type, name) => {
         if (type._type === 'primitive') return;
 
         // Ignore returned symbols
-        if (exclude && exclude.type === 'Symbol' && exclude[symbols.REFNAME] === name) return;
+        if (exclude && exclude instanceof hlirNodes.SymbolHLIR && exclude[symbols.REFNAME] === name) return;
 
         // Ignore recursion
-        if (exclude && exclude.type === 'Symbol' && exclude[symbols.REFNAME] === ctx.scope[symbols.ASSIGNED_NAME]) {
+        if (exclude && exclude instanceof hlirNodes.SymbolHLIR && exclude[symbols.REFNAME] === ctx.scope[symbols.ASSIGNED_NAME]) {
             return;
         }
 
         // Ignore parameters
-        if (params.some(p => p.name === name)) return;
+        if (params.some(p => p === name)) return;
 
         output += 'gcderef(' + name + ');\n';
     });
@@ -175,14 +173,36 @@ NODES.set(hlirNodes.BreakHLIR, function() {
 });
 
 NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
+    var getParamList = () =>
+        this.params.map(p => typeAnnotation(_node(p, env, ctx, tctx), p.resolveType(ctx))).join(',');
+
+    if (this.callee instanceof hlirNodes.MemberHLIR) {
+        let baseType = this.callee.base.resolveType(ctx);
+        if (baseType.hasMethod && baseType.hasMethod(this.callee.child)) {
+            return typeAnnotation(
+                baseType.getMethod(this.callee.child) + '(/* CallRef:Method */' +
+                _node(this.callee.base, env, ctx, tctx) + '|0' +
+                (this.params.length ? ',' + getParamList() : '') +
+                ')',
+                this.resolveType(ctx)
+            );
+        }
+    }
+
+    function getCallee(base) {
+        if (base instanceof hlirNodes.MemberHLIR) {
+            let baseType = base.base.resolveType(ctx);
+            if (baseType.hasStaticMethod(base.child)) {
+                return baseType.getStaticMethod(base.child);
+            }
+
+        }
+        return _node(base, env, ctx, tctx);
+    }
+
     return typeAnnotation('(' +
         typeAnnotation(
-            _node(this.callee, env, ctx, tctx) +
-                '(/* CallDecl */' +
-                this.params.map(param => {
-                    return typeAnnotation(_node(param, env, ctx, tctx), param.resolveType(ctx));
-                }).join(',') +
-                ')',
+            `${getCallee(this.callee)}(${getParamList()})`,
             this.callee.resolveType(ctx).getReturnType()
         ) +
         ')', this.resolveType(ctx));
@@ -329,7 +349,7 @@ NODES.set(hlirNodes.LiteralHLIR, function(env, ctx, tctx) {
 
 NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, parent) {
     var baseType = this.base.resolveType(ctx);
-    if (baseType._type === 'module') {
+    if (baseType instanceof Module) {
         return baseType.memberMapping[this.child];
     }
 
@@ -418,7 +438,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
         return '(makeArray(' +
             typeAnnotation(
                 '(' + _node(this.args[0], env, ctx, tctx) + ')',
-                this.params[0].resolveType(ctx)
+                this.args[0].resolveType(ctx)
             ) +
             ', ' +
             innerTypeSize +
@@ -599,21 +619,7 @@ var NODES_OLD = {
             return typeAnnotation(_node(param, env, ctx, tctx), param.resolveType(ctx));
         }).join(',');
 
-        var isMethodCall = funcType.__isMethod;
-
-        var temp;
-        if (this.callee.type === 'Member' &&
-            (temp = this.callee.base.resolveType(ctx)).hasMethod &&
-            temp.hasMethod(this.callee.child)) {
-
-            return typeAnnotation(
-                temp.getMethod(this.callee.child) + '(/* CallRef:Method */' +
-                _node(this.callee.base, env, ctx, tctx) + '|0' +
-                (this.params.length ? ',' + paramList : '') +
-                ')',
-                funcType.getReturnType()
-            );
-        }
+        var isMethodCall = funcType[symbols.IS_METHOD];
 
         if (env.funcList[listName].length === 1) {
             return typeAnnotation('(' +
