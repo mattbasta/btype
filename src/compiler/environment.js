@@ -224,7 +224,7 @@ export default class Environment {
     }
 
     getFuncListName(funcType, noAdd) {
-        var fts = funcType.toString();
+        var fts = funcType.flatTypeName();
         if (!this.funcListTypeMap.has(fts) && !noAdd) {
             let name = this.namer();
             this.funcListTypeMap.set(fts, name);
@@ -243,10 +243,6 @@ export default class Environment {
         // Get the function's type and use that to determine the table.
         var ft = funcNode.resolveType(funcNode[symbols.CONTEXT]);
         var funcList = this.getFuncListName(ft);
-        // If the table doesn't exist yet, create it.
-        if (!this.funcList.has(funcList)) {
-            this.funcList.set(funcList, []);
-        }
         // Add the function's assigned name to the table.
         this.funcList.get(funcList).push(funcNode[symbols.ASSIGNED_NAME]);
 

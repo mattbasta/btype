@@ -177,35 +177,68 @@ NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
         this.params.map(p => typeAnnotation(_node(p, env, ctx, tctx), p.resolveType(ctx))).join(',');
 
     if (this.callee instanceof hlirNodes.MemberHLIR) {
+
         let baseType = this.callee.base.resolveType(ctx);
-        if (baseType.hasMethod && baseType.hasMethod(this.callee.child)) {
+        if (baseType.hasMethod(this.callee.child)) {
+            // Are we calling a method directly?
             return typeAnnotation(
-                baseType.getMethod(this.callee.child) + '(/* CallRef:Method */' +
+                baseType.getMethod(this.callee.child) + '(' +
                 _node(this.callee.base, env, ctx, tctx) + '|0' +
                 (this.params.length ? ',' + getParamList() : '') +
                 ')',
                 this.resolveType(ctx)
             );
+
+        } else if (baseType.hasStaticMethod(this.callee.child)) {
+            // Are we calling something static, like an exported method on
+            // a module?
+            return typeAnnotation(
+                baseType.getStaticMethod(this.callee.child) +
+                    '(' + getParamList() + ')',
+                baseType.getStaticMethodType(this.callee.child).getReturnType()
+            );
+
+        } else if (baseType._type === '_foreign_curry' ||
+                   baseType._type === '_stdlib') {
+            return typeAnnotation(
+                _node(this.callee, env, ctx, tctx, 'call') +
+                    '(' + getParamList() + ')',
+                this.resolveType(ctx)
+            );
         }
+
+    } else if (this.callee instanceof hlirNodes.SymbolHLIR) {
+        debugger;
+        // Is it calling a function declaration directly?
+        if (this.callee[symbols.REFCONTEXT].lookupFunctionByName(this.callee[symbols.REFNAME])) {
+            return typeAnnotation(
+                `${_node(this.callee, env, ctx, tctx)}(${getParamList()})`,
+                this.callee.resolveType(ctx).getReturnType()
+            );
+        }
+
     }
 
-    function getCallee(base) {
-        if (base instanceof hlirNodes.MemberHLIR) {
-            let baseType = base.base.resolveType(ctx);
-            if (baseType.hasStaticMethod(base.child)) {
-                return baseType.getStaticMethod(base.child);
-            }
+    // Otherwise, it's a function reference that we're calling.
+    var funcType = this.callee.resolveType(ctx);
+    var listName = env.getFuncListName(funcType);
+    var funcList = env.funcList.get(listName);
+    var funcIndex = _node(this.callee, env, ctx, tctx);
 
-        }
-        return _node(base, env, ctx, tctx);
-    }
+    return typeAnnotation(
+        `${listName}[${funcIndex} & ${funcList.length - 1}](${getParamList()})`,
+        funcType.getReturnType()
+    );
 
-    return typeAnnotation('(' +
-        typeAnnotation(
-            `${getCallee(this.callee)}(${getParamList()})`,
-            this.callee.resolveType(ctx).getReturnType()
-        ) +
-        ')', this.resolveType(ctx));
+    return typeAnnotation(
+        listName + '$$call(' +
+            _node(this.callee, env, ctx, tctx) +
+            (this.params.length ? ',' : '') +
+            getParamList() +
+            ')',
+        funcType.getReturnType()
+    );
+
 });
 
 NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
@@ -250,12 +283,12 @@ NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
     tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + '|0);');
 });
 
-NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
+NODES.set(hlirNodes.FunctionHLIR, function(env, parentCtx, tctx) {
     var ctx = this[symbols.CONTEXT];
 
     tctx.write(
         'function ' + this[symbols.ASSIGNED_NAME] + '(' +
-        this.params.map(param => _node(param, env, context, tctx)).join(',') +
+        this.params.map(param => _node(param, env, ctx, tctx)).join(',') +
         ') {'
     );
     if (this.name) {
@@ -377,6 +410,7 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, parent) {
     }
 
     if (baseType._type === '_foreign_curry') {
+        if (parent !== 'call') throw new Error('Cannot generate references to foreign functions');
         return typeAnnotation(_node(this.base, env, ctx, tctx), this.resolveType(ctx));
     }
 
@@ -415,18 +449,24 @@ NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
 
 NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     var baseType = this.resolveType(ctx);
+
+    if (baseType instanceof Func) {
+        let ref = this.args[0];
+        let func = ref[symbols.REFCONTEXT].lookupFunctionByName(ref[symbols.REFNAME]);
+        return `(${func[symbols.FUNCLIST_IDX]}|0)`;
+    }
+
     if (baseType._type === 'array') {
         if (!env[HAS_NEW_ARRAY]) {
             env[GLOBAL_PREFIX] += `function makeArray(length, elemSize) {
-    length = length | 0;
-    elemSize = elemSize | 0;
-    var ptr = 0;
-    ptr = gcref(calloc((length * elemSize | 0) + 16 | 0) | 0) | 0;
-    ptrheap[ptr + 8 >> 2] = length | 0;
-    ptrheap[ptr + 12 >> 2] = length | 0;
-    return ptr | 0;
-}`;
-
+                length = length | 0;
+                elemSize = elemSize | 0;
+                var ptr = 0;
+                ptr = gcref(calloc((length * elemSize | 0) + 16 | 0) | 0) | 0;
+                ptrheap[ptr + 8 >> 2] = length | 0;
+                ptrheap[ptr + 12 >> 2] = length | 0;
+                return ptr | 0;
+            }`;
             env[HAS_NEW_ARRAY] = true;
         }
 
@@ -609,56 +649,6 @@ NODES.set(hlirNodes.TypedIdentifierHLIR, function() {
     return this[symbols.ASSIGNED_NAME];
 });
 
-
-var NODES_OLD = {
-    CallRef: function(env, ctx, tctx) {
-        var funcType = this.callee.resolveType(ctx);
-        var listName = env.getFuncListName(funcType);
-
-        var paramList = this.params.map(function(param) {
-            return typeAnnotation(_node(param, env, ctx, tctx), param.resolveType(ctx));
-        }).join(',');
-
-        var isMethodCall = funcType[symbols.IS_METHOD];
-
-        if (env.funcList[listName].length === 1) {
-            return typeAnnotation('(' +
-                typeAnnotation(
-                    env.funcList[listName][0] + '(/* CallRef;Compacted */' +
-                    (isMethodCall ? 'ptrheap[(' + _node(this.callee, env, ctx, tctx) + ' + 4) >> 2]|0' : '') +
-                    (isMethodCall && this.params.length ? ',' : '') +
-                    paramList +
-                    ')',
-                    funcType.getReturnType()
-                ) +
-                ')', this.resolveType(ctx));
-        }
-
-        return typeAnnotation('(' +
-            typeAnnotation(
-                listName + '$$call(/* CallRef */' +
-                    _node(this.callee, env, ctx, tctx) +
-                    (this.params.length ? ',' : '') +
-                    paramList + ')',
-                funcType.getReturnType()
-            ) +
-            ')', this.resolveType(ctx));
-    },
-    FunctionReference: function(env, ctx, tctx) {
-        var funcName = this.base[symbols.REFNAME];
-        var funcType = this.base.resolveType(ctx);
-        var listName = env.getFuncListName(funcType);
-
-        // TODO: Optimize this for the case that there is only one function in
-        // the table.
-
-        if (!this.ctx) {
-            return '((getfuncref(' + this.base.__refIndex + ', 0)|0) | 0)';
-        }
-
-        return '((getfuncref(' + this.base.__refIndex + ', ' + typeAnnotation(_node(this.ctx, env, ctx, tctx), this.ctx.resolveType(ctx)) + ')|0) | 0)';
-    },
-};
 
 export default function translate(ctx) {
     var tctx = new TranslationContext(ctx.env, ctx);

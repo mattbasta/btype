@@ -172,46 +172,6 @@ export default function generate(env, ENV_VARS) {
         env.requested.exports.set('$$init', '$$init');
     }
 
-    // Compile function list callers
-    Object.keys(env.funcList).forEach(flist => {
-        if (env.funcList[flist].length === 1) return '';
-        var funcList = env.funcList[flist];
-        var funcType = env.funcListReverseTypeMap[flist];
-
-        var output = `function ${flist}$$call($$ctx`;
-
-        var paramList = funcType.args.map((param, i) => '$param' + i);
-        if (paramList.length) {
-            output += `, ${paramList.join(', ')}`;
-        }
-
-        output += ') {\n';
-
-        output += '    $$ctx = $$ctx | 0;\n';
-        funcType.args.forEach((arg, i) => {
-            var base = '$param' + i;
-            output += '    ' + base + ' = ' + typeAnnotation(base, arg) + ';\n';
-        });
-
-        output += '    var funcId = 0;\n';
-        output += '    funcId = ptrheap[$$ctx >> 2];\n';
-        output += '    var funcCtx = 0;\n';
-        output += '    funcCtx = ptrheap[$$ctx + 4 >> 2];\n';
-
-        var callBase = flist + '[funcId & ' + (funcList.length - 1) + ']';
-        var rawCall = callBase + '(' + paramList.join(', ') + ')';
-        output += '    if (!funcCtx) {\n';
-        output += '        return ' + typeAnnotation(rawCall, funcType.returnType) + ';\n';
-        output += '    }\n';
-
-        var fullCall = callBase + '(funcCtx | 0' + (paramList.length ? ', ' + paramList.join(', ') : '') + ')';
-        output += '    return ' + typeAnnotation(fullCall, funcType.returnType) + ';\n';
-
-        output += '}\n';
-        body += output;
-
-    });
-
     env.types.forEach(type => {
         if (type._type !== 'tuple') return;
         body += `function makeTuple$${type.flatTypeName()}(${type.contentsTypeArr.map((x, i) => 'm' + i).join(',')}) {
@@ -230,7 +190,6 @@ export default function generate(env, ENV_VARS) {
 
     // Compile function lists
     env.funcList.forEach((flist, name) => {
-        if (flist.length === 1) return;
         body += `    var ${name} = [${flist.join(',')}];\n`;
     });
 

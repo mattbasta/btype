@@ -1,2 +1,0 @@
-TypeError: Final methods cannot call non-final methods.
-"getX" cannot call "getXSecret" on Foo

@@ -1,0 +1,14 @@
+func func<int>:factory() {
+    var value = 123;
+    return func int() {
+        return value;
+    };
+}
+
+func int:main() {
+    var closure = factory();
+
+    return closure();
+
+}
+export main;

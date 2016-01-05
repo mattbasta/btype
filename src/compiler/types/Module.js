@@ -46,4 +46,9 @@ export default class Module {
         return this.memberMapping.get(name);
     }
 
+    getStaticMethodType(name) {
+        var assignedName = this.getStaticMethod(name);
+        return this.mod.typeMap.get(assignedName);
+    }
+
 };

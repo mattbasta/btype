@@ -66,6 +66,10 @@ class BaseForeignType {
         return false;
     }
 
+    hasMethod() {
+        return false;
+    }
+
     hasStaticMethod() {
         return false;
     }
@@ -142,10 +146,6 @@ class CurriedForeignType extends BaseForeignType {
 
     getArgs() {
         return this.typeChain.slice(1).map(types.resolve);
-    }
-
-    hasMethod() {
-        return false;
     }
 
 }

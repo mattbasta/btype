@@ -363,9 +363,9 @@ NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
         case 'int':
             switch (targetType.typeName) {
                 case 'uint':
-                    if (this.base.type === 'Literal' && /^[\d\.]+/.exec(this.base.value)) {
+                    if (this.base instanceof hlirNodes.LiteralHLIR && /^[\d\.]+/.exec(this.base.value)) {
                         return base; // 123 as uint -> 123
-                    } else if (this.base.type === 'Literal') {
+                    } else if (this.base instanceof hlirNodes.LiteralHLIR) {
                         return '0'; // -123 as uint -> 0
                     }
                     return 'int2uint(' + base + ')';

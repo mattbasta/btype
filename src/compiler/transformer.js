@@ -25,6 +25,8 @@ export function markFirstClassFunctions(context) {
             if (!(node instanceof hlirNodes.SymbolHLIR)) {
 
                 if (node instanceof hlirNodes.FunctionHLIR) {
+                    context.functionDeclarations.set(node[symbols.ASSIGNED_NAME], node);
+
                     if (marker === 'body') return;
                     if (marker === 'consequent') return;
                     if (marker === 'alternate') return;
@@ -172,6 +174,7 @@ function processRoot(rootContext) {
         refSym[symbols.REFCONTEXT] = rootContext;
         refSym[symbols.REFTYPE] = funcType;
         refSym[symbols.REFNAME] = node[symbols.ASSIGNED_NAME];
+        refSym[symbols.REFIDX] = node[symbols.FUNCLIST_IDX];
 
         stack[0][member] = new hlirNodes.NewHLIR(
             frefType,
@@ -446,7 +449,6 @@ function upliftContext(rootContext, ctx) {
     // Replace the function itself with a symbol rather than a direct reference
     // or nothing if it is defined as a declaration.
     var stack = [ctxparent.scope];
-    var newName;
     var oldName = node[symbols.ASSIGNED_NAME];
     ctxparent.scope.iterate((iterNode, marker) => {
         // If you encounter someting other than the function, ignore it and
@@ -473,7 +475,7 @@ function upliftContext(rootContext, ctx) {
             newSymbol[symbols.REFCONTEXT] = rootContext;
             newSymbol[symbols.REFTYPE] = node.resolveType(ctxparent);
             newSymbol[symbols.REFNAME] = node[symbols.ASSIGNED_NAME] + '$$origFunc$';
-            newSymbol[symbols.REFINDEX] = node[FUNCLIST_IDX];
+            newSymbol[symbols.REFIDX] = node[FUNCLIST_IDX];
             newSymbol[symbols.IS_FUNC] = true;
         }
         return false;
@@ -515,10 +517,18 @@ function upliftContext(rootContext, ctx) {
         funcList[node[symbols.FUNCLIST_IDX]] = newName;
     }
 
+    var temp = ctx;
+    while (temp) {
+        if (temp.functionDeclarations.has(oldName)) {
+            temp.functionDeclarations.set(
+                newName,
+                temp.functionDeclarations.get(oldName)
+            );
+            temp.functionDeclarations.delete(oldName);
+        }
+        temp = temp.parent;
+    }
 
-    // NOTE: We do not update `ctxparent.functionDeclarations` since it
-    // shouldn't be used for anything after type checking, name
-    // assignment, and context generation has completed.
 }
 
 export default function transform(rootCtx) {
