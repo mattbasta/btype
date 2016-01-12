@@ -6,7 +6,7 @@ object complex {
     final float:real;
     final float:imag;
 
-    final new(float:real, float:imag) {
+    new(float:real, float:imag) {
         self.real = real;
         self.imag = imag;
     }

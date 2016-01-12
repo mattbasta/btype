@@ -320,7 +320,7 @@ export class Context extends BaseContext {
         if (this.typeDefs.has(typeName)) {
             if (attributes.length) {
                 var err = new TypeError('Cannot apply attributes to aliased types');
-                err[symbols.ERR_MSG] = err.message;
+                // err[symbols.ERR_MSG] = err.message;
                 throw err;
             }
             return this.typeDefs.get(typeName);

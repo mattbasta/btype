@@ -38,8 +38,12 @@ export default class TypeHLIR extends BaseHLIR {
                     this.attributes.map(a => a.resolveType(ctx))
                 );
             } catch (e) {
-                if (typeof e[RESOLVE_CATCH] === 'undefined') {
-                    e[RESOLVE_CATCH] = true;
+                if (RESOLVE_CATCH in e) {
+                    throw e;
+                }
+                e[RESOLVE_CATCH] = true;
+                if (!(symbols.ERR_START in e) && !(symbols.ERR_LINE in e)) {
+                    e[symbols.ERR_MSG] = e.message;
                     e[symbols.ERR_START] = this.start;
                     e[symbols.ERR_END] = this.end;
                 }

@@ -15,23 +15,7 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         var baseType = this.base.resolveType(ctx);
 
         if (baseType instanceof Struct && baseType.privateMembers.has(this.child)) {
-            let insideObjectScope = false;
-            let tmp = ctx;
-            while (tmp) {
-                if (tmp[symbols.BASE_PROTOTYPE]) {
-                    if (tmp[symbols.BASE_PROTOTYPE][symbols.ASSIGNED_NAME] === baseType[symbols.ASSIGNED_NAME]) {
-                        insideObjectScope = true;
-                    }
-                    break;
-                }
-                tmp = tmp.parent;
-            }
-
-            if (!insideObjectScope) {
-                throw this.TypeError(
-                    `Accessing private member "${this.child}" from outside object declaration`
-                );
-            }
+            this.checkVisibility(ctx, baseType);
         }
 
         if (baseType.hasMethod && baseType.hasMethod(this.child)) {
@@ -43,6 +27,26 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         }
 
         return baseType.getMemberType(this.child);
+    }
+
+    checkVisibility(ctx, baseType) {
+        var insideObjectScope = false;
+        var tmp = ctx;
+        while (tmp) {
+            if (tmp[symbols.BASE_PROTOTYPE]) {
+                if (tmp[symbols.BASE_PROTOTYPE][symbols.ASSIGNED_NAME] === baseType[symbols.ASSIGNED_NAME]) {
+                    insideObjectScope = true;
+                }
+                break;
+            }
+            tmp = tmp.parent;
+        }
+
+        if (!insideObjectScope) {
+            throw this.TypeError(
+                `Accessing private member "${this.child}" from outside object declaration`
+            );
+        }
     }
 
     asString() {

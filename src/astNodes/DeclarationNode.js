@@ -52,7 +52,9 @@ export default class DeclarationNode extends BaseStatementNode {
         var node = new DeclarationHLIR(typeNode, this.name, valueNode);
 
         var ctx = builder.peekCtx();
-        var assignedName = ctx.addVar(this.name, (typeNode || valueNode).resolveType(ctx));
+        var assignedName = this.wrapError(
+            () => ctx.addVar(this.name, (typeNode || valueNode).resolveType(ctx))
+        );
         node[symbols.ASSIGNED_NAME] = assignedName;
 
         return node;

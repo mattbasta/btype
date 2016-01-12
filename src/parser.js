@@ -830,6 +830,10 @@ function parseObjectDeclaration(lex) {
                 throw new SyntaxError('Private constructors are not allowed');
             }
 
+            if (isFinal) {
+                throw new SyntaxError('Final constructors are not allowed');
+            }
+
             if (constructor) {
                 raiseSyntaxError(
                     'Cannot have multiple constructors in the same object declaration',

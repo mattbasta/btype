@@ -7,6 +7,10 @@ object Point {
         self.x = x;
         self.y = y;
         self.z = z;
+
+        var foo = func() {
+            self.x = 123.0;
+        };
     }
 
 }

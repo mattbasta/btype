@@ -1,1 +1,6 @@
-TypeError: Cannot set final member "x" on from outside object constructor
+TypeError: Attempted to set final member "x" from outside object constructor
+12 |     foo() {
+13 |         self.x = 123456.0;
+   |         ^ (13:9)
+14 |     }
+

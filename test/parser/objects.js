@@ -429,39 +429,6 @@ describe('Object declaration parser', function() {
         );
     });
 
-    it('should parse final constructors', function() {
-        compareTree(
-            'object foo {\nfinal new(float:bar) {}\n}',
-            _root([
-                node(
-                    'ObjectDeclaration',
-                    0,
-                    38,
-                    {
-                        name: 'foo',
-                        attributes: [],
-                        methods: [],
-                        members: [],
-                        objConstructor: node(
-                            'ObjectConstructor',
-                            13,
-                            36,
-                            {
-                                params: [
-                                    _typed('self', _type('foo')),
-                                    _typed('bar', _type('float')),
-                                ],
-                                body: [],
-                                isFinal: true,
-                            }
-                        ),
-                        operators: [],
-                    }
-                )
-            ])
-        );
-    });
-
     it('should parse constructors with optional self syntax', function() {
         compareTree(
             'object foo {\nnew([foo:this], float:bar) {}\n}',
@@ -549,16 +516,31 @@ describe('Object declaration parser', function() {
         );
     });
 
-    it('should disallow private constructors', function() {
-
-        assert.doesNotThrow(function() {
-            parse('object Foo {new() {}}');
+    describe('constructors', () => {
+        it('should parse fine', () => {
+            assert.doesNotThrow(() => {
+                parse('object Foo {new() {}}');
+            });
         });
 
-        assert.throws(function() {
-            parse('object Foo {private new() {}}');
+        it('should disallow private constructors', () => {
+            assert.throws(() => {
+                parse('object Foo {private new() {}}');
+            });
         });
 
+        it('should disallow final constructors', () => {
+            assert.throws(function() {
+                parse('object Foo {final new() {}}');
+            });
+        });
+
+        it('should disallow private final constructors', () => {
+            assert.throws(function() {
+                parse('object Foo {private final new() {}}');
+            });
+        });
     });
+
 
 });

@@ -7,14 +7,28 @@ export default class BaseNode {
         this.end = end;
     }
 
-    get TypeError() {
-        return error => {
-            var err = new TypeError(error);
-            err[symbols.ERR_MSG] = error;
+    TypeError(error) {
+        var err = new TypeError(error);
+        err[symbols.ERR_MSG] = error;
+        err[symbols.ERR_START] = this.start;
+        err[symbols.ERR_END] = this.end;
+        return err;
+    }
+
+    wrapError(func) {
+        try {
+            return func();
+        } catch (err) {
+            if (symbols.ERR_MSG in err ||
+                symbols.ERR_START in err ||
+                symbols.ERR_LINE in err) {
+                throw err;
+            }
+            err[symbols.ERR_MSG] = err.message;
             err[symbols.ERR_START] = this.start;
             err[symbols.ERR_END] = this.end;
-            return err;
-        };
+            throw err;
+        }
     }
 
     traverse() {

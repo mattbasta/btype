@@ -1,0 +1,6 @@
+TypeError: Accessing private member "x" from outside object declaration
+6 |     var foo = new Foo();
+7 |     foo.x = 123;
+  |     ^ (7:5)
+8 | }
+

@@ -1,0 +1,9 @@
+object Foo {
+    private int:x;
+}
+
+func main() {
+    var foo = new Foo();
+    foo.x = 123;
+}
+export main;
