@@ -23,7 +23,16 @@ At the time of writing, BType is still experimental and should NOT be used for p
 
 # Requirements
 
-You must have Node 5.x or later installed. Running tests requires LLVM 3.5 or later.
+You must have Node 5.x or later installed. Running tests requires LLVM 3.6 or later.
+
+```bash
+npm install -g btype
+
+# or for hacking
+
+npm install
+brew install llvm  # Or your favorite package manager
+```
 
 
 ## Goals

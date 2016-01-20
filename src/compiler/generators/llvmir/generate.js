@@ -97,7 +97,7 @@ function makeModule(env, ENV_VARS, body) {
 
         getRuntime(env),
 
-        '!0 = metadata !{metadata !"BType/LLVM IR compile target (github.com/mattbasta/btype)"}',
+        '!0 = !{!"BType/LLVM IR compile target (github.com/mattbasta/btype)"}',
     ].join('\n');
 
 }
