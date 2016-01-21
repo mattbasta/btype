@@ -3,7 +3,7 @@ branches:
     - master
 language: node_js
 node_js:
-  - "0.10"
+  - "5"
 script:
   - "npm test"
 sudo: false
