@@ -38,21 +38,26 @@ export default class Struct {
         return this[LAYOUT_CACHE] = offsets;
     }
 
-    getOrderedLayout() {
-        if (this[ORDERED_LAYOUT_CACHE]) return this[ORDERED_LAYOUT_CACHE];
+    getSortedMemberNames() {
         var keys = Array.from(this.contentsTypeMap.keys());
         keys.sort((a, b) => {
             return memberSize(this.contentsTypeMap.get(a)) < memberSize(this.contentsTypeMap.get(b));
         });
+        return keys;
+    }
+
+    getOrderedLayout() {
+        if (this[ORDERED_LAYOUT_CACHE]) return this[ORDERED_LAYOUT_CACHE];
+        var keys = this.getSortedMemberNames();
         var order = keys.map(m => this.contentsTypeMap.get(m));
         return this[ORDERED_LAYOUT_CACHE] = order;
     }
 
     getLayoutIndex(name) {
         if (this[LAYOUT_INDICES_CACHE]) return this[LAYOUT_INDICES_CACHE].get(name);
-        var layout = this.getLayout();
+        var keys = this.getSortedMemberNames();
         var indices = this[LAYOUT_INDICES_CACHE] = new Map();
-        this.getOrderedLayout().forEach((key, i) => indices.set(key, i));
+        keys.forEach((key, i) => indices.set(key, i));
         return indices.get(name);
     }
 

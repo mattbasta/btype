@@ -157,7 +157,7 @@ function getFunctionContext(ctx, name) {
     funcctx[symbols.CONTEXT] = ctx;
     funcctx[symbols.ASSIGNED_NAME] = name;
     funcctx[MAPPING] = mapping;
-    funcctx[CTX_TYPEMAPPING] = wrappedType;
+    funcctx[CTX_TYPEMAPPING] = type;
 
     return funcctx;
 }
