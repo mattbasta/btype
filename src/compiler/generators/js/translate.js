@@ -6,6 +6,7 @@ import * as types from '../../types';
 
 
 const GLOBAL_PREFIX = Symbol();
+const HAS_IMUL = Symbol();
 
 
 function _binop(env, ctx, tctx) {
@@ -18,14 +19,9 @@ function _binop(env, ctx, tctx) {
 
 
     if (leftTypeRaw && rightTypeRaw) {
-        var leftType = leftTypeRaw.flatTypeName();
-        var rightType = rightTypeRaw.flatTypeName();
-        if (ctx.env.registeredOperators.has(leftType) &&
-            ctx.env.registeredOperators.get(leftType).has(rightType) &&
-            ctx.env.registeredOperators.get(leftType).get(rightType).has(this.operator)) {
-
-            var operatorStmtFunc = ctx.env.registeredOperators.get(leftType).get(rightType).get(this.operator);
-            return `${operatorStmtFunc}(${left}, ${right})`;
+        let opFunc = ctx.env.getOverloadAssignedName(leftTypeRaw, rightTypeRaw, this.operator);
+        if (opFunc) {
+            return `${opFunc}(${left}, ${right})`;
         }
     }
 
@@ -43,8 +39,8 @@ function _binop(env, ctx, tctx) {
             if (this.left.resolveType(ctx) === types.publicTypes.int &&
                 this.right.resolveType(ctx) === types.publicTypes.int) {
 
-                if (!env.__hasImul) {
-                    env.__hasImul = true;
+                if (!env[HAS_IMUL]) {
+                    env[HAS_IMUL] = true;
                     env[GLOBAL_PREFIX] += 'var imul = stdlib.Math.imul;\n';
                 }
                 out = 'imul(' + left + ', ' + right + ')';
@@ -55,11 +51,11 @@ function _binop(env, ctx, tctx) {
                 this.left.resolveType(ctx) === types.publicTypes.int &&
                 this.right.resolveType(ctx) === types.publicTypes.int) {
 
-                out = '(' + left + ' / ' + right + ' | 0)';
+                out = `(${left} / ${right} | 0)`;
                 break;
             }
         default:
-            out = left + ' ' + this.operator + ' ' + right;
+            out = `${left} ${this.operator} ${right}`;
     }
 
     return '(' + out + ')';
@@ -261,17 +257,17 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     var baseType = this.resolveType(ctx);
 
     if (baseType._type === 'array') {
-        var arrLength = _node(this.args[0], env, ctx, tctx);
+        let arrLength = _node(this.args[0], env, ctx, tctx);
         if (baseType.contentsType._type === 'primitive') {
             switch (baseType.contentsType.typeName) {
-                case 'float': return 'new Float64Array(' + arrLength + ')';
-                case 'sfloat': return 'new Float32Array(' + arrLength + ')';
-                case 'int': return 'new Int32Array(' + arrLength + ')';
-                case 'uint': return 'new Uint32Array(' + arrLength + ')';
-                case 'byte': return 'new Uint8Array(' + arrLength + ')';
+                case 'float': return `new Float64Array(${arrLength})`;
+                case 'sfloat': return `new Float32Array(${arrLength})`;
+                case 'int': return `new Int32Array(${arrLength})`;
+                case 'uint': return `new Uint32Array(${arrLength})`;
+                case 'byte': return `new Uint8Array(${arrLength})`;
             }
         }
-        return 'new Array(' + arrLength + ')';
+        return `new Array(${arrLength})`;
     }
 
     if (baseType._type === 'func') {

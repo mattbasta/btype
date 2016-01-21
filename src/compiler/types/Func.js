@@ -33,6 +33,10 @@ export default class Func {
             '$$';
     }
 
+    hasMember() {
+        return false;
+    }
+
     getReturnType() {
         return this.returnType;
     }

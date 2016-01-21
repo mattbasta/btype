@@ -208,7 +208,6 @@ NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
         }
 
     } else if (this.callee instanceof hlirNodes.SymbolHLIR) {
-        debugger;
         // Is it calling a function declaration directly?
         if (this.callee[symbols.REFCONTEXT].lookupFunctionByName(this.callee[symbols.REFNAME])) {
             return typeAnnotation(

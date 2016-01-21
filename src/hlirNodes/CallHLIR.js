@@ -22,16 +22,24 @@ export default class CallHLIR extends BaseExpressionHLIR {
         }
 
         var expectedParamCount = baseType.args.length;
+
+        var receivedParams = this.params.slice(0);
+        var receivedParamCount = receivedParams.length;
+
         var isMethod = baseType[symbols.IS_METHOD];
         if (isMethod) {
             expectedParamCount--;
         }
+        if (receivedParamCount === expectedParamCount + 1 && this.params[0].resolveType(ctx)[symbols.IS_CTX_OBJ]) {
+            receivedParamCount--;
+            receivedParams = receivedParams.slice(1);
+        }
 
-        if (expectedParamCount !== this.params.length) {
+        if (expectedParamCount !== receivedParamCount) {
             throw this.TypeError(`Cannot call func with wrong number of args: ${baseType.args.length} != ${this.params.length}`);
         }
 
-        this.params.forEach((p, i) => {
+        receivedParams.forEach((p, i) => {
             var pType = p.resolveType(ctx, baseType.args[i]);
             var paramIdx = i;
 

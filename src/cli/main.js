@@ -49,6 +49,10 @@ function processData(data, argv) {
         },
     });
 
+    if (argv.output === false) {
+        return;
+    }
+
     if (!argv.exec) {
         console.log(compiled);
         return;

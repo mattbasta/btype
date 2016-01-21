@@ -1,4 +1,5 @@
 import Func from './types/Func';
+import Struct from './types/Struct';
 import * as hlirNodes from '../hlirNodes';
 import * as symbols from '../symbols';
 
@@ -95,7 +96,7 @@ function updateSymbolReferences(funcNode, tree, rootContext, refType) {
 
 function willFunctionNeedContext(ctx) {
     for (var e of ctx.functions.entries()) {
-        if (e.accessesLexicalScope) {
+        if (e.some(f => f[symbols.CONTEXT].accessesLexicalScope)) {
             return true;
         }
     }
@@ -117,26 +118,39 @@ function getFunctionContext(ctx, name) {
         }
     });
 
+    var typeAssignedName = ctx.env.namer();
+    var type = new Struct(typeAssignedName, mapping);
+    type[symbols.IS_CTX_OBJ] = true;
+    type[symbols.ASSIGNED_NAME] = typeAssignedName;
+    ctx.env.registerType(typeAssignedName, type, ctx.parent);
+
     var wrappedType = hlirNodes.TypeHLIR.from(
-        ctx.scope.resolveType(),
+        type,
+        // ctx.scope.resolveType(),
         ctx.scope.start,
         ctx.scope.end
     );
 
-    var reference = new hlirNodes.SymbolHLIR(ctx.scope.name, 0, 0);
-    reference[symbols.REFCONTEXT] = ctx.parent;
-    reference[symbols.REFTYPE] = ctx.scope.resolveType();
-    reference[symbols.REFNAME] = ctx.scope[symbols.ASSIGNED_NAME];
+    // var reference = new hlirNodes.SymbolHLIR(ctx.scope.name, 0, 0);
+    // reference[symbols.REFCONTEXT] = ctx.parent;
+    // reference[symbols.REFTYPE] = ctx.scope.resolveType();
+    // reference[symbols.REFNAME] = ctx.scope[symbols.ASSIGNED_NAME];
 
     var funcctx = new hlirNodes.DeclarationHLIR(
         wrappedType,
         name,
-        hlirNodes.NewHLIR.asFuncRef(
+        new hlirNodes.NewHLIR(
             wrappedType,
-            [reference, new hlirNodes.LiteralHLIR('null', null, 0, 0)],
+            [],
             ctx.scope.start,
             ctx.scope.end
         ),
+        // hlirNodes.NewHLIR.asFuncRef(
+        //     wrappedType,
+        //     [reference, new hlirNodes.LiteralHLIR('null', null, 0, 0)],
+        //     ctx.scope.start,
+        //     ctx.scope.end
+        // ),
         ctx.scope.start,
         ctx.scope.end
     );
@@ -246,15 +260,17 @@ function processFunc(rootContext, node, context) {
         ctxMapping = funcctx[MAPPING];
         node.body.unshift(funcctx);
 
-        ctxType = funcctx.declType.resolveType(context);
+        ctxType = funcctx.type.resolveType(context);
         context.addVar(ctxName, ctxType, ctxName);
 
-        function getReference(name) {
+        function getReference(name, type) {
             var base = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
             base[symbols.REFCONTEXT] = context;
             base[symbols.REFTYPE] = ctxType;
             base[symbols.REFNAME] = ctxName;
-            return new hlirNodes.MemberHLIR(base, name, 0, 0);
+            var member = new hlirNodes.MemberHLIR(base, name, 0, 0);
+            member.forceType(type);
+            return member;
         }
 
         // Replace symbols referencing declarations that are now inside the
@@ -264,7 +280,7 @@ function processFunc(rootContext, node, context) {
                 node[symbols.REFCONTEXT] === context &&
                 ctxMapping.has(node[symbols.REFNAME])) {
 
-                return node => getReference(node[symbols.REFNAME]);
+                return node => getReference(node[symbols.REFNAME], node[symbols.REFTYPE]);
             }
 
             if (node instanceof hlirNodes.DeclarationHLIR &&

@@ -282,7 +282,10 @@ export default class Environment {
         return name;
     }
 
-    getOverloadReturnType(leftType, rightType, operator) {
+    getOverloadAssignedName(leftType, rightType, operator) {
+        if (typeof leftType === 'string') {
+            throw new Error();
+        }
         var leftTypeName = leftType.flatTypeName();
         if (!this.registeredOperators.has(leftTypeName)) {
             return null;
@@ -296,7 +299,11 @@ export default class Environment {
             return null;
         }
 
-        var funcName = this.registeredOperators.get(leftTypeName).get(rightTypeName).get(operator);
+        return this.registeredOperators.get(leftTypeName).get(rightTypeName).get(operator);
+    }
+
+    getOverloadReturnType(leftType, rightType, operator) {
+        var funcName = this.getOverloadAssignedName(leftType, rightType, operator);
         return this.registeredOperatorReturns.get(funcName);
     }
 

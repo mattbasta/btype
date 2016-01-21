@@ -8,6 +8,8 @@ export const IS_CONSTRUCTOR = Symbol('whether a function is the constructor of a
 export const IS_METHOD = Symbol('this function is a method');
 export const IS_OBJOPSTMT = Symbol('this operator statement is associated with an object');
 
+export const IS_CTX_OBJ = Symbol('flag indiciating that a type is for lexical types');
+
 export const IS_FINAL = Symbol('the item is declared as final in an object');
 export const IS_PRIVATE = Symbol('the item is declared as private in an object');
 

@@ -3,6 +3,8 @@ import Struct from '../compiler/types/Struct';
 import * as symbols from '../symbols';
 
 
+const TYPE_CACHE = Symbol();
+
 export default class MemberHLIR extends BaseExpressionHLIR {
 
     constructor(base, child, start, end) {
@@ -12,6 +14,9 @@ export default class MemberHLIR extends BaseExpressionHLIR {
     }
 
     resolveType(ctx) {
+        if (this[TYPE_CACHE]) {
+            return this[TYPE_CACHE];
+        }
         var baseType = this.base.resolveType(ctx);
 
         if (baseType instanceof Struct && baseType.privateMembers.has(this.child)) {
@@ -26,7 +31,11 @@ export default class MemberHLIR extends BaseExpressionHLIR {
             throw this.TypeError(`Member not found for type "${baseType}": ${this.child}`);
         }
 
-        return baseType.getMemberType(this.child);
+        return this[TYPE_CACHE] = baseType.getMemberType(this.child);
+    }
+
+    forceType(type) {
+        this[TYPE_CACHE] = type;
     }
 
     checkVisibility(ctx, baseType) {

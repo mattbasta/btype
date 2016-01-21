@@ -7,8 +7,6 @@ func func<int>:factory() {
 
 func int:main() {
     var closure = factory();
-
     return closure();
-
 }
 export main;
