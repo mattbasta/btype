@@ -142,7 +142,7 @@ function _binop(env, ctx, tctx) {
 
         case '!=':
             if (leftType.typeName === 'float' || leftType.typeName === 'sfloat') out = 'fcmp one';
-            else out = 'icmp neq';
+            else out = 'icmp ne';
             break;
 
         case '>':
