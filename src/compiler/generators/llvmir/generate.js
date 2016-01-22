@@ -4,6 +4,7 @@ import path from 'path';
 import * as hlirNodes from '../../../hlirNodes';
 import * as llvmTranslate from './translate';
 import * as symbols from '../../../symbols';
+import * as types from '../../types';
 import {getLLVMType, makeName} from './util';
 
 
@@ -65,6 +66,17 @@ function getRuntime(env) {
 
         let funcName = env.requested.exports.get(entry);
         let func = env.requested.typeMap.get(funcName);
+
+        if (func.returnType === types.publicTypes.int && !func.args.length) {
+            return [
+                'define i32 @main() nounwind ssp uwtable {',
+                'entry:',
+                (!env.inits.length ? '' : '    call void @modInit()'),
+                `    %0 = call i32 @${makeName(funcName)}()`,
+                '    ret i32 %0',
+                '}',
+            ].join('\n');
+        }
 
         if (func.returnType || func.args.length) {
             throw new TypeError('Cannot use "' + entry + '" as entry point because it has incompatible signature: ' + func.toString());

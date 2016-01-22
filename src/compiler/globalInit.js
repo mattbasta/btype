@@ -1,4 +1,4 @@
-import * as context from './context';
+import {Context} from './context';
 import * as hlirNodes from '../hlirNodes';
 import * as symbols from '../symbols';
 
@@ -55,14 +55,12 @@ export default function globalInit(ctx, env) {
     // into the initables array.
     for (var i = 0; i < ctx.scope.body.length; i++) {
         let current = ctx.scope.body[i];
-        let cType = current.type;
 
-        if (cType instanceof hlirNodes.AssignmentHLIR ||
-            cType instanceof hlirNodes.CallStatementHLIR ||
-            cType instanceof hlirNodes.DoWhileHLIR ||
-            cType instanceof hlirNodes.LoopHLIR ||
-            cType instanceof hlirNodes.IfHLIR) {
-
+        if (current instanceof hlirNodes.AssignmentHLIR ||
+            current instanceof hlirNodes.CallStatementHLIR ||
+            current instanceof hlirNodes.DoWhileHLIR ||
+            current instanceof hlirNodes.LoopHLIR ||
+            current instanceof hlirNodes.IfHLIR) {
             initables.push(current);
             ctx.scope.body.splice(i, 1);
             i--;
@@ -79,13 +77,14 @@ export default function globalInit(ctx, env) {
         initFunc.setBody(initables);
         ctx.scope.body.push(initFunc);
 
-        ctx.function.add(initFunc);
+        ctx.functions.add(initFunc);
         var assignedName = ctx.addVar(initFunc.name, initFunc.resolveType(ctx));
+        initFunc[symbols.ASSIGNED_NAME] = assignedName;
         ctx.functionDeclarations.set(assignedName, initFunc);
         ctx.isFuncSet.add(assignedName);
         initFunc[symbols.IS_FIRSTCLASS] = false;
 
-        var newCtx = new context.Context(ctx.env, initFunc, ctx, ctx.isPrivileged);
+        var newCtx = new Context(ctx.env, initFunc, ctx, ctx.isPrivileged);
         // newCtx should automatically bind itself to the node
 
         env.addInit(initFunc);

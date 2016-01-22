@@ -21,8 +21,8 @@ function makeModule(env, ENV_VARS, body) {
             base += foreign in externalFuncs ? externalFuncs[foreign]() : 'function() {}';
             return base;
         }).join(',')}${env.foreigns.length ? ',' : ''}});
-    if (ret.$init) {
-        ret.$init();
+    if (ret.$$init) {
+        ret.$$init();
     }
     return {
         $strings: {read: function(x) {return x;}},
