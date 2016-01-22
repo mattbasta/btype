@@ -549,7 +549,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
         if (!env[FUNCREF_TYPES].has(targetType)) {
             let typeName = targetType.substr(0, targetType.length - 1);
             env[GLOBAL_PREFIX] +=
-                `\n${targetType} = type { ${funcType}, i8* }`;
+                `\n${typeName} = type { ${funcType}, i8* }`;
             env[FUNCREF_TYPES].add(targetType);
         }
 
