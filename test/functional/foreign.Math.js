@@ -67,7 +67,7 @@ describe('foreign.Math module', function() {
             run(parsed, 'asmjs', expectation, mainReturnType);
         });
 
-        it('should work in llvmir', function(done) {
+        it('should work in LLVM IR', function(done) {
             this.slow(500);
 
             var cp = child_process.exec(

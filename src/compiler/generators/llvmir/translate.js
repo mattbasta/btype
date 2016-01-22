@@ -1,4 +1,5 @@
 import * as externalFuncs from './externalFuncs';
+import Func from '../../types/Func';
 import * as hlirNodes from '../../../hlirNodes';
 import * as stdlibFuncs from './stdlibFuncs';
 import Struct from '../../types/Struct';
@@ -599,6 +600,45 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     var baseType = this.resolveType(ctx);
     var targetType = getLLVMType(baseType);
 
+    if (baseType instanceof Func) {
+        let funcType = getFunctionSignature(baseType);
+
+        if (!env[FUNCREF_TYPES].has(targetType)) {
+            let typeName = targetType.substr(0, targetType.length - 1);
+            env[GLOBAL_PREFIX] +=
+                `\n${targetType} = type { ${funcType}, i8* }`;
+            env[FUNCREF_TYPES].add(targetType);
+        }
+
+        let reg = tctx.getRegister();
+        tctx.write(reg + ' = call i8* @malloc(i32 16) ; funcref'); // 16 is just to be safe for 64 bit
+        let regPtr = tctx.getRegister();
+        tctx.write(`${regPtr} = bitcast i8* ${reg} to ${targetType}`);
+
+        let funcLocPtr = tctx.getRegister();
+        tctx.write(`${funcLocPtr} = getelementptr inbounds ${targetType} ${regPtr}, i32 0, i32 0`);
+
+        tctx.write(`store ${funcType} ${_node(this.args[0], env, ctx, tctx)}, ${funcType}* ${funcLocPtr}, align ${getAlignment(baseType)} ; funcref:base`);
+
+        let ctxLocPtr = tctx.getRegister();
+        tctx.write(`${ctxLocPtr} = getelementptr inbounds ${targetType} ${regPtr}, i32 0, i32 1`);
+
+        if (this.args.length === 2 &&
+            !(this.args[1] instanceof hlirNodes.LiteralHLIR &&
+              this.args[1].value === null)) {
+
+            let ctxType = this.args[1].resolveType(ctx);
+            let ctxTypeName = getLLVMType(ctxType);
+            let ctxCastLocPtr = tctx.getRegister();
+            tctx.write(`${ctxCastLocPtr} = bitcast ${ctxTypeName} ${_node(this.args[1], env, ctx, tctx)} to i8*`);
+            tctx.write(`store i8* ${ctxCastLocPtr}, i8** ${ctxLocPtr}, align 8 ; funcref:ctx`);
+        } else {
+            tctx.write(`store i8* null, i8** ${ctxLocPtr}, align 8 ; funcref:ctx`);
+        }
+
+        return regPtr;
+    }
+
     if (baseType._type === 'array') {
 
         var flatTypeName = baseType.flatTypeName();
@@ -986,41 +1026,6 @@ var NODES_OLD = {
         tctx.write(callRet + ' = load ' + returnType + '* ' + callRetPtr + ', align ' + getAlignment(returnTypeRaw));
         return callRet;
 
-    },
-    FunctionReference: function(env, ctx, tctx) {
-        var type = this.resolveType(ctx);
-        var typeName = getLLVMType(type);
-
-        var funcType = getFunctionSignature(type);
-
-        if (!(typeName in env.__funcrefTypes)) {
-            env[GLOBAL_PREFIX] += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { ' + funcType + ', i8* }'
-            env.__funcrefTypes[typeName] = true;
-        }
-
-        var reg = tctx.getRegister();
-        tctx.write(reg + ' = call i8* @malloc(i32 16) ; funcref'); // 16 is just to be safe for 64 bit
-        var regPtr = tctx.getRegister();
-        tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
-
-        var funcLocPtr = tctx.getRegister();
-        tctx.write(funcLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
-
-        tctx.write('store ' + funcType + ' ' + _node(this.base, env, ctx, tctx) + ', ' + funcType + '* ' + funcLocPtr + ', align ' + getAlignment(type) + ' ; funcref:base');
-
-        var ctxLocPtr = tctx.getRegister();
-        tctx.write(ctxLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
-        if (this.ctx && !(this.ctx instanceof hlirNodes.LiteralHLIR && this.ctx.value === null)) {
-            var ctxType = this.ctx.resolveType(ctx);
-            var ctxTypeName = getLLVMType(ctxType);
-            var ctxCastLocPtr = tctx.getRegister();
-            tctx.write(ctxCastLocPtr + ' = bitcast ' + ctxTypeName + ' ' + _node(this.ctx, env, ctx, tctx) + ' to i8*');
-            tctx.write('store i8* ' + ctxCastLocPtr + ', i8** ' + ctxLocPtr + ', align 8 ; funcref:ctx');
-        } else {
-            tctx.write('store i8* null, i8** ' + ctxLocPtr + ', align 8 ; funcref:ctx');
-        }
-
-        return regPtr;
     },
 };
 
