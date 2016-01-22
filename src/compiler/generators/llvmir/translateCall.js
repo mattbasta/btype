@@ -32,7 +32,7 @@ export default function register(NODES, _node) {
 
         output += '(';
 
-        output += this.params.map(function(param) {
+        output += this.params.map(param => {
             return getLLVMType(param.resolveType(ctx)) + ' ' + _node(param, env, ctx, tctx);
         }).join(', ');
 
