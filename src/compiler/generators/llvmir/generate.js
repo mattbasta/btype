@@ -230,9 +230,9 @@ export default function generate(env, ENV_VARS) {
     if (env.inits.length) {
         body += '\ndefine void @modInit() nounwind {\n' +
             'entry:\n' +
-            '    ' + env.inits.map(function(init) {
-                return 'call void @' + makeName(init.__assignedName) + '()';
-            }).join('\n    ') + '\n' +
+            '    ' + env.inits.map(
+                init => `call void @${makeName(init[symbols.ASSIGNED_NAME])}`
+            ).join('\n    ') + '\n' +
             '    ret void\n' +
             '}\n';
     }

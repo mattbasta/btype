@@ -200,8 +200,8 @@ export default function generate(env, ENV_VARS) {
             ${type.args.map((t, i) => `_${i} = ${typeAnnotation('_' + i, t)};`).join('\n    ')}
             var funcIdx = 0;
             var ctxPtr = 0;
-            funcIdx = ptrheap[ptr >> 2] | 0;
-            ctxPtr = ptrheap[ptr + 4 >> 2] | 0;
+            funcIdx = ptrheap[ptr + 8 >> 2] | 0;
+            ctxPtr = ptrheap[ptr + 12 >> 2] | 0;
             if (!ctxPtr) {
                 return ${name}[funcIdx & ${flist.length - 1}](${arglist});
             } else {

@@ -126,15 +126,9 @@ function getFunctionContext(ctx, name) {
 
     var wrappedType = hlirNodes.TypeHLIR.from(
         type,
-        // ctx.scope.resolveType(),
         ctx.scope.start,
         ctx.scope.end
     );
-
-    // var reference = new hlirNodes.SymbolHLIR(ctx.scope.name, 0, 0);
-    // reference[symbols.REFCONTEXT] = ctx.parent;
-    // reference[symbols.REFTYPE] = ctx.scope.resolveType();
-    // reference[symbols.REFNAME] = ctx.scope[symbols.ASSIGNED_NAME];
 
     var funcctx = new hlirNodes.DeclarationHLIR(
         wrappedType,
@@ -145,12 +139,6 @@ function getFunctionContext(ctx, name) {
             ctx.scope.start,
             ctx.scope.end
         ),
-        // hlirNodes.NewHLIR.asFuncRef(
-        //     wrappedType,
-        //     [reference, new hlirNodes.LiteralHLIR('null', null, 0, 0)],
-        //     ctx.scope.start,
-        //     ctx.scope.end
-        // ),
         ctx.scope.start,
         ctx.scope.end
     );
@@ -174,7 +162,9 @@ function processRoot(rootContext) {
         }
 
         // Ignore non-expression functions
-        if (member === 'body' || node[symbols.IS_METHOD]) {
+        if (member === 'body' ||
+            member === 'objConstructor' ||
+            node[symbols.IS_METHOD]) {
             return false;
         }
 

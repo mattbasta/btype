@@ -8,9 +8,9 @@ function getfuncref(funcID, ctx) {
     funcID = funcID | 0;
     ctx = ctx | 0;
     var x = 0;
-    x = malloc(8) | 0; // 4b pointer to function, 4b pointer to ctx
-    ptrheap[x >> 2] = funcID;
-    ptrheap[x + 4 >> 2] = ctx;
+    x = malloc(16) | 0; // 4b pointer to function, 4b pointer to ctx, 8b header
+    ptrheap[x + 8 >> 2] = funcID;
+    ptrheap[x + 12 >> 2] = ctx;
     gcref(ctx);
     return x | 0;
 }
@@ -25,9 +25,9 @@ function getboundmethod(funcID, self) {
     funcID = funcID | 0;
     self = self | 0;
     var x = 0;
-    x = malloc(8) | 0; // 4b pointer to function, 4b pointer to self
-    ptrheap[x >> 2] = funcID;
-    ptrheap[x + 4 >> 2] = self;
+    x = malloc(16) | 0; // 4b pointer to function, 4b pointer to self, 8b header
+    ptrheap[x + 8 >> 2] = funcID;
+    ptrheap[x + 12 >> 2] = self;
     gcref(self);
     return x | 0;
 }

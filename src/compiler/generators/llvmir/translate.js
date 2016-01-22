@@ -608,17 +608,17 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
 
         var length = _node(this.args[0], env, ctx, tctx);
         var arr = tctx.getRegister();
-        tctx.write(arr + ' = call ' + targetType + ' @btmake_' + targetType.substr(1, targetType.length - 2) + '(i32 ' + length + ')');
+        tctx.write(`${arr} = call ${targetType} @btmake_${targetType.substr(1, targetType.length - 2)}(i32 ${length})`);
         return arr;
     }
 
     var size = baseType.getSize();
     var reg = tctx.getRegister();
-    tctx.write(reg + ' = call i8* @malloc(i32 ' + size + ')');
+    tctx.write(`${reg} = call i8* @malloc(i32 ${size})`);
     var ptrReg = tctx.getRegister();
-    tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + targetType);
+    tctx.write(`${ptrReg} = bitcast i8* ${reg} to ${targetType}`);
 
-    tctx.write('call void @btinit_' + targetType.substr(1, targetType.length - 2) + '(' + targetType + ' ' + ptrReg + ')');
+    tctx.write(`call void @btinit_${targetType.substr(1, targetType.length - 2)}(${targetType} ${ptrReg})`);
 
     if (baseType instanceof Struct && baseType.objConstructor) {
         var args = [
@@ -626,7 +626,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
             this.args.map(p => getLLVMType(p.resolveType(ctx)) + ' ' + _node(p, env, ctx, tctx)).join(', '),
         ].join(', ');
 
-        tctx.write('call void @' + makeName(baseType.objConstructor) + '(' + args + ')');
+        tctx.write(`call void @${makeName(baseType.objConstructor)}(${args})`);
     }
     return ptrReg;
 });
@@ -653,7 +653,7 @@ NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
     var value = _node(this.value, env, ctx, tctx);
     var retTypeRaw = this.value.resolveType(ctx);
     var retType = getLLVMType(retTypeRaw);
-    tctx.write('store ' + retType + ' ' + value + ', ' + retType + '* %retVal, align ' + getAlignment(retTypeRaw) + ' ; return');
+    tctx.write(`store ${retType} ${value}, ${retType}* %retVal, align ${getAlignment(retTypeRaw)} ; return`);
     tctx.write('br label %exitLabel');
     tctx.writeTerminatorLabel();
 });
@@ -673,12 +673,12 @@ NODES.set(hlirNodes.SymbolHLIR, function(env, ctx, tctx, extra) {
     var reg = tctx.getRegister();
     var type = this.resolveType(ctx);
 
-    var alignment = ', align ' + getAlignment(type);
+    var alignment = getAlignment(type);
 
     if (this[symbols.REFCONTEXT] === rootContext) {
-        tctx.write(reg + ' = load ' + getLLVMType(type) + '* @' + refname + alignment);
+        tctx.write(`${reg} = load ${getLLVMType(type)}* @${refname}, align ${alignment}`);
     } else {
-        tctx.write(reg + ' = load ' + getLLVMType(type) + '* %' + refname + alignment);
+        tctx.write(`${reg} = load ${getLLVMType(type)}* %${refname}, align ${alignment}`);
     }
     return reg;
 });
@@ -994,7 +994,7 @@ var NODES_OLD = {
         var funcType = getFunctionSignature(type);
 
         if (!(typeName in env.__funcrefTypes)) {
-            env.__globalPrefix += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { ' + funcType + ', i8* }'
+            env[GLOBAL_PREFIX] += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { ' + funcType + ', i8* }'
             env.__funcrefTypes[typeName] = true;
         }
 
