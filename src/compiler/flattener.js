@@ -101,8 +101,7 @@ function upliftExpressionsFromBody(ctx, body) {
 
             } else if (stack[1] && stack[1] instanceof hlirNodes.ReturnHLIR &&
                 !(node instanceof hlirNodes.LiteralHLIR && SAFELITERALTYPES.has(node.litType)) &&
-                !(node instanceof hlirNodes.SymbolHLIR) &&
-                !(node instanceof hlirNodes.NewHLIR)) {
+                !(node instanceof hlirNodes.SymbolHLIR)) {
                 node[SHOULD_FLATTEN] = true;
             }
 

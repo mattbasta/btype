@@ -57,7 +57,7 @@ describe('Parity tests', () => {
             console.error(compiled);
             throw e;
         }
-        assert.equal(result, expectation, compiled);
+        assert.equal(result, expectation);
     }
 
     var succeededLLI = 0;

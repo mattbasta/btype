@@ -187,8 +187,28 @@ export default function generate(env, ENV_VARS) {
         }`;
     });
 
-
     // Compile function lists
+    env.funcList.forEach((flist, name) => {
+        var type = env.funcListReverseTypeMap.get(name);
+        var arglist = type.args.map((_, i) => '_' + i).join(', ');
+        body += `
+        function calldyn${name}(
+            ptr
+            ${type.args.length ? ', ' + arglist : ''}
+        ) {
+            ptr = ptr | 0;
+            ${type.args.map((t, i) => `_${i} = ${typeAnnotation('_' + i, t)};`).join('\n    ')}
+            var funcIdx = 0;
+            var ctxPtr = 0;
+            funcIdx = ptrheap[ptr >> 2] | 0;
+            ctxPtr = ptrheap[ptr + 4 >> 2] | 0;
+            if (!ctxPtr) {
+                return ${name}[funcIdx & ${flist.length - 1}](${arglist});
+            } else {
+                return ${name}[funcIdx & ${flist.length - 1}](ctxPtr${arglist ? ', ' + arglist : ''});
+            }
+        }\n`;
+    });
     env.funcList.forEach((flist, name) => {
         body += `    var ${name} = [${flist.join(',')}];\n`;
     });

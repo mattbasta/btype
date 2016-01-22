@@ -221,17 +221,11 @@ NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
     // Otherwise, it's a function reference that we're calling.
     var funcType = this.callee.resolveType(ctx);
     var listName = env.getFuncListName(funcType);
-    var funcList = env.funcList.get(listName);
-    var funcIndex = _node(this.callee, env, ctx, tctx);
+
+    var funcRef = _node(this.callee, env, ctx, tctx);
 
     return typeAnnotation(
-        `${listName}[${funcIndex} & ${funcList.length - 1}](${getParamList()})`,
-        funcType.getReturnType()
-    );
-
-    return typeAnnotation(
-        listName + '$$call(' +
-            _node(this.callee, env, ctx, tctx) +
+        `calldyn${listName}(${funcRef}` +
             (this.params.length ? ',' : '') +
             getParamList() +
             ')',
@@ -442,7 +436,6 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, parent) {
 });
 
 NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
-    // Precedence here will always be 4.
     return '!(' + typeAnnotation(_node(this.base, env, ctx, tctx), types.publicTypes.int) + ')';
 });
 
@@ -452,7 +445,11 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     if (baseType instanceof Func) {
         let ref = this.args[0];
         let func = ref[symbols.REFCONTEXT].lookupFunctionByName(ref[symbols.REFNAME]);
-        return `(${func[symbols.FUNCLIST_IDX]}|0)`;
+        if (this.args.length === 2) {
+            let ctxObj = _node(this.args[1], env, ctx, tctx);
+            return `getfuncref(${func[symbols.FUNCLIST_IDX]}|0, ${ctxObj})`;
+        }
+        return `getfuncref(${func[symbols.FUNCLIST_IDX]}|0, 0)`;
     }
 
     if (baseType._type === 'array') {
