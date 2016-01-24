@@ -136,7 +136,7 @@ describe('Parity tests', () => {
                             runAndPipe(
                                 'opt -S -O1 | lli',
                                 result,
-                                function(err, stdout, stderr) {
+                                (err, stdout, stderr) => {
                                     if (err) {
                                         failedLLI++;
                                         console.error(stderr);

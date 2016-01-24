@@ -2,5 +2,23 @@ language: node_js
 node_js:
   - "5"
 script:
+  - "opt --version"
+  - "lli --version"
   - "npm test"
 sudo: false
+compiler: clang-3.6
+env:
+  - CXX=clang-3.6
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.6
+    packages:
+    - gcc-5
+    - g++-5
+    - clang-3.6
+    - llvm-3.6
+    - llvm-3.6-dev
+before_install:
+  - "export PATH=/usr/lib/llvm-3.6/bin:$PATH"
