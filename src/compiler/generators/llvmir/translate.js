@@ -572,8 +572,9 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
 
             let ctxType = this.args[1].resolveType(ctx);
             let ctxTypeName = getLLVMType(ctxType);
+            let ctxRef = _node(this.args[1], env, ctx, tctx);
             let ctxCastLocPtr = tctx.getRegister();
-            tctx.write(`${ctxCastLocPtr} = bitcast ${ctxTypeName} ${_node(this.args[1], env, ctx, tctx)} to i8*`);
+            tctx.write(`${ctxCastLocPtr} = bitcast ${ctxTypeName} ${ctxRef} to i8*`);
             tctx.write(`store i8* ${ctxCastLocPtr}, i8** ${ctxLocPtr}, align 8 ; funcref:ctx`);
         } else {
             tctx.write(`store i8* null, i8** ${ctxLocPtr}, align 8 ; funcref:ctx`);
