@@ -70,19 +70,11 @@ describe('foreign.Math module', function() {
         it('should work in LLVM IR', function(done) {
             this.slow(500);
 
-            var cp = child_process.exec(
-                path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S | lli',
-                function(err, stdout, stderr) {
-                    if (err) {
-                        done(err);
-                    } else if (stderr) {
-                        done(stderr);
-                    } else {
-                        compareResult(JSON.parse(stdout), JSON.parse(expectation), mainReturnType);
-                        done();
-                    }
-                }
-            );
+            function runAndPipe(command, stdin, cb) {
+                var cp = child_process.exec(command, cb);
+                cp.stdin.write(stdin);
+                cp.stdin.end();
+            }
 
             var raw = 'import debug;\n' + code + '\n';
             switch (mainReturnType) {
@@ -94,8 +86,39 @@ describe('foreign.Math module', function() {
                     break;
             }
 
-            cp.stdin.write(raw);
-            cp.stdin.end();
+            runAndPipe(
+                path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain',
+                raw,
+                function(err, stdout, stderr) {
+                    if (err) {
+                        console.error(err);
+                        done(err);
+                    } else if (stderr) {
+                        console.error(stderr);
+                        done(stderr);
+                    }
+
+                    // console.log(stdout);
+                    // return;
+
+                    runAndPipe(
+                        'opt -S -O1 | lli',
+                        stdout,
+                        function(err, stdout, stderr) {
+                            if (err) {
+                                console.error(err);
+                                done(err);
+                            } else if (stderr) {
+                                console.error(stderr);
+                                done(stderr);
+                            } else {
+                                compareResult(JSON.parse(stdout), JSON.parse(expectation), mainReturnType);
+                                done();
+                            }
+                        }
+                    );
+                }
+            );
 
         });
     }

@@ -108,22 +108,15 @@ describe('Parity tests', () => {
                     this.timeout(5000);
                     this.slow(1000);
 
-                    // var compiled;
-                    const compilerOptions = {
-                        'filename': btPath,
-                        format: 'llvmir',
-                        sourceCode: read,
-                    };
+                    function runAndPipe(command, stdin, cb) {
+                        var cp = child_process.exec(command, cb);
+                        cp.stdin.write(stdin);
+                        cp.stdin.end();
+                    }
 
-                    // try {
-                    //     compiled = compiler(compilerOptions);
-                    // } catch (e) {
-                    //     done(e);
-                    //     return;
-                    // }
-
-                    var cp = child_process.exec(
-                        path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain | opt -S -O1 | lli',
+                    runAndPipe(
+                        path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain',
+                        getRunnable(read),
                         function(err, stdout, stderr) {
                             if (err) {
                                 failedLLI++;
@@ -133,19 +126,39 @@ describe('Parity tests', () => {
                                 failedLLI++;
                                 console.error(stderr);
                                 done(stderr);
-                            } else {
-                                succeededLLI++;
-                                assert.ok(JSON.parse(stdout) == JSON.parse(readExpectation), stdout + ' != ' + readExpectation);
-                                done();
                             }
+
+                            // console.log(stdout);
+                            // return;
+
+                            runAndPipe(
+                                'opt -S -O1 | lli',
+                                stdout,
+                                function(err, stdout, stderr) {
+                                    if (err) {
+                                        failedLLI++;
+                                        console.error(stderr);
+                                        done(err);
+                                    } else if (stderr) {
+                                        failedLLI++;
+                                        console.error(stderr);
+                                        done(stderr);
+                                    } else {
+                                        succeededLLI++;
+                                        assert.ok(JSON.parse(stdout) == JSON.parse(readExpectation), stdout + ' != ' + readExpectation);
+                                        done();
+                                    }
+                                }
+                            );
                         }
                     );
 
-                    cp.stdin.write(getRunnable(read));
-                    cp.stdin.end();
-
                     function getRunnable(read) {
-                        var env = buildEnv(compilerOptions);
+                        var env = buildEnv({
+                            'filename': btPath,
+                            format: 'llvmir',
+                            sourceCode: read,
+                        });
                         var mainFunc = env.requested.exports.get('main');
                         var mainFuncDef = env.requested.functionDeclarations.get(mainFunc);
 
