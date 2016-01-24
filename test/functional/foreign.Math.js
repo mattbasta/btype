@@ -1,11 +1,12 @@
-var assert = require('assert');
-var child_process = require('child_process');
-var fs = require('fs');
-var path = require('path');
+import assert from 'assert';
+import child_process from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 import compiler, {buildEnv} from '../../src/compiler/compiler';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
+import {processData} from '../../src/cli/main';
 
 
 describe('foreign.Math module', function() {
@@ -86,24 +87,26 @@ describe('foreign.Math module', function() {
                     break;
             }
 
-            runAndPipe(
-                path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain',
+            processData(
                 raw,
-                function(err, stdout, stderr) {
-                    if (err) {
-                        console.error(err);
-                        done(err);
-                    } else if (stderr) {
-                        console.error(stderr);
-                        done(stderr);
+                {
+                    _: ['test.bt'],
+                    target: 'llvmir',
+                    runtime: true,
+                    'runtime-entry': 'testmain',
+                },
+                result => {
+                    if (!result) {
+                        console.error('No output from CLI main');
+                        done(new Error('no output'));
                     }
 
-                    // console.log(stdout);
+                    // console.log(result);
                     // return;
 
                     runAndPipe(
                         'opt -S -O1 | lli',
-                        stdout,
+                        result,
                         function(err, stdout, stderr) {
                             if (err) {
                                 console.error(err);

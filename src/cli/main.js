@@ -32,7 +32,11 @@ export default function(argv, help) {
     }
 };
 
-function processData(data, argv) {
+export function processData(data, argv, pipe = null) {
+    if (!pipe) {
+        pipe = console.log.bind(console);
+    }
+
     var runtimeEntry = argv['runtime-entry'];
     var compiled = compiler({
         filename: argv._[0] || 'stdin',
@@ -54,11 +58,11 @@ function processData(data, argv) {
     }
 
     if (!argv.exec) {
-        console.log(compiled);
+        pipe(compiled);
         return;
     }
     if (runtimeEntry) {
-        console.log(eval(`${compiled}[${JSON.stringify(runtimeEntry)}]();`));
+        pipe(eval(`${compiled}[${JSON.stringify(runtimeEntry)}]();`));
     } else {
         eval(compiled + ';');
     }

@@ -10,6 +10,7 @@ import {buildEnv} from '../../src/compiler/compiler';
 import ErrorFormatter from '../../src/errorFormatter';
 import lexer from '../../src/lexer';
 import parser from '../../src/parser';
+import {processData} from '../../src/cli/main';
 
 
 function globEach(path_, ext, callback) {
@@ -114,26 +115,27 @@ describe('Parity tests', () => {
                         cp.stdin.end();
                     }
 
-                    runAndPipe(
-                        path.resolve(process.cwd(), 'bin', 'btype') + ' --target=llvmir --runtime --runtime-entry=testmain',
+                    processData(
                         getRunnable(read),
-                        function(err, stdout, stderr) {
-                            if (err) {
+                        {
+                            _: [btPath],
+                            target: 'llvmir',
+                            runtime: true,
+                            'runtime-entry': 'testmain',
+                        },
+                        result => {
+                            if (!result) {
                                 failedLLI++;
-                                console.error(stderr);
-                                done(err);
-                            } else if (stderr) {
-                                failedLLI++;
-                                console.error(stderr);
-                                done(stderr);
+                                console.error('No output from CLI main');
+                                done(new Error('no output'));
                             }
 
-                            // console.log(stdout);
+                            // console.log(result);
                             // return;
 
                             runAndPipe(
                                 'opt -S -O1 | lli',
-                                stdout,
+                                result,
                                 function(err, stdout, stderr) {
                                     if (err) {
                                         failedLLI++;
@@ -153,7 +155,7 @@ describe('Parity tests', () => {
                         }
                     );
 
-                    function getRunnable(read) {
+                    function getRunnable() {
                         var env = buildEnv({
                             'filename': btPath,
                             format: 'llvmir',
