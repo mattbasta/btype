@@ -179,6 +179,7 @@ function processRoot(rootContext) {
         refSym[symbols.REFTYPE] = funcType;
         refSym[symbols.REFNAME] = node[symbols.ASSIGNED_NAME];
         refSym[symbols.REFIDX] = node[symbols.FUNCLIST_IDX];
+        refSym[symbols.IS_FUNC] = node[symbols.FUNCLIST_IDX];
 
         stack[0][member] = new hlirNodes.NewHLIR(
             frefType,
@@ -371,6 +372,7 @@ function processFunc(rootContext, node, context) {
             ref[symbols.REFCONTEXT] = iterNode[symbols.CONTEXT];
             ref[symbols.REFTYPE] = iterNode.resolveType(iterNode[symbols.CONTEXT]);
             ref[symbols.REFNAME] = iterNode[symbols.ASSIGNED_NAME];
+            ref[symbols.IS_FUNC] = true;
 
             let decl = new hlirNodes.DeclarationHLIR(
                 type,
@@ -408,6 +410,8 @@ function processFunc(rootContext, node, context) {
             ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
             ref[symbols.REFTYPE] = funcType;
             ref[symbols.REFNAME] = node[symbols.ASSIGNED_NAME] + '$$origFunc$';
+            ref[symbols.IS_FUNC] = true;
+
             return hlirNodes.NewHLIR.asFuncRef(
                 hlirNodes.TypeHLIR.from(funcType),
                 [ref, getContextReference()]

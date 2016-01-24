@@ -35,7 +35,6 @@ export default function translateCall(env, ctx, tctx, extra) {
         return translateDeclarationCall.call(this, env, ctx, tctx, extra);
 
     } else {
-        // console.log(this.callee.resolveType(ctx).toString());
         return translateRefCall.call(this, env, ctx, tctx, extra);
     }
 };
