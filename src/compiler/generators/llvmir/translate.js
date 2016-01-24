@@ -192,7 +192,7 @@ const IGNORE_NODES = new Set([
     hlirNodes.ObjectMemberHLIR,
 ]);
 
-function _node(node, env, ctx, tctx, extra = null) {
+export function _node(node, env, ctx, tctx, extra = null) {
     if (IGNORE_NODES.has(node.constructor)) {
         return '';
     }
@@ -254,7 +254,7 @@ NODES.set(hlirNodes.BreakHLIR, function(env, ctx, tctx) {
 });
 
 // CallHLIR is handled in translateCall.js because it's a beast.
-translateCall(NODES, _node);
+NODES.set(hlirNodes.CallHLIR, translateCall);
 
 NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
     _node(this.call, env, ctx, tctx, 'stmt');
