@@ -76,7 +76,7 @@ exports.getFunctionSignature = function getFunctionSignature(type, noSelf) {
     if (args.length) {
         out += args.map(getLLVMType).join(', ');
     } else {
-        out += '...';
+        out += '';
     }
     out += ')*';
     return out;

@@ -135,7 +135,7 @@ function translateRefCall(env, ctx, tctx, extra) {
         callBody = `call ${returnType} ${selflessFuncReg}(${params})`;
 
     } else {
-        callBody = `call ${returnType} ${funcReg}(${params})`;
+        callBody = `call ${typeRefName} ${funcReg}(${params})`;
 
     }
 
@@ -162,7 +162,7 @@ function translateRefCall(env, ctx, tctx, extra) {
         let ctxRegType = getLLVMType(type.args[0]);
         tctx.write(castCtxReg + ' = bitcast i8* ' + ctxReg + ' to ' + ctxRegType);
 
-        callBody = `call ${returnType} ${funcReg}(${ctxRegType} ${castCtxReg}${(this.params.length ? ', ' : '')}${params})`;
+        callBody = `call ${typeRefName} ${funcReg}(${ctxRegType} ${castCtxReg}${(this.params.length ? ', ' : '')}${params})`;
 
         if (extra === 'stmt') {
             tctx.write(callBody);

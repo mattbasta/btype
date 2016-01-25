@@ -109,6 +109,7 @@ function makeModule(env, ENV_VARS, body) {
 
         getRuntime(env),
 
+        '!llvm.ident = !{!0}',
         '!0 = !{!"BType/LLVM IR compile target (github.com/mattbasta/btype)"}',
     ].join('\n');
 
