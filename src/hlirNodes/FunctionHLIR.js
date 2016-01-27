@@ -34,6 +34,9 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
         this[symbols.CONTEXT] = this[symbols.CONTEXT] || ctx;
         return this[TYPE_CACHE];
     }
+    clearTypeCache() {
+        delete this[TYPE_CACHE];
+    }
 
     checkReturnType(ctx) {
         if (this[symbols.IGNORE_ERRORS]) {

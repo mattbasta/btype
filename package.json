@@ -4,7 +4,7 @@
   "description": "A compiled language for the web",
   "main": "btype.js",
   "scripts": {
-    "test": "mocha --recursive --reporter=dot"
+    "test": "./node_modules/.bin/mocha --recursive --reporter=dot"
   },
   "keywords": [
     "language",

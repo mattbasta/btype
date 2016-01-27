@@ -329,6 +329,7 @@ function processFunc(rootContext, node, context) {
             ident[symbols.CONTEXT] = ctx;
             ident[symbols.REFCONTEXT] = context;
             node.params.unshift(ident);
+            node.clearTypeCache();
 
             ctx.addVar(ctxName, ctxType, ctxName);
         });
