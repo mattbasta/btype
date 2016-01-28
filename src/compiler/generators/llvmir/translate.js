@@ -313,33 +313,43 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     var returnType = funcType.getReturnType();
     var returnTypeName = getLLVMType(returnType);
 
-    var annotation = ' ; func:' + (this.name || 'anon');
+    function getParamSignature(param) {
+        var type = param.resolveType(ctx);
+        return `${getLLVMType(type, true)} %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
+    }
 
-    tctx.write('define private ' +
-        (returnType ? returnTypeName : 'void') +
-        ' @' + makeName(this[symbols.ASSIGNED_NAME]) +
-        '(' +
-        this.params.map(param => getLLVMType(param.resolveType(ctx)) + ' %param_' + makeName(param[symbols.ASSIGNED_NAME])).join(', ') +
-        ') nounwind ssp uwtable {' +
-        annotation
+    var name = makeName(this[symbols.ASSIGNED_NAME]);
+    tctx.write(
+        `define private ${returnType ? returnTypeName : 'void'} @${name}(` +
+        this.params.map(getParamSignature).join(', ') +
+        `) nounwind ssp uwtable { ; func:${this.name || 'anon'}`
     );
 
     tctx.push();
 
+    // I'm not sure why LLVM has a thing for an entry label (it's not used),
+    // but not having it makes the register numbering get all wonked up.
     tctx.writeLabel('entry');
 
     if (returnType) {
-        tctx.write('%retVal = alloca ' + returnTypeName + ', align ' + getAlignment(returnType));
+        tctx.write(`%retVal = alloca ${returnTypeName}, align ${getAlignment(returnType)}`);
     }
 
     context.typeMap.forEach((type, v) => {
-        tctx.write('%' + makeName(v) + ' = alloca ' + getLLVMType(type) + ', align ' + getAlignment(type));
+        tctx.write(`%${makeName(v)} = alloca ${getLLVMType(type)}, align ${getAlignment(type)}`);
     });
 
     this.params.forEach(p => {
         var type = p.resolveType(context);
-        var typeName = getLLVMType(type);
-        tctx.write('store ' + typeName + ' %param_' + makeName(p[symbols.ASSIGNED_NAME]) + ', ' + typeName + '* %' + makeName(p[symbols.ASSIGNED_NAME]) + ' ; param:' + p.name)
+        var typeName = getLLVMType(type); // This contains the non-funcsig type
+        var sourceLoc = `%param_${makeName(p[symbols.ASSIGNED_NAME])}`;
+
+        if (type[symbols.IS_CTX_OBJ]) {
+            let castReg = tctx.getRegister();
+            tctx.write(`${castReg} = bitcast i8* ${sourceLoc} to ${typeName} ; ctx obj cast`);
+            sourceLoc = castReg;
+        }
+        tctx.write(`store ${typeName} ${sourceLoc}, ${typeName}* %${makeName(p[symbols.ASSIGNED_NAME])} ; param:${p.name}`);
     });
 
     this.body.forEach(stmt => {
@@ -353,8 +363,8 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
 
     if (returnType) {
         var outReg = tctx.getRegister();
-        tctx.write(outReg + ' = load ' + returnTypeName + '* %retVal, align ' + getAlignment(returnType));
-        tctx.write('ret ' + returnTypeName + ' ' + outReg);
+        tctx.write(`${outReg} = load ${returnTypeName}* %retVal, align ${getAlignment(returnType)}`);
+        tctx.write(`ret ${returnTypeName} ${outReg}`);
     } else {
         tctx.write('ret void');
     }
@@ -496,9 +506,7 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
         tctx.write(baseLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
         var baseTypeName = getLLVMType(baseType);
         base = _node(this.base, env, ctx, tctx);
-        var baseCastLocPtr = tctx.getRegister();
-        tctx.write(baseCastLocPtr + ' = bitcast ' + baseTypeName + ' ' + base + ' to i8*');
-        tctx.write('store i8* ' + baseCastLocPtr + ', i8** ' + baseLocPtr + ' ; member:method:self');
+        tctx.write(`store i8* bitcast (${baseTypeName} ${base} to i8*), i8** ${baseLocPtr} ; member:method:self`);
 
         return regPtr;
     }
@@ -548,8 +556,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
 
         if (!env[FUNCREF_TYPES].has(targetType)) {
             let typeName = targetType.substr(0, targetType.length - 1);
-            env[GLOBAL_PREFIX] +=
-                `\n${typeName} = type { ${funcType}, i8* }`;
+            env[GLOBAL_PREFIX] += `\n${typeName} = type { i8*, i8* }`;
             env[FUNCREF_TYPES].add(targetType);
         }
 
@@ -561,7 +568,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
         let funcLocPtr = tctx.getRegister();
         tctx.write(`${funcLocPtr} = getelementptr inbounds ${targetType} ${regPtr}, i32 0, i32 0`);
 
-        tctx.write(`store ${funcType} ${_node(this.args[0], env, ctx, tctx)}, ${funcType}* ${funcLocPtr}, align ${getAlignment(baseType)} ; funcref:base`);
+        tctx.write(`store i8* bitcast (${funcType} ${_node(this.args[0], env, ctx, tctx)} to i8*), i8** ${funcLocPtr}, align ${getAlignment(baseType)} ; funcref:base`);
 
         let ctxLocPtr = tctx.getRegister();
         tctx.write(`${ctxLocPtr} = getelementptr inbounds ${targetType} ${regPtr}, i32 0, i32 1`);

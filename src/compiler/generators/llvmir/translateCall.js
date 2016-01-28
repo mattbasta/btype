@@ -101,8 +101,11 @@ function translateRefCall(env, ctx, tctx, extra) {
 
     var funcPtrReg = tctx.getRegister();
     tctx.write(`${funcPtrReg} = getelementptr inbounds ${typeName} ${callee}, i32 0, i32 0`);
+    var rawFuncReg = tctx.getRegister();
+    tctx.write(`${rawFuncReg} = load i8** ${funcPtrReg}, align ${getAlignment(type)} ; funcload`);
+
     var funcReg = tctx.getRegister();
-    tctx.write(`${funcReg} = load ${typeRefName}* ${funcPtrReg}, align ${getAlignment(type)}`);
+    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${typeRefName}`);
     var ctxPtrReg = tctx.getRegister();
     tctx.write(`${ctxPtrReg} = getelementptr inbounds ${typeName} ${callee}, i32 0, i32 1`);
     var ctxReg = tctx.getRegister();
