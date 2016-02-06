@@ -148,8 +148,7 @@ function translateRefCall(env, ctx, tctx, extra) {
     tctx.writeLabel(nullLabel);
 
     var nullFuncReg = tctx.getRegister();
-    var nullFuncType = new Func(type.returnType, type.args.slice(1));
-    tctx.write(`${nullFuncReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(nullFuncType)}`);
+    tctx.write(`${nullFuncReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(type)}`);
     var callBody = `call ${returnType} ${nullFuncReg}(${params}) ; call:ref:null`;
 
     if (extra === 'stmt') {
@@ -165,7 +164,9 @@ function translateRefCall(env, ctx, tctx, extra) {
     tctx.writeLabel(unnullLabel);
 
     var funcReg = tctx.getRegister();
-    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(type)}`);
+    var unnullCtx = {[symbols.IS_CTX_OBJ]: true}; // Just a dumb flag that generates an i8*
+    var unnullFuncType = new Func(type.returnType, [unnullCtx].concat(type.args));
+    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(unnullFuncType)}`);
     callBody = `call ${returnType} ${funcReg}(i8* ${ctxReg}${params ? ', ' : ''}${params}) ; call:ref:unnull`;
 
     if (extra === 'stmt') {
