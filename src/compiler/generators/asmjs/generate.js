@@ -190,6 +190,27 @@ export default function generate(env, ENV_VARS) {
     // Compile function lists
     env.funcList.forEach((flist, name) => {
         var type = env.funcListReverseTypeMap.get(name);
+
+        // If this is a function list for functions with a context param and
+        // another function list exists for the same signature without a
+        // context param, just skip this one. The other will always be
+        // preferred.
+        if (type.args.length &&
+            (type.args[0][symbols.IS_CTX_OBJ] || type.args[0][symbols.IS_SELF_PARAM])) {
+            let ctxlessType = type.clone();
+            ctxlessType.args.splice(0, 1);
+            if (env.funcListTypeMap.has(ctxlessType.flatTypeName(true))) {
+                return;
+            }
+        }
+
+        var contextedSignatureType = type.clone();
+        contextedSignatureType.args.unshift({
+            [symbols.IS_CTX_OBJ]: true,
+            flatTypeName: () => 'ptr'
+        });
+        var contextedSignatureFlistName = env.getFuncListName(contextedSignatureType);
+
         var arglist = type.args.map((_, i) => '_' + i).join(', ');
         body += `
         function calldyn${name}(
@@ -205,7 +226,7 @@ export default function generate(env, ENV_VARS) {
             if (!ctxPtr) {
                 return ${name}[funcIdx & ${flist.length - 1}](${arglist});
             } else {
-                return ${name}[funcIdx & ${flist.length - 1}](ctxPtr${arglist ? ', ' + arglist : ''});
+                return ${contextedSignatureFlistName}[funcIdx & ${flist.length - 1}](ctxPtr${arglist ? ', ' + arglist : ''});
             }
         }\n`;
     });

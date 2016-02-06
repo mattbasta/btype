@@ -1,11 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
-var argv = require('minimist')(process.argv.slice(2));
+import minimist from 'minimist';
+var argv = minimist(process.argv.slice(2));
 
 import constantFold from './optimizer/constantFold';
 import ErrorFormatter from '../errorFormatter';
 import flatten from './flattener';
+import * as generators from './generators';
 import globalInit from './globalInit';
 import lexer from '../lexer';
 import Module from './types/Module';
@@ -60,7 +62,7 @@ export default class Environment {
         this.moduleCache = new Map();
 
         this.funcList = new Map();  // Mapping of func list assigned names to arrays of func assigned names
-        this.funcListTypeMap = new Map();  // Mapping of serialized func types to names of func lists
+        this.funcListTypeMap = new Map();  // Mapping of flat func types to names of func lists
         this.funcListReverseTypeMap = new Map();  // Mapping of func list assigned names to func types
 
         // Map of left type names to map of right type names to map of operators to
@@ -225,7 +227,7 @@ export default class Environment {
     }
 
     getFuncListName(funcType, noAdd) {
-        var fts = funcType.flatTypeName();
+        var fts = funcType.flatTypeName(true);
         if (!this.funcListTypeMap.has(fts) && !noAdd) {
             let name = this.namer();
             this.funcListTypeMap.set(fts, name);
@@ -261,7 +263,7 @@ export default class Environment {
             throw new Error('No context was requested for export.');
         }
 
-        return require('./generators/' + outputLanguage + '/generate').default(this, ENV_VARS);
+        return generators[outputLanguage](this, ENV_VARS);
     }
 
     findFunctionByAssignedName(assignedName) {

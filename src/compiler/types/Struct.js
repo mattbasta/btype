@@ -105,7 +105,10 @@ export default class Struct extends Type {
         return out;
     }
 
-    flatTypeName() {
+    flatTypeName(ctxPointers) {
+        if ((this[symbols.IS_CTX_OBJ] || this[symbols.IS_SELF_PARAM]) && ctxPointers) {
+            return 'ptr';
+        }
         if (!this[symbols.ASSIGNED_NAME]) {
             throw new TypeError('Cannot get struct type (' + this.typeName + ') before assigned name is generated');
         }

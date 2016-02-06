@@ -22,16 +22,14 @@ export default class Func extends Type {
     toString() {
         return 'func<' +
             (this.returnType ? this.returnType.toString() : 'null') +
-            (this.args.length ? ',' + this.args.map(function(arg) {
-                return arg.toString();
-            }).join(',') : '') +
+            (this.args.length ? ',' + this.args.map(arg => arg.toString()).join(',') : '') +
             '>';
     }
 
-    flatTypeName() {
+    flatTypeName(ctxPointers) {
         return 'func$' +
             (this.returnType ? this.returnType.flatTypeName() : 'null') +
-            (this.args.length ? '$' + this.args.map(arg => arg.flatTypeName()).join('$') : '') +
+            (this.args.length ? '$' + this.args.map(arg => arg.flatTypeName(ctxPointers)).join('$') : '') +
             '$$';
     }
 
