@@ -8,26 +8,40 @@ import * as symbols from '../../../symbols';
  * @param  {string} assignedName The assigned name to convert
  * @return {string}
  */
-var makeName = exports.makeName = function makeName(assignedName) {
+export function makeName(assignedName) {
     assignedName = assignedName.replace(/_/g, '.');
     return assignedName.replace(/\$/g, '_');
 };
 
 /**
- * Converts a type to the type name used to identify the type in LLVM IR
+ * Converts a type to the type name used to identify the type in LLVM IR for a
+ * function parameter.
  * @param  {*} type The type to convert
  * @param  {bool} [funcSig] Set to true for function signatures. This changes
  *                          context object types to i8* to support function
  *                          references properly.
  * @return {string}
  */
-var getLLVMType = exports.getLLVMType = function getLLVMType(type, funcSig = false) {
+export function getLLVMParamType(type) {
     if (!type) {
         return 'void';
     }
 
-    if (funcSig && type[symbols.IS_CTX_OBJ]) {
+    if (type[symbols.IS_CTX_OBJ] || type[symbols.IS_SELF_PARAM]) {
         return 'i8*';
+    }
+
+    return getLLVMType(type);
+};
+
+/**
+ * Converts a type to the type name used to identify the type in LLVM IR
+ * @param  {*} type The type to convert
+ * @return {string}
+ */
+export function getLLVMType(type) {
+    if (!type) {
+        return 'void';
     }
 
     if (type._type === 'string') {
@@ -60,7 +74,7 @@ var getLLVMType = exports.getLLVMType = function getLLVMType(type, funcSig = fal
             // return type
             type.returnType,
             // The filtered arguments. We conveniently have a flag for ctx objs.
-            type.args.filter(arg => !arg[symbols.IS_CTX_OBJ])
+            type.args.filter(arg => !arg[symbols.IS_CTX_OBJ] && !arg[symbols.IS_SELF_PARAM])
         );
 
 
@@ -75,7 +89,7 @@ var getLLVMType = exports.getLLVMType = function getLLVMType(type, funcSig = fal
  * @param  {*} type
  * @return {int}
  */
-exports.getAlignment = function getAlignment(type) {
+export function getAlignment(type) {
     if (type._type === 'primitive') {
         return type.getSize();
     }
@@ -88,22 +102,14 @@ exports.getAlignment = function getAlignment(type) {
 /**
  * Returns the function signature of a function with a provided type
  * @param  {*} type The function type
- * @param  {bool} [noSelf] Whether to include the `self` param
  * @return {string}
  */
-exports.getFunctionSignature = function getFunctionSignature(type, noSelf) {
+export function getFunctionSignature(type) {
     var out = type.returnType ? getLLVMType(type.returnType) : 'void';
     out += ' (';
 
-    var args = type.args;
-    if (noSelf) {
-        args = args.slice(1);
-    }
-
-    if (args.length) {
-        out += args.map(a => getLLVMType(a, true)).join(', ');
-    } else {
-        out += '';
+    if (type.args.length) {
+        out += type.args.map(getLLVMParamType).join(', ');
     }
     out += ')*';
     return out;

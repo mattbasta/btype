@@ -1,5 +1,9 @@
-export default class Primitive {
+import Type from './Type';
+
+
+export default class Primitive extends Type {
     constructor(typeName, backing) {
+        super();
         this.typeName = typeName;
         this.backing = backing;
 
@@ -30,14 +34,6 @@ export default class Primitive {
 
     equals(x) {
         return x instanceof Primitive && this.typeName === x.typeName;
-    }
-
-    isSubscriptable() {
-        return false;
-    }
-
-    hasStaticMethod() {
-        return false;
     }
 
 };

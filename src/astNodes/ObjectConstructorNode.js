@@ -40,7 +40,10 @@ export default class ObjectConstructorNode extends BaseBlockNode {
         var node = FunctionNode.prototype[symbols.FMAKEHLIR].call(this, builder);
         node[symbols.IS_CONSTRUCTOR] = true;
         node[symbols.IS_FINAL] = this.isFinal;
-        node.resolveType()[symbols.IS_METHOD] = true;
+        node[symbols.IS_METHOD] = true;
+        var type = node.resolveType();
+        type[symbols.IS_METHOD] = true;
+        type.args[0][symbols.IS_SELF_PARAM] = true;
         return node;
     }
 

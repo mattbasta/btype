@@ -1,8 +1,10 @@
 import {memberSize} from './_utils';
+import Type from './Type';
 
 
-export default class Tuple {
+export default class Tuple extends Type {
     constructor(contentsTypeArr) {
+        super();
         this.contentsTypeArr = contentsTypeArr;
 
         this._type = 'tuple';
@@ -75,16 +77,8 @@ export default class Tuple {
         */
     }
 
-    isSubscriptable() {
-        return true;
-    }
-
     getSubscriptType(index) {
         return this.contentsTypeArr[index];
-    }
-
-    hasStaticMethod() {
-        return false;
     }
 
 };

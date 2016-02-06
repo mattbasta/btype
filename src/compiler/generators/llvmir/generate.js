@@ -244,7 +244,7 @@ export default function generate(env, ENV_VARS) {
         body += '\ndefine void @modInit() nounwind {\n' +
             'entry:\n' +
             '    ' + env.inits.map(
-                init => `call void @${makeName(init[symbols.ASSIGNED_NAME])}()`
+                init => `call void @${makeName(init[symbols.ASSIGNED_NAME])}() ; call:init`
             ).join('\n    ') + '\n' +
             '    ret void\n' +
             '}\n';

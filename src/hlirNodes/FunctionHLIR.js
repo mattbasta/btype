@@ -22,17 +22,26 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
         this.checkReturnType(this[symbols.CONTEXT]);
     }
 
-
     resolveType(ctx) {
         if (this[TYPE_CACHE]) {
             return this[TYPE_CACHE];
         }
-        this[TYPE_CACHE] = new Func(
+
+        var result = this[TYPE_CACHE] = new Func(
             this.returnType ? this.returnType.resolveType(ctx) : null,
-            this.params.map(p => p.resolveType(ctx))
+            this.params.map((p, i) => {
+                var type = p.resolveType(ctx).clone();
+                if (i === 0 && this[symbols.IS_METHOD]) {
+                    type[symbols.IS_SELF_PARAM] = true;
+                }
+                return type;
+            })
         );
+        if (this[symbols.IS_METHOD]) {
+            result[symbols.IS_METHOD] = true;
+        }
         this[symbols.CONTEXT] = this[symbols.CONTEXT] || ctx;
-        return this[TYPE_CACHE];
+        return result;
     }
     clearTypeCache() {
         delete this[TYPE_CACHE];

@@ -1,13 +1,13 @@
-export default class Module {
+import Type from './Type';
+
+
+export default class Module extends Type {
     constructor(mod) {
+        super();
         this.mod = mod;
         this.memberMapping = mod.exports;
 
         this._type = 'module';
-    }
-
-    equals() {
-        return false;
     }
 
     flatTypeName() {
@@ -22,20 +22,12 @@ export default class Module {
         return this.mod.typeMap.get(this.memberMapping.get(name));
     }
 
-    hasMethod() {
-        return false;
-    }
-
     hasType(name) {
         return this.mod.exportPrototypes.has(name);
     }
 
     getTypeOf(name, attributes) {
         return this.mod.resolveType(name, attributes || []);
-    }
-
-    isSubscriptable() {
-        return false;
     }
 
     hasStaticMethod(name) {

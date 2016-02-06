@@ -3,7 +3,7 @@ import Func from '../../types/Func';
 import * as hlirNodes from '../../../hlirNodes';
 import Module from '../../types/Module';
 import * as symbols from '../../../symbols';
-import {getAlignment, getFunctionSignature, getLLVMType, makeName} from './util';
+import {getAlignment, getFunctionSignature, getLLVMType, getLLVMParamType, makeName} from './util';
 
 
 export default function translateCall(env, ctx, tctx, extra) {
@@ -41,16 +41,20 @@ export default function translateCall(env, ctx, tctx, extra) {
 
 function translateMethodCall(env, ctx, tctx, extra, baseType) {
     var methodBase = _node(this.callee.base, env, ctx, tctx);
+
+    var baseAsI8 = tctx.getRegister();
+    var calleeBaseType = getLLVMType(this.callee.base.resolveType(ctx));
+    tctx.write(`${baseAsI8} = bitcast ${calleeBaseType} ${methodBase} to i8*`);
+
     var params = this.params.map(p => {
         return getLLVMType(p.resolveType(ctx)) + ' ' + _node(p, env, ctx, tctx);
     }).join(', ');
 
     var callBody = 'call ' +
         getLLVMType(this.resolveType(ctx)) + ' @' +
-        makeName(baseType.getMethod(this.callee.child)) + '(' +
-        getLLVMType(this.callee.base.resolveType(ctx)) + ' ' +
-        methodBase + (params ? ', ' : '') +
-        params + ')';
+        makeName(baseType.getMethod(this.callee.child)) + '(i8* ' +
+        baseAsI8 + (params ? ', ' : '') +
+        params + ') ; call:method';
 
     if (extra === 'stmt') {
         tctx.write(callBody);
@@ -87,15 +91,14 @@ function translateDeclarationCall(env, ctx, tctx, extra) {
 
     let outReg = tctx.getRegister();
     output = outReg + output;
-    tctx.write(output);
+    tctx.write(output + ' ; call:decl');
     return outReg;
 }
 
 function translateRefCall(env, ctx, tctx, extra) {
+    tctx.write('; funcref:call')
     var type = this.callee.resolveType(ctx);
     var typeName = getLLVMType(type);
-
-    var typeRefName = getFunctionSignature(type);
 
     var callee = _node(this.callee, env, ctx, tctx);
 
@@ -104,14 +107,21 @@ function translateRefCall(env, ctx, tctx, extra) {
     var rawFuncReg = tctx.getRegister();
     tctx.write(`${rawFuncReg} = load i8** ${funcPtrReg}, align ${getAlignment(type)} ; funcload`);
 
-    var funcReg = tctx.getRegister();
-    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${typeRefName}`);
     var ctxPtrReg = tctx.getRegister();
     tctx.write(`${ctxPtrReg} = getelementptr inbounds ${typeName} ${callee}, i32 0, i32 1`);
     var ctxReg = tctx.getRegister();
     tctx.write(`${ctxReg} = load i8** ${ctxPtrReg}`);
 
-    var params = this.params.map(p => `${getLLVMType(p.resolveType(ctx))} ${_node(p, env, ctx, tctx)}`).join(', ');
+    var params = this.params.map(p => {
+        var node = _node(p, env, ctx, tctx);
+        var ptype = p.resolveType(ctx);
+        if (ptype[symbols.IS_SELF_PARAM]) {
+            let reg = tctx.getRegister();
+            tctx.write(`${reg} = bitcast ${getLLVMType(ptype)} ${node} to i8*`);
+            node = reg;
+        }
+        return `${getLLVMParamType(ptype)} ${node}`;
+    }).join(', ');
 
     var isNullCmpReg = tctx.getRegister();
     tctx.write(`${isNullCmpReg} = icmp eq i8* ${ctxReg}, null`);
@@ -119,7 +129,7 @@ function translateRefCall(env, ctx, tctx, extra) {
     var returnTypeRaw = this.resolveType(ctx);
     var returnType = getLLVMType(returnTypeRaw);
     var callRetPtr = tctx.getRegister();
-    tctx.write(callRetPtr + ' = alloca ' + returnType);
+    tctx.write(`${callRetPtr} = alloca ${returnType}`);
 
     var nullLabel = tctx.getUniqueLabel('isnull');
     var unnullLabel = tctx.getUniqueLabel('unnull');
@@ -129,18 +139,10 @@ function translateRefCall(env, ctx, tctx, extra) {
 
     tctx.writeLabel(nullLabel);
 
-    var callBody;
-    if (this.params.length === type.args.length - 1) {
-        let selflessFuncType = getFunctionSignature(type, true); // true -> no `self`/`ctx` param
-        let selflessFuncReg = tctx.getRegister();
-        tctx.write(`${selflessFuncReg} = bitcast ${typeRefName} ${funcReg} to ${selflessFuncType} ; callref:selfless_downcast`);
-
-        callBody = `call ${returnType} ${selflessFuncReg}(${params})`;
-
-    } else {
-        callBody = `call ${returnType} ${funcReg}(${params})`;
-
-    }
+    var nullFuncReg = tctx.getRegister();
+    var nullFuncType = new Func(type.returnType, type.args.slice(1));
+    tctx.write(`${nullFuncReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(nullFuncType)}`);
+    var callBody = `call ${returnType} ${nullFuncReg}(${params}) ; call:ref:null`;
 
     if (extra === 'stmt') {
         tctx.write(callBody);
@@ -154,27 +156,16 @@ function translateRefCall(env, ctx, tctx, extra) {
 
     tctx.writeLabel(unnullLabel);
 
-    if (this.params.length === type.args.length) {
-        // If we get here, it means there's a non-null context on a
-        // function with no room to accept a context.
+    var funcReg = tctx.getRegister();
+    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(type)}`);
+    callBody = `call ${returnType} ${funcReg}(i8* ${ctxReg}${params ? ', ' : ''}${params}) ; call:ref:unnull`;
 
-        tctx.getRegister(); // waste a register for `unreachable`
-        tctx.write('unreachable');
+    if (extra === 'stmt') {
+        tctx.write(callBody);
     } else {
-        let castCtxReg = tctx.getRegister();
-        let ctxRegType = getLLVMType(type.args[0]);
-        tctx.write(castCtxReg + ' = bitcast i8* ' + ctxReg + ' to ' + ctxRegType);
-
-        callBody = `call ${returnType} ${funcReg}(${ctxRegType} ${castCtxReg}${(this.params.length ? ', ' : '')}${params})`;
-
-        if (extra === 'stmt') {
-            tctx.write(callBody);
-        } else {
-            let unnullRetPtr = tctx.getRegister();
-            tctx.write(`${unnullRetPtr} = ${callBody}`);
-            tctx.write(`store ${returnType} ${unnullRetPtr}, ${returnType}* ${callRetPtr}, align 8`);
-        }
-
+        let unnullRetPtr = tctx.getRegister();
+        tctx.write(`${unnullRetPtr} = ${callBody}`);
+        tctx.write(`store ${returnType} ${unnullRetPtr}, ${returnType}* ${callRetPtr}, align 8`);
     }
 
     tctx.write('br label %' + afternullLabel);

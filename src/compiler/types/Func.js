@@ -1,5 +1,9 @@
-export default class Func {
+import Type from './Type';
+
+
+export default class Func extends Type {
     constructor(returnType, args) {
+        super();
         this.returnType = returnType;
         this.args = args;
 
@@ -27,14 +31,8 @@ export default class Func {
     flatTypeName() {
         return 'func$' +
             (this.returnType ? this.returnType.flatTypeName() : 'null') +
-            (this.args.length ? '$' + this.args.map(function(arg) {
-                return arg.flatTypeName();
-            }).join('$') : '') +
+            (this.args.length ? '$' + this.args.map(arg => arg.flatTypeName()).join('$') : '') +
             '$$';
-    }
-
-    hasMember() {
-        return false;
     }
 
     getReturnType() {
@@ -48,13 +46,5 @@ export default class Func {
     getSize() {
         // This should return the size of a function reference.
         return 8; // 4 for functable index, 4 for pointer to context
-    }
-
-    isSubscriptable() {
-        return false;
-    }
-
-    hasStaticMethod() {
-        return false;
     }
 };

@@ -1,10 +1,12 @@
 import {memberSize} from './_utils';
 import String from './String';
+import Type from './Type';
 import {publicTypes} from '../types';
 
 
-export default class Array {
+export default class Array extends Type {
     constructor(contentsType) {
+        super();
         this.contentsType = contentsType;
         this._type = 'array';
     }
@@ -32,10 +34,6 @@ export default class Array {
         return x instanceof Array_ && this.contentsType.equals(x.contentsType);
     }
 
-    isSubscriptable() {
-        return true;
-    }
-
     getSubscriptType() {
         return this.contentsType;
     }
@@ -46,10 +44,6 @@ export default class Array {
 
     getMemberType(name) {
         return publicTypes.int;
-    }
-
-    hasStaticMethod(name) {
-        return false;
     }
 
 };

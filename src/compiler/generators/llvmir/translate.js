@@ -7,7 +7,7 @@ import * as symbols from '../../../symbols';
 import translateCall from './translateCall';
 import TranslationContext from './TranslationContext';
 import * as types from '../../types';
-import {getAlignment, getFunctionSignature, getLLVMType, makeName} from './util';
+import {getAlignment, getFunctionSignature, getLLVMType, getLLVMParamType, makeName} from './util';
 
 
 export const GLOBAL_PREFIX = Symbol();
@@ -267,10 +267,11 @@ NODES.set(hlirNodes.ContinueHLIR, function(env, ctx, tctx) {
 NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx, parent) {
     var declType = this.resolveType(ctx);
     var typeName = getLLVMType(declType);
+    tctx.write(`; decl:type(${declType.toString()})`)
 
     var annotation = ` ; ${this.name}`;
     if (parent === 'root') {
-        var globVal = 'null';
+        let globVal = 'null';
         if (this.value instanceof hlirNodes.LiteralHLIR && this.value.litType !== 'str') {
             globVal = _node(this.value, env, ctx, tctx);
         }
@@ -313,15 +314,18 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     var returnType = funcType.getReturnType();
     var returnTypeName = getLLVMType(returnType);
 
-    function getParamSignature(param) {
+    function getParamSignature(param, i) {
         var type = param.resolveType(ctx);
-        return `${getLLVMType(type, true)} %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
+        if (i === 0 && this[symbols.IS_METHOD]) {
+            return `i8* %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
+        }
+        return `${getLLVMParamType(type)} %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
     }
 
     var name = makeName(this[symbols.ASSIGNED_NAME]);
     tctx.write(
         `define private ${returnType ? returnTypeName : 'void'} @${name}(` +
-        this.params.map(getParamSignature).join(', ') +
+        this.params.map(getParamSignature.bind(this)).join(', ') +
         `) nounwind ssp uwtable { ; func:${this.name || 'anon'}`
     );
 
@@ -339,12 +343,13 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         tctx.write(`%${makeName(v)} = alloca ${getLLVMType(type)}, align ${getAlignment(type)}`);
     });
 
-    this.params.forEach(p => {
+    this.params.forEach((p, i) => {
         var type = p.resolveType(context);
         var typeName = getLLVMType(type); // This contains the non-funcsig type
         var sourceLoc = `%param_${makeName(p[symbols.ASSIGNED_NAME])}`;
 
-        if (type[symbols.IS_CTX_OBJ]) {
+        if (type[symbols.IS_CTX_OBJ] ||
+                i === 0 && this[symbols.IS_METHOD]) {
             let castReg = tctx.getRegister();
             tctx.write(`${castReg} = bitcast i8* ${sourceLoc} to ${typeName} ; ctx obj cast`);
             sourceLoc = castReg;
@@ -405,20 +410,20 @@ NODES.set(hlirNodes.IfHLIR, function(env, ctx, tctx) {
 
 NODES.set(hlirNodes.LiteralHLIR, function(env, ctx, tctx) {
     if (this.litType === 'str') {
-        var strLitIdent = '@string.' + makeName(env.getStrLiteralIdentifier(this.value));
+        let strLitIdent = '@string.' + makeName(env.getStrLiteralIdentifier(this.value));
 
-        var strPtr = tctx.getRegister();
+        let strPtr = tctx.getRegister();
         tctx.write(strPtr + ' = call i8* @malloc(i32 16)');
-        var castStrPtr = tctx.getRegister();
+        let castStrPtr = tctx.getRegister();
         tctx.write(castStrPtr + ' = bitcast i8* ' + strPtr + ' to %string*');
-        var lenPtr = tctx.getRegister();
+        let lenPtr = tctx.getRegister();
         tctx.write(lenPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 0');
         tctx.write('store i32 ' + this.value.length + ', i32* ' + lenPtr);
-        var capacityPtr = tctx.getRegister();
+        let capacityPtr = tctx.getRegister();
         tctx.write(capacityPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 1');
         tctx.write('store i32 ' + this.value.length + ', i32* ' + capacityPtr);
 
-        var strBodyPtr = tctx.getRegister();
+        let strBodyPtr = tctx.getRegister();
         tctx.write(strBodyPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 2');
         tctx.write('store i16* getelementptr inbounds ([' + (this.value.length + 1) + ' x i16]* ' + strLitIdent + ', i32 0, i32 0), i16** ' + strBodyPtr + ', align 4');
 
@@ -462,7 +467,7 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
     }
 
     if (baseType._type === '_stdlib') {
-        var stdlibName = `stdlib.${baseType.name}.${this.child}`;
+        let stdlibName = `stdlib.${baseType.name}.${this.child}`;
         stdlibFuncs.registerFunc(env, stdlibName);
         return '@' + stdlibName;
     }
@@ -471,7 +476,7 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
         env.foreigns.push(this.child);
         if (!env[FOREIGN_REQUESTED].has(this.child)) {
             env[FOREIGN_REQUESTED][this.child] = true;
-            var funcVal = externalFuncs[this.child](env); // Don't inline this into the next line
+            let funcVal = externalFuncs[this.child](env); // Don't inline this into the next line
             env[GLOBAL_PREFIX] += funcVal + '\n';
         }
 
@@ -483,60 +488,64 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
     }
 
     if (baseType.hasMethod && baseType.hasMethod(this.child)) {
-        var type = this.resolveType(ctx);
-        var typeName = getLLVMType(type);
-
-        var funcType = getFunctionSignature(type);
+        let type = this.resolveType(ctx);
+        let typeName = getLLVMParamType(type);
+        let funcType = getFunctionSignature(type);
+        tctx.write(`; member:methodref(${baseType.toString()}.${this.child})`);
 
         if (!env[FUNCREF_TYPES].has(typeName)) {
-            env[GLOBAL_PREFIX] += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { ' + funcType + ', i8* }'
+            env[GLOBAL_PREFIX] += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { i8*, i8* }'
             env[FUNCREF_TYPES].add(typeName);
         }
 
-        var reg = tctx.getRegister();
-        tctx.write(reg + ' = call i8* @malloc(i32 16)'); // 16 is just to be safe for 64 bit
-        var regPtr = tctx.getRegister();
-        tctx.write(regPtr + ' = bitcast i8* ' + reg + ' to ' + typeName);
+        let reg = tctx.getRegister();
+        tctx.write(`${reg} = call i8* @malloc(i32 16)`); // 16 is just to be safe for 64 bit
+        let regPtr = tctx.getRegister();
+        tctx.write(`${regPtr} = bitcast i8* ${reg} to ${typeName}`);
 
-        var funcLocPtr = tctx.getRegister();
-        tctx.write(funcLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 0');
-        tctx.write('store ' + funcType + ' @' + makeName(baseType.getMethod(this.child)) + ', ' + funcType + '* ' + funcLocPtr + ' ; member:method:func');
+        let funcLocPtr = tctx.getRegister();
+        tctx.write(`${funcLocPtr} = getelementptr inbounds ${typeName} ${regPtr}, i32 0, i32 0`);
+        let rawFuncLocPtr = tctx.getRegister();
+        tctx.write(`${rawFuncLocPtr} = bitcast ${funcType} @${makeName(baseType.getMethod(this.child))} to i8* ; member:method:funccast`);
+        tctx.write(`store i8* ${rawFuncLocPtr}, i8** ${funcLocPtr} ; member:method:func`);
 
-        var baseLocPtr = tctx.getRegister();
-        tctx.write(baseLocPtr + ' = getelementptr inbounds ' + typeName + ' ' + regPtr + ', i32 0, i32 1');
-        var baseTypeName = getLLVMType(baseType);
+        let baseLocPtr = tctx.getRegister();
+        tctx.write(`${baseLocPtr} = getelementptr inbounds ${typeName} ${regPtr}, i32 0, i32 1`);
         base = _node(this.base, env, ctx, tctx);
-        tctx.write(`store i8* bitcast (${baseTypeName} ${base} to i8*), i8** ${baseLocPtr} ; member:method:self`);
+
+        let baseCastReg = tctx.getRegister();
+        tctx.write(`${baseCastReg} = bitcast ${getLLVMType(baseType)} ${base} to i8*`);
+        tctx.write(`store i8* ${baseCastReg}, i8** ${baseLocPtr} ; member:method:self`);
 
         return regPtr;
     }
 
     if ((baseType._type === 'array' || baseType._type === 'string') && this.child === 'length') {
         base = _node(this.base, env, ctx, tctx);
-        var lenRegPtr = tctx.getRegister();
-        tctx.write(lenRegPtr + ' = getelementptr inbounds ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 0');
-        var lenReg = tctx.getRegister();
-        tctx.write(lenReg + ' = load i32* ' + lenRegPtr + ', align 4');
+        let lenRegPtr = tctx.getRegister();
+        tctx.write(`${lenRegPtr} = getelementptr inbounds ${getLLVMType(baseType)} ${base}, i32 0, i32 0`);
+        let lenReg = tctx.getRegister();
+        tctx.write(`${lenReg} = load i32* ${lenRegPtr}, align 4`);
 
         return lenReg;
     }
 
     var layoutIndex = baseType.getLayoutIndex(this.child);
+    var outType = this.resolveType(ctx);
+
+    tctx.write(`; member(${baseType.toString()}.${outType.toString()})`);
 
     base = _node(this.base, env, ctx, tctx);
 
     var outRegPtr = tctx.getRegister();
-    tctx.write(outRegPtr + ' = getelementptr inbounds ' +
-        getLLVMType(baseType) + ' ' +
-        base + ', i32 0, i32 ' + layoutIndex);
+    tctx.write(`${outRegPtr} = getelementptr inbounds ${getLLVMType(baseType)} ${base}, i32 0, i32 ${layoutIndex}`);
 
     if (extra === 'lvalue') {
         return outRegPtr;
     }
 
     var outReg = tctx.getRegister();
-    var outType = this.resolveType(ctx);
-    tctx.write(outReg + ' = load ' + getLLVMType(outType) + '* ' + outRegPtr + ', align ' + getAlignment(outType));
+    tctx.write(`${outReg} = load ${getLLVMType(outType)}* ${outRegPtr}, align ${getAlignment(outType)}`);
     return outReg;
 });
 
@@ -550,6 +559,7 @@ NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
 NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     var baseType = this.resolveType(ctx);
     var targetType = getLLVMType(baseType);
+    tctx.write(`; NewHLIR(${baseType.toString()})`);
 
     if (baseType instanceof Func) {
         let funcType = getFunctionSignature(baseType);
@@ -591,7 +601,6 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     }
 
     if (baseType._type === 'array') {
-
         var flatTypeName = baseType.flatTypeName();
         if (!env[ARRAY_TYPES].has(flatTypeName)) {
             env[ARRAY_TYPES].set(flatTypeName, baseType);
@@ -609,15 +618,15 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     var ptrReg = tctx.getRegister();
     tctx.write(`${ptrReg} = bitcast i8* ${reg} to ${targetType}`);
 
-    tctx.write(`call void @btinit_${targetType.substr(1, targetType.length - 2)}(${targetType} ${ptrReg})`);
+    tctx.write(`call void @btinit_${targetType.substr(1, targetType.length - 2)}(${targetType} ${ptrReg}) ; new:initcall`);
 
     if (baseType instanceof Struct && baseType.objConstructor) {
-        var args = [
-            targetType + ' ' + ptrReg,
+        let args = [
+            'i8* ' + reg,
             this.args.map(p => getLLVMType(p.resolveType(ctx)) + ' ' + _node(p, env, ctx, tctx)).join(', '),
         ].join(', ');
 
-        tctx.write(`call void @${makeName(baseType.objConstructor)}(${args})`);
+        tctx.write(`call void @${makeName(baseType.objConstructor)}(${args}) ; new:constrcall`);
     }
     return ptrReg;
 });
@@ -666,11 +675,8 @@ NODES.set(hlirNodes.SymbolHLIR, function(env, ctx, tctx, extra) {
 
     var alignment = getAlignment(type);
 
-    if (this[symbols.REFCONTEXT] === rootContext) {
-        tctx.write(`${reg} = load ${getLLVMType(type)}* @${refname}, align ${alignment}`);
-    } else {
-        tctx.write(`${reg} = load ${getLLVMType(type)}* %${refname}, align ${alignment}`);
-    }
+    var ref = (this[symbols.REFCONTEXT] === rootContext ? '@' : '%') + refname;
+    tctx.write(`${reg} = load ${getLLVMType(type)}* ${ref}, align ${alignment}`);
     return reg;
 });
 
@@ -694,74 +700,74 @@ NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
             switch (targetType.typeName) {
                 case 'float':
                 case 'sfloat':
-                    tctx.write(resPtr + ' = sitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = sitofp ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'byte':
-                    tctx.write(resPtr + ' = trunc ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = trunc ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'bool':
-                    tctx.write(resPtr + ' = icmp ne ' + baseTypeName + ' ' + base + ', 0');
+                    tctx.write(`${resPtr} = icmp ne ${baseTypeName} ${base}, 0`);
                     return resPtr;
             }
         case 'uint':
             switch (targetType.typeName) {
                 case 'float':
                 case 'sfloat':
-                    tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = uitofp ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'byte':
-                    tctx.write(resPtr + ' = trunc ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = trunc ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'bool':
-                    tctx.write(resPtr + ' = icmp ne ' + baseTypeName + ' ' + base + ', 0')
+                    tctx.write(`${resPtr} = icmp ne ${baseTypeName} ${base}, 0`)
                     return resPtr;
             }
         case 'sfloat':
             switch (targetType.typeName) {
                 case 'int':
-                    tctx.write(resPtr + ' = fptosi ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = fptosi ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'float':
-                    tctx.write(resPtr + ' = fext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = fext ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'byte':
                 case 'uint':
-                    tctx.write(resPtr + ' = fptoui ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = fptoui ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'bool':
-                    tctx.write(resPtr + ' = fcmp one ' + baseTypeName + ' ' + base + ', 0.0')
+                    tctx.write(`${resPtr} = fcmp one ${baseTypeName} ${base}, 0.0`)
                     return resPtr;
             }
         case 'float':
             switch (targetType.typeName) {
                 case 'int':
-                    tctx.write(resPtr + ' = fptosi ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = fptosi ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'uint':
                 case 'byte':
-                    tctx.write(resPtr + ' = fptoui ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = fptoui ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'bool':
-                    tctx.write(resPtr + ' = fcmp one ' + baseTypeName + ' ' + base + ', 0.0')
+                    tctx.write(`${resPtr} = fcmp one ${baseTypeName} ${base}, 0.0`)
                     return resPtr;
                 case 'sfloat':
-                    tctx.write(resPtr + ' = fptrunc ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = fptrunc ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
             }
         case 'byte':
             switch (targetType.typeName) {
                 case 'int':
-                    tctx.write(resPtr + ' = sext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = sext ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'uint':
-                    tctx.write(resPtr + ' = zext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = zext ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'float':
                 case 'sfloat':
-                    tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = uitofp ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'bool':
-                    tctx.write(resPtr + ' = icmp ne ' + baseTypeName + ' ' + base + ', 0')
+                    tctx.write(`${resPtr} = icmp ne ${baseTypeName} ${base}, 0`)
                     return resPtr;
             }
         case 'bool':
@@ -769,11 +775,11 @@ NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
                 case 'int':
                 case 'uint':
                 case 'byte':
-                    tctx.write(resPtr + ' = zext ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = zext ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
                 case 'float':
                 case 'sfloat':
-                    tctx.write(resPtr + ' = uitofp ' + baseTypeName + ' ' + base + ' to ' + targetTypeName);
+                    tctx.write(`${resPtr} = uitofp ${baseTypeName} ${base} to ${targetTypeName}`);
                     return resPtr;
             }
     }
@@ -796,7 +802,9 @@ NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx, parent) {
         let subscript = _node(this.childExpr, env, ctx, tctx);
 
         let outReg = tctx.getRegister();
-        tctx.write(outReg + ' = call ' + getLLVMType(this.resolveType(ctx)) + ' @' + makeName(operatorStmtFunc) + '(' +
+        tctx.write(
+            `${outReg} = call ${getLLVMType(this.resolveType(ctx))} @` +
+            makeName(operatorStmtFunc) + '(' +
             getLLVMType(baseType) + ' ' + base + ', ' +
             getLLVMType(subscriptType) + ' ' + subscript +
             ')');

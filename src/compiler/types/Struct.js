@@ -1,13 +1,15 @@
 import {memberSize} from './_utils';
 import * as symbols from '../../symbols';
+import Type from './Type';
 
 
 const LAYOUT_CACHE = Symbol();
 const ORDERED_LAYOUT_CACHE = Symbol();
 const LAYOUT_INDICES_CACHE = Symbol();
 
-export default class Struct {
+export default class Struct extends Type {
     constructor(name, contentsTypeMap, attributeTypes = null) {
+        super();
         this.typeName = name;
         this.contentsTypeMap = contentsTypeMap;
 
@@ -131,14 +133,6 @@ export default class Struct {
 
     getMemberType(name) {
         return this.contentsTypeMap.get(name);
-    }
-
-    isSubscriptable() {
-        return false;
-    }
-
-    hasStaticMethod() {
-        return false;
     }
 
 };

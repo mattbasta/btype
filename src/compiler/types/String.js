@@ -1,9 +1,11 @@
 import Array_ from './Array';
 import * as types from '../types';
+import Type from './Type';
 
 
-export default class String {
+export default class String extends Type {
     constructor() {
+        super();
         this._type = 'string';
     }
 
@@ -28,10 +30,6 @@ export default class String {
         return x instanceof String;
     }
 
-    isSubscriptable() {
-        return true;
-    }
-
     getSubscriptType(index) {
         return types.privateTypes.uint;
     }
@@ -42,10 +40,6 @@ export default class String {
 
     getMemberType(name) {
         return types.publicTypes.int;
-    }
-
-    hasStaticMethod() {
-        return false;
     }
 
 };
