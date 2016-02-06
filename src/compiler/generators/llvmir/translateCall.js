@@ -81,7 +81,16 @@ function translateDeclarationCall(env, ctx, tctx, extra) {
     output += _node(this.callee, env, ctx, tctx, 'callee');
 
     output += '(';
-    output += this.params.map(p => `${getLLVMType(p.resolveType(ctx))} ${_node(p, env, ctx, tctx)}`).join(', ');
+    output += this.params.map(p => {
+        var ptr = _node(p, env, ctx, tctx);
+        var ptrType = p.resolveType(ctx);
+        if (ptrType[symbols.IS_CTX_OBJ]) {
+            let bitcastReg = tctx.getRegister();
+            tctx.write(`${bitcastReg} = bitcast ${getLLVMType(ptrType)} ${ptr} to i8*`);
+            return `i8* ${bitcastReg}`;
+        }
+        return `${getLLVMType(ptrType)} ${ptr}`;
+    }).join(', ');
     output += ')';
 
     if (extra === 'stmt') {
@@ -90,8 +99,7 @@ function translateDeclarationCall(env, ctx, tctx, extra) {
     }
 
     let outReg = tctx.getRegister();
-    output = outReg + output;
-    tctx.write(output + ' ; call:decl');
+    tctx.write(`${outReg}${output} ; call:decl`);
     return outReg;
 }
 

@@ -9,8 +9,7 @@ import * as symbols from '../../../symbols';
  * @return {string}
  */
 export function makeName(assignedName) {
-    assignedName = assignedName.replace(/_/g, '.');
-    return assignedName.replace(/\$/g, '_');
+    return assignedName.replace(/_/g, '.').replace(/\$/g, '_');
 };
 
 /**
@@ -36,20 +35,20 @@ export function getLLVMParamType(type) {
 
 /**
  * Converts a type to the type name used to identify the type in LLVM IR
- * @param  {*} type The type to convert
+ * @param  {*} btType The type to convert
  * @return {string}
  */
-export function getLLVMType(type) {
-    if (!type) {
+export function getLLVMType(btType) {
+    if (!btType) {
         return 'void';
     }
 
-    if (type._type === 'string') {
+    if (btType._type === 'string') {
         return '%string*';
     }
 
-    if (type instanceof Primitive) {
-        switch (type.typeName) {
+    if (btType instanceof Primitive) {
+        switch (btType.typeName) {
             case 'bool': return 'i1';
             case 'int': return 'i32';
             case 'float': return 'double';
@@ -59,10 +58,10 @@ export function getLLVMType(type) {
             case 'uint': return 'i32'; // uint is distinguished by the operators used
         }
 
-        throw new TypeError(`Unknown type name "${type.typeName}"`);
+        throw new TypeError(`Unknown type name "${btType.typeName}"`);
     }
 
-    if (type instanceof Func) {
+    if (btType instanceof Func) {
         // There are two types of functions in LLVM. You have the function
         // pointers and actual function references. We can't use the flat type
         // name directly for function references, since multiple functions of
@@ -72,16 +71,16 @@ export function getLLVMType(type) {
         // so we filter out any context params.
         let filteredFunc = new Func(
             // return type
-            type.returnType,
+            btType.returnType,
             // The filtered arguments. We conveniently have a flag for ctx objs.
-            type.args.filter(arg => !arg[symbols.IS_CTX_OBJ] && !arg[symbols.IS_SELF_PARAM])
+            btType.args.filter(arg => !arg[symbols.IS_CTX_OBJ] && !arg[symbols.IS_SELF_PARAM])
         );
 
 
         return '%' + makeName(filteredFunc.flatTypeName()) + '*';
     }
 
-    return '%' + makeName(type.flatTypeName()) + '*';
+    return '%' + makeName(btType.flatTypeName()) + '*';
 };
 
 /**
