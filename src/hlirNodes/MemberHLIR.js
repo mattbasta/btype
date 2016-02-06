@@ -11,6 +11,8 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         super(start, end);
         this.base = base;
         this.child = child;
+
+        this.checkedVisibility = false;
     }
 
     resolveType(ctx) {
@@ -39,6 +41,9 @@ export default class MemberHLIR extends BaseExpressionHLIR {
     }
 
     checkVisibility(ctx, baseType) {
+        if (this.checkedVisibility) {
+            return;
+        }
         var insideObjectScope = false;
         var tmp = ctx;
         while (tmp) {
@@ -56,6 +61,8 @@ export default class MemberHLIR extends BaseExpressionHLIR {
                 `Accessing private member "${this.child}" from outside object declaration`
             );
         }
+
+        this.checkedVisibility = true;
     }
 
     asString() {
