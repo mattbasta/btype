@@ -335,8 +335,12 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     // but not having it makes the register numbering get all wonked up.
     tctx.writeLabel('entry');
 
-    if (returnType) {
+    var isLoneReturn = this.body.length === 1 && this.body[0] instanceof hlirNodes.ReturnHLIR;
+
+    if (returnType && !isLoneReturn) {
         tctx.write(`%retVal = alloca ${returnTypeName}, align ${getAlignment(returnType)}`);
+    } else if (isLoneReturn) {
+        tctx.write('; Skipping retVal because lone return');
     }
 
     context.typeMap.forEach((type, v) => {
@@ -356,6 +360,17 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         }
         tctx.write(`store ${typeName} ${sourceLoc}, ${typeName}* %${makeName(p[symbols.ASSIGNED_NAME])} ; param:${p.name}`);
     });
+
+    if (isLoneReturn) {
+        tctx.write('; Abridged function; lone return');
+        let valueNode = this.body[0].value;
+        let valueReg = _node(valueNode, env, ctx, tctx);
+        tctx.write(`ret ${returnTypeName} ${valueReg}`);
+
+        tctx.pop();
+        tctx.write('}\n');
+        return;
+    }
 
     this.body.forEach(stmt => {
         tctx.write('; Statement: ' + stmt.constructor.name);
