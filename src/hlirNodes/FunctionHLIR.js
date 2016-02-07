@@ -118,4 +118,12 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
         return output;
     }
 
+    hasMatchingNodeExceptLastReturn(test) {
+        var body = this.body;
+        if (body[body.length - 1] instanceof ReturnHLIR) {
+            body = body.slice(0, body.length - 1);
+        }
+        return body.some(node => test(node) || node.hasMatchingNode(test));
+    }
+
 };

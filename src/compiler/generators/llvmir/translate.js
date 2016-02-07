@@ -361,9 +361,12 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         _node(stmt, env, context, tctx, i === this.body.length - 1 ? FUNC_LAST_BODY : null);
     });
 
-    tctx.write('br label %exitLabel');
-
-    tctx.writeLabel('exitLabel');
+    if (this.hasMatchingNodeExceptLastReturn(node => node instanceof hlirNodes.ReturnHLIR)) {
+        tctx.write('br label %exitLabel');
+        tctx.writeLabel('exitLabel');
+    } else {
+        tctx.write('; skipping exit labels');
+    }
 
     if (returnType) {
         var outReg = tctx.getRegister();

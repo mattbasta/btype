@@ -39,9 +39,19 @@ export default class BaseHLIR {
         Object.keys(this)
             .filter(BODY_FIELDS.has.bind(BODY_FIELDS))
             .filter(k => Array.isArray(this[k]))
-            .forEach(k => cb(this[k]));
+            .forEach(k => cb(this[k], k));
     }
 
+    hasMatchingNode(test) {
+        var found = false;
+        this.traverse(node => {
+            if (found) return;
+            if (test(node) || node.hasMatchingNode(test)) {
+                found = true;
+            }
+        });
+        return found;
+    }
 
     iterate(cb, afterCB) {
         this.traverse((node, member) => {
@@ -138,3 +148,5 @@ export default class BaseHLIR {
     }
 
 };
+
+function NodeFindError() {}
