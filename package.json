@@ -4,7 +4,8 @@
   "description": "A compiled language for the web",
   "main": "btype.js",
   "scripts": {
-    "build": "babel src --out-dir build --source-maps inline --no-babelrc --presets es2015",
+    "build": "babel src --out-dir build --source-maps --no-babelrc --presets es2015 --ignore=\"static/**/*.js\"",
+    "prepublish": "rm -rf build/* && npm run build && cp -a src/compiler/static build/compiler/static",
     "test": "./node_modules/.bin/mocha --recursive --reporter=dot"
   },
   "keywords": [

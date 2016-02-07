@@ -1,18 +1,12 @@
+import NodeBase from '../nodeBase';
 import * as symbols from '../symbols';
 
 
-export default class BaseNode {
+export default class BaseNode extends NodeBase {
     constructor(start, end) {
+        super();
         this.start = start;
         this.end = end;
-    }
-
-    TypeError(error) {
-        var err = new TypeError(error);
-        err[symbols.ERR_MSG] = error;
-        err[symbols.ERR_START] = this.start;
-        err[symbols.ERR_END] = this.end;
-        return err;
     }
 
     wrapError(func) {

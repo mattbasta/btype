@@ -262,15 +262,27 @@ class Lexer {
         return next;
     }
 
-    SyntaxError(message, line, col) {
-        var out = new SyntaxError(message);
-        out[symbols.ERR_MSG] = message;
-        out[symbols.ERR_LINE] = line;
-        out[symbols.ERR_COL] = col;
-        return out;
-    }
+    // SyntaxError(message, line, col) {
+    //     var out = new SyntaxError(message);
+    //     out[symbols.ERR_MSG] = message;
+    //     out[symbols.ERR_LINE] = line;
+    //     out[symbols.ERR_COL] = col;
+    //     return out;
+    // }
 
 }
+
+/*
+FIXME: This is done as it is because of https://phabricator.babeljs.io/T7017.
+Please make this ES6-ey once babel 6.5.0 is released and everything in BType is upgraded.
+*/
+Lexer.prototype.SyntaxError = function(message, line, col) {
+    var out = new SyntaxError(message);
+    out[symbols.ERR_MSG] = message;
+    out[symbols.ERR_LINE] = line;
+    out[symbols.ERR_COL] = col;
+    return out;
+};
 
 
 /**
