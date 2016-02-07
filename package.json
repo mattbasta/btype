@@ -25,7 +25,7 @@
   },
   "bin": {
     "btype": "./bin/btype",
-    "bt-run": "./bin/bt-run"
+    "runbt": "./bin/runbt"
   },
   "preferGlobal": true,
   "engines": {
