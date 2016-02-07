@@ -1,10 +1,5 @@
-exports.Array = require('./types/Array');
-import Func from './types/Func';
-import Module from './types/Module';
 import Primitive from './types/Primitive';
 import String_ from './types/String';
-import Struct from './types/Struct';
-import Tuple from './types/Tuple';
 
 
 export const publicTypes = {
