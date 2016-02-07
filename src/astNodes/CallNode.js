@@ -1,5 +1,6 @@
 import BaseExpressionNode from './BaseExpressionNode';
 import CallHLIR from '../hlirNodes/CallHLIR';
+import Func from '../compiler/types/Func';
 import * as symbols from '../symbols';
 
 
@@ -35,9 +36,13 @@ export default class CallNode extends BaseExpressionNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
+        var calleeHLIR = this.callee[symbols.FMAKEHLIR](builder);
+        var calleeHLIRType = calleeHLIR.resolveType(builder.peekCtx());
         return new CallHLIR(
-            this.callee[symbols.FMAKEHLIR](builder),
-            this.params.map(p => p[symbols.FMAKEHLIR](builder)),
+            calleeHLIR,
+            this.params.map((p, i) => {
+                return p[symbols.FMAKEHLIR](builder, calleeHLIRType instanceof Func && calleeHLIRType.args[i]);
+            }),
             this.start,
             this.end
         );

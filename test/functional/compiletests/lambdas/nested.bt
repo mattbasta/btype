@@ -1,0 +1,4 @@
+func main() {
+    func<func<int>>:x = (): (): 123;
+}
+export main;

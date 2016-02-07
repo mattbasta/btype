@@ -1,0 +1,4 @@
+func main() {
+    tuple<int>:x = [:(): 123];
+}
+export main;

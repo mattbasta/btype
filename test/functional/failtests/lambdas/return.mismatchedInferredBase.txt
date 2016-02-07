@@ -1,0 +1,6 @@
+TypeError: Could not use lambda func where function is not expcted
+1 | func int:main() {
+2 |     return (): 123;
+  |            ^ (2:12)
+3 | }
+

@@ -39,13 +39,13 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
 
     [symbols.FMAKEHLIR](builder, expectedType) {
         if (!expectedType) {
-            throw new this.TypeError('Could not infer lambda function type');
+            throw this.TypeError('Could not infer lambda function type');
         } else if (!(expectedType instanceof Func)) {
-            throw new this.TypeError('Could not use lambda func where function is not expcted');
+            throw this.TypeError('Could not use lambda func where function is not expcted');
         } else if (!expectedType.returnType) {
-            throw new this.TypeError('Inferred type does not expect a return value from lambda function');
+            throw this.TypeError('Inferred type does not expect a return value from lambda function');
         } else if (expectedType.args.length !== this.params.length) {
-            throw new this.TypeError(`Lambda function expected inferred type with ${this.params.length} arguments, ${expectedType.args.length} found`);
+            throw this.TypeError(`Lambda function expected inferred type with ${this.params.length} arguments, ${expectedType.args.length} found`);
         }
 
         var returnType = expectedType.returnType;
@@ -79,7 +79,6 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
         node[symbols.IS_FIRSTCLASS] = true;
 
         var newCtx = new Context(builder.env, node, ctx, builder.privileged);
-        debugger;
         paramNodes.forEach(pn => {
             pn[symbols.ASSIGNED_NAME] = newCtx.addVar(pn.name, pn.resolveType(newCtx));
         });

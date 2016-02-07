@@ -131,6 +131,10 @@ class Token {
     toString() {
         return '[token ' + this.type + ']';
     }
+
+    clone() {
+        return new Token(this.text, this.type, this.start, this.end, this.line, this.column);
+    }
 }
 
 
@@ -221,6 +225,13 @@ class Lexer {
         var next = this.next();
         this.peeked = next;
         return next;
+    }
+
+    unpeek(token) {
+        if (this.peeked) {
+            throw new Error('Unexpected unpeek');
+        }
+        this.peeked = token;
     }
 
     /**

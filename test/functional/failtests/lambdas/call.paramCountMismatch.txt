@@ -1,0 +1,6 @@
+TypeError: Lambda function expected inferred type with 0 arguments, 1 found
+3 | func main() {
+4 |     foo((): 123);
+  |         ^ (4:9)
+5 | }
+

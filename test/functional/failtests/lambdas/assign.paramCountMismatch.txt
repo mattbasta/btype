@@ -1,0 +1,6 @@
+TypeError: Lambda function expected inferred type with 0 arguments, 1 found
+6 |     func<int, int>:x = foo;
+7 |     x = (): 123;
+  |         ^ (7:9)
+8 | }
+

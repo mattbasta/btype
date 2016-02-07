@@ -1,0 +1,6 @@
+func foo() {}
+
+func main() {
+    func<>:x = (): 123;
+}
+export main;

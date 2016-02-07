@@ -536,10 +536,33 @@ function parseType(lex, base, isAttribute) {
 
     function parseAttributes() {
         if (type.type !== 'null' && lex.accept('<')) {
+            if (typeEnd = lex.accept('>')) {
+                return;
+            } else if (typeEnd = lex.accept('>>')) {
+                splitRShift();
+                return;
+            }
             do {
                 attributes.push(parseType(lex, null, true));
             } while (lex.accept(','));
-            typeEnd = lex.assert('>');
+            if (typeEnd = lex.accept('>>')) {
+                splitRShift();
+            } else {
+                typeEnd = lex.assert('>');
+            }
+        }
+        function splitRShift() {
+            var orig = typeEnd;
+            typeEnd = orig.clone();
+
+            orig.type = '>';
+            orig.start += 1;
+            orig.col += 1;
+
+            typeEnd.type = '>';
+            typeEnd.end -= 1;
+
+            lex.unpeek(orig);
         }
     }
     parseAttributes();

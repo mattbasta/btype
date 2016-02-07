@@ -1,0 +1,6 @@
+func foo(int:x) {}
+
+func main() {
+    foo((): 123);
+}
+export main;

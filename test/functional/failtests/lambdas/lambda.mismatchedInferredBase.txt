@@ -1,0 +1,6 @@
+TypeError: Could not use lambda func where function is not expcted
+3 | func main() {
+4 |     func<int>:x = (): (): 123;
+  |                       ^ (4:23)
+5 | }
+

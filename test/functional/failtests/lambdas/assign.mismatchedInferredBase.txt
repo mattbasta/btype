@@ -1,0 +1,6 @@
+TypeError: Could not use lambda func where function is not expcted
+4 |     int:x = 0;
+5 |     x = (): 123;
+  |         ^ (5:9)
+6 | }
+

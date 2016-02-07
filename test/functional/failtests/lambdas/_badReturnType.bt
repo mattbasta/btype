@@ -1,0 +1,4 @@
+func main() {
+    func<int>:x = (): 0.5;
+}
+export main;

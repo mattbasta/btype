@@ -1,0 +1,4 @@
+func func<>:main() {
+    return (): 123;
+}
+export main;

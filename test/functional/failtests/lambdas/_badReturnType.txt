@@ -1,0 +1,6 @@
+TypeError: Function returns int, but saw float being returned.
+1 | func main() {
+2 |     func<int>:x = (): 0.5;
+  |                   ^ (2:19)
+3 | }
+

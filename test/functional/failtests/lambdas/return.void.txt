@@ -1,0 +1,6 @@
+TypeError: Inferred type does not expect a return value from lambda function
+1 | func func<>:main() {
+2 |     return (): 123;
+  |            ^ (2:12)
+3 | }
+
