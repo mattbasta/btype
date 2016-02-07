@@ -148,14 +148,6 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     tctx.write(this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';');
 });
 
-NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
-    tctx.write('do {');
-    tctx.push();
-    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
-    tctx.pop();
-    tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + ');');
-});
-
 NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     var context = this[symbols.CONTEXT];
 

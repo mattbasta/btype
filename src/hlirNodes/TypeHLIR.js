@@ -11,7 +11,7 @@ const RESOLVE_CATCH = Symbol();
 
 export default class TypeHLIR extends BaseHLIR {
 
-    constructor(name, attributes, start, end) {
+    constructor(name, attributes = [], start = 0, end = 0) {
         super(start, end);
         this.name = name;
         this.attributes = attributes;

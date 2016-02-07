@@ -1,5 +1,9 @@
 import BaseLoopNode from './BaseLoopNode';
-import DoWhileHLIR from '../hlirNodes/DoWhileHLIR';
+import BreakHLIR from '../hlirNodes/BreakHLIR';
+import IfHLIR from '../hlirNodes/IfHLIR';
+import LiteralHLIR from '../hlirNodes/LiteralHLIR';
+import LoopHLIR from '../hlirNodes/LoopHLIR';
+import TypeHLIR from '../hlirNodes/TypeHLIR';
 import * as symbols from '../symbols';
 
 
@@ -32,8 +36,17 @@ export default class DoWhileNode extends BaseLoopNode {
 
     [symbols.FMAKEHLIR](builder) {
         var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
-        var node = new DoWhileHLIR(conditionNode, this.start, this.end);
-        node.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
+
+        var node = new LoopHLIR(
+            new LiteralHLIR(new TypeHLIR('bool'), true, 0, 0),
+            this.start,
+            this.end
+        );
+        var body = this[symbols.FMAKEHLIRBLOCK](builder, this.body);
+        body.push(
+            new IfHLIR(conditionNode, [new BreakHLIR(0, 0)], null, 0, 0)
+        );
+        node.setBody(body);
 
         return node;
     }

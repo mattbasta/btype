@@ -8,7 +8,6 @@ import CallHLIR from './hlirNodes/CallHLIR';
 import CallStatementHLIR from './hlirNodes/CallStatementHLIR';
 import ContinueHLIR from './hlirNodes/ContinueHLIR';
 import DeclarationHLIR from './hlirNodes/DeclarationHLIR';
-import DoWhileHLIR from './hlirNodes/DoWhileHLIR';
 import ExportHLIR from './hlirNodes/ExportHLIR';
 import FunctionHLIR from './hlirNodes/FunctionHLIR';
 import IfHLIR from './hlirNodes/IfHLIR';
@@ -41,7 +40,6 @@ export {
     CallStatementHLIR,
     ContinueHLIR,
     DeclarationHLIR,
-    DoWhileHLIR,
     ExportHLIR,
     FunctionHLIR,
     IfHLIR,

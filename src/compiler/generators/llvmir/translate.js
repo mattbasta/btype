@@ -16,6 +16,8 @@ export const ARRAY_TYPES = Symbol();
 export const TUPLE_TYPES = Symbol();
 export const FUNCREF_TYPES = Symbol();
 
+const FUNC_LAST_BODY = Symbol();
+
 
 function _binop(env, ctx, tctx) {
     var out;
@@ -250,7 +252,7 @@ NODES.set(hlirNodes.BinopEqualityHLIR, _binop);
 NODES.set(hlirNodes.BinopLogicalHLIR, _binop);
 
 NODES.set(hlirNodes.BreakHLIR, function(env, ctx, tctx) {
-    tctx.write('br label %' + tctx.loopStack[0].exitLabel);
+    tctx.write('br label %' + tctx.loopStack[0].exit);
 });
 
 // CallHLIR is handled in translateCall.js because it's a beast.
@@ -261,7 +263,7 @@ NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.ContinueHLIR, function(env, ctx, tctx) {
-    tctx.write('br label %' + tctx.loopStack[0].startLabel);
+    tctx.write('br label %' + tctx.loopStack[0].start);
 });
 
 NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx, parent) {
@@ -288,24 +290,6 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx, parent) {
     } else {
         tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
     }
-});
-
-NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
-    var loopLbl = tctx.getUniqueLabel('loop');
-    var afterLbl = tctx.getUniqueLabel('after');
-
-    tctx.writeLabel(loopLbl);
-    tctx.pushLoop(loopLbl, afterLbl);
-
-    this.body.forEach(stmt => {
-        tctx.write('; Statement: ' + stmt.constructor.name);
-        _node(stmt, env, ctx, tctx);
-    });
-
-    var condition = _node(this.condition, env, ctx, tctx);
-    tctx.write('br i1 ' + condition + ', label %' + loopLbl + ', label %' + afterLbl);
-    tctx.writeLabel(afterLbl);
-    tctx.popLoop();
 });
 
 NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
@@ -372,9 +356,9 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         return;
     }
 
-    this.body.forEach(stmt => {
+    this.body.forEach((stmt, i) => {
         tctx.write('; Statement: ' + stmt.constructor.name);
-        _node(stmt, env, context, tctx);
+        _node(stmt, env, context, tctx, i === this.body.length - 1 ? FUNC_LAST_BODY : null);
     });
 
     tctx.write('br label %exitLabel');
@@ -659,7 +643,7 @@ NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
     this.operatorStatements.forEach(op => _node(op, env, ctx, tctx));
 });
 
-NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
+NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx, extra) {
     if (!this.value) {
         tctx.write('br label %exitLabel');
         tctx.writeTerminatorLabel();
@@ -669,8 +653,10 @@ NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
     var retTypeRaw = this.value.resolveType(ctx);
     var retType = getLLVMType(retTypeRaw);
     tctx.write(`store ${retType} ${value}, ${retType}* %retVal, align ${getAlignment(retTypeRaw)} ; return`);
-    tctx.write('br label %exitLabel');
-    tctx.writeTerminatorLabel();
+    if (extra !== FUNC_LAST_BODY) {
+        tctx.write('br label %exitLabel');
+        tctx.writeTerminatorLabel();
+    }
 });
 
 NODES.set(hlirNodes.SymbolHLIR, function(env, ctx, tctx, extra) {

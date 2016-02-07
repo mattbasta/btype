@@ -58,7 +58,6 @@ export default function globalInit(ctx, env) {
 
         if (current instanceof hlirNodes.AssignmentHLIR ||
             current instanceof hlirNodes.CallStatementHLIR ||
-            current instanceof hlirNodes.DoWhileHLIR ||
             current instanceof hlirNodes.LoopHLIR ||
             current instanceof hlirNodes.IfHLIR) {
             initables.push(current);

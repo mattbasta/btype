@@ -267,15 +267,6 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     tctx.write(this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';');
 });
 
-NODES.set(hlirNodes.DoWhileHLIR, function(env, ctx, tctx) {
-    // FIXME: Make this valid asm
-    tctx.write('do {');
-    tctx.push();
-    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
-    tctx.pop();
-    tctx.write('} while (' + _node(this.condition, env, ctx, tctx) + '|0);');
-});
-
 NODES.set(hlirNodes.FunctionHLIR, function(env, parentCtx, tctx) {
     var ctx = this[symbols.CONTEXT];
 
