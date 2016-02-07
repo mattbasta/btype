@@ -45,10 +45,7 @@ export default class ObjectOperatorStatementNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var hlir = OperatorStatementNode.prototype[symbols.FMAKEHLIR].call(this, builder);
-        // FIXME: Is this right? It doesn't really have a 'self' param.
-        hlir[symbols.IS_METHOD] = true;
-        return hlir;
+        return OperatorStatementNode.prototype[symbols.FMAKEHLIR].call(this, builder);
     }
 
     [symbols.FCONSTRUCT](builder, hlir) {

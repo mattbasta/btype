@@ -164,6 +164,7 @@ function processRoot(rootContext) {
         // Ignore non-expression functions
         if (member === 'body' ||
             member === 'objConstructor' ||
+            member === 'operatorStatements' ||
             node[symbols.IS_METHOD]) {
             return false;
         }
