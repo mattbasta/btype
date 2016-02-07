@@ -1,0 +1,13 @@
+func func<int, int>:foo() {
+    # Returns
+    return (x): x - 1;
+}
+
+func main() {
+    # Declarations
+    func<int, int>:decl = (x): x * 3;
+
+    # Assignments
+    decl = (y): y + 2;
+}
+export main;
