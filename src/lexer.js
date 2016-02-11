@@ -53,20 +53,16 @@ const TOKENS = [
 
     // Reserved Words
     [/^=>/, 'reserved'],
-    [/^catch(?!\w)/, 'reserved'],
     [/^default(?!\w)/, 'reserved'],
     [/^enum(?!\w)/, 'reserved'],
     [/^extends(?!\w)/, 'reserved'],
-    [/^finally(?!\w)/, 'reserved'],
     [/^iter(?!\w)/, 'reserved'],
     [/^implements(?!\w)/, 'reserved'],
     [/^interface(?!\w)/, 'reserved'],
     [/^module(?!\w)/, 'reserved'],
-    [/^raise(?!\w)/, 'reserved'],
     [/^static(?!\w)/, 'reserved'],
     [/^super(?!\w)/, 'reserved'],
     [/^switch(?!\w)/, 'switch'],
-    [/^try(?!\w)/, 'reserved'],
     [/^typedef(?!\w)/, 'reserved'],
     [/^unittest(?!\w)/, 'reserved'],
     [/^with(?!\w)/, 'reserved'],
@@ -77,6 +73,7 @@ const TOKENS = [
     [/^as(?!\w)/, 'as'], // typecasting
     [/^break(?!\w)/, 'break'], // loop break
     [/^case(?!\w)/, 'case'],
+    [/^catch(?!\w)/, 'catch'],
     [/^const(?!\w)/, 'const'], // constant variable declarations
     [/^continue(?!\w)/, 'continue'], // loop continue
     [/^do(?!\w)/, 'do'], // do loop
@@ -84,6 +81,7 @@ const TOKENS = [
     [/^export(?!\w)/, 'export'], // module export
     [/^false(?!\w)/, 'false'],
     [/^final(?!\w)/, 'final'], // final members/methods
+    [/^finally(?!\w)/, 'finally'],
     [/^for(?!\w)/, 'for'], // for loop
     [/^func(?!\w)/, 'func'], // function
     [/^if(?!\w)/, 'if'],
@@ -95,6 +93,7 @@ const TOKENS = [
     [/^operator(?!\w)/, 'operator'], // operator overloading
     [/^or(?!\w)/, 'or'], // binary or
     [/^private(?!\w)/, 'private'], // member/method visibility
+    [/^raise(?!\w)/, 'raise'],
     [/^return(?!\w)/, 'return'],
     [/^switchtype(?!\w)/, 'switchtype'],
     [/^true(?!\w)/, 'true'],

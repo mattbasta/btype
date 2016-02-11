@@ -5,7 +5,7 @@ import * as symbols from '../symbols';
 
 
 export default class FunctionNode extends BaseBlockNode {
-    constructor(returnType, name, params, body, start, end) {
+    constructor(returnType, name, params, body, catches, finallies, start, end) {
         super(start, end);
 
         this.setFlag('DECLARES_SOMETHING');
@@ -14,6 +14,9 @@ export default class FunctionNode extends BaseBlockNode {
         this.name = name;
         this.params = params;
         this.body = body;
+
+        this.catches = catches;
+        this.finallies = finallies;
     }
 
     get id() {
@@ -33,6 +36,8 @@ export default class FunctionNode extends BaseBlockNode {
         cb(this.returnType, 'returnType');
         this.params.forEach(p => cb(p, 'params'));
         this.body.forEach(s => cb(s, 'body'));
+        this.catches.forEach(s => cb(s, 'catches'));
+        this.finallies.forEach(s => cb(s, 'finallies'));
     }
 
     toString() {
@@ -42,6 +47,8 @@ export default class FunctionNode extends BaseBlockNode {
             '(' + this.params.map(p => p.toString()).join(', ') +
             ') {\n' +
             this.body.map(s => s.toString()).join('') +
+            this.catches.map(s => s.toString()).join('') +
+            this.finallies.map(s => s.toString()).join('') +
             '}\n';
     }
 

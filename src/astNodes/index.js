@@ -3,6 +3,7 @@ import BinopNode from './BinopNode';
 import BreakNode from './BreakNode';
 import CallNode from './CallNode';
 import CallStatementNode from './CallStatementNode';
+import CatchNode from './CatchNode';
 import ConstDeclarationNode from './ConstDeclarationNode';
 import ContinueNode from './ContinueNode';
 import DeclarationNode from './DeclarationNode';
@@ -42,6 +43,7 @@ export {
     BreakNode,
     CallNode,
     CallStatementNode,
+    CatchNode,
     ConstDeclarationNode,
     ContinueNode,
     DeclarationNode,

@@ -1,7 +1,13 @@
 import NodeBase from '../nodeBase';
 
 
-const BODY_FIELDS = new Set(['body', 'consequent', 'alternate']);
+const BODY_FIELDS = new Set([
+    'body',
+    'consequent',
+    'alternate',
+    'catches',
+    'finallies',
+]);
 
 
 export default class BaseHLIR extends NodeBase {

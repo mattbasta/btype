@@ -85,7 +85,15 @@ function parseFunctionDeclaration(lex, func) {
     }
     lex.assert('{');
 
-    var body = parseStatements(lex, '}');
+    var body = parseStatements(lex, ['}', 'catch']);
+
+    var catches = [];
+    var finallies = [];
+    if (lex.peek().type === 'catch') {
+        catches = parseCatches(lex);
+        finallies = parseFinallies(lex);
+    }
+
     var end = lex.assert('}');
 
     return new nodes.FunctionNode(
@@ -93,6 +101,8 @@ function parseFunctionDeclaration(lex, func) {
         identifier,
         parameters,
         body,
+        catches,
+        finallies,
         func.start,
         end.end
     );
@@ -118,7 +128,15 @@ function parseFunctionExpression(lex, func) {
     }
     lex.assert('{');
 
-    var body = parseStatements(lex, '}');
+    var body = parseStatements(lex, ['}', 'catch']);
+
+    var catches = [];
+    var finallies = [];
+    if (lex.peek().type === 'catch') {
+        catches = parseCatches(lex);
+        finallies = parseFinallies(lex);
+    }
+
     var end = lex.assert('}');
 
     return new nodes.FunctionNode(
@@ -126,9 +144,48 @@ function parseFunctionExpression(lex, func) {
         null,
         parameters,
         body,
+        catches,
+        finallies,
         func.start,
         end.end
     );
+}
+
+function parseCatches(lex) {
+    var result = [];
+    var catchStart;
+    while (catchStart = lex.accept('catch')) {
+        let ident = lex.accept('identifier');
+        lex.assert('{');
+        let body = parseStatements(lex, '}');
+        let catchEnd = lex.assert('}');
+        result.push(
+            new nodes.CatchNode(
+                ident,
+                body,
+                catchStart.start,
+                catchEnd.end
+            )
+        );
+    }
+    return result;
+}
+function parseFinallies(lex) {
+    var result = [];
+    var finallyStart;
+    while (finallyStart = lex.accept('finally')) {
+        lex.assert('{');
+        let body = parseStatements(lex, '}');
+        let finallyEnd = lex.assert('}');
+        result.push(
+            new nodes.FinallyNode(
+                body,
+                finallyStart.start,
+                finallyEnd.end
+            )
+        );
+    }
+    return result;
 }
 
 function parseIf(lex) {
@@ -1097,13 +1154,13 @@ function parseStatement(lex, isRoot = false) {
  * @param  {bool} isRoot
  * @return {array}
  */
-function parseStatements(lex, endTokens, isRoot) {
+function parseStatements(lex, endTokens, isRoot = false) {
     endTokens = Array.isArray(endTokens) ? endTokens : [endTokens];
     var statements = [];
     var temp = lex.peek();
     while (endTokens.indexOf(temp) === -1 &&
            (temp.type && endTokens.indexOf(temp.type) === -1)) {
-        var statement = parseStatement(lex, isRoot);
+        let statement = parseStatement(lex, isRoot);
         if (!statement) {
             throw new Error('Invalid statement');
         }
