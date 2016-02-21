@@ -85,7 +85,6 @@ const TOKENS = [
     [/^for(?!\w)/, 'for'], // for loop
     [/^func(?!\w)/, 'func'], // function
     [/^if(?!\w)/, 'if'],
-    [/^imm(?!\w)/, 'imm'], // immutability
     [/^import(?!\w)/, 'import'], // module import
     [/^new(?!\w)/, 'new'],
     [/^null(?!\w)/, 'null'],
