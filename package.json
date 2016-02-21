@@ -1,6 +1,6 @@
 {
   "name": "btype",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A compiled language for the web",
   "main": "btype.js",
   "scripts": {
