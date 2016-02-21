@@ -5,7 +5,7 @@ import * as symbols from '../symbols';
 
 
 export default class FunctionNode extends BaseBlockNode {
-    constructor(returnType, name, params, body, catches, finallies, start, end) {
+    constructor(returnType, name, params, body, catches, finally_, start, end) {
         super(start, end);
 
         this.setFlag('DECLARES_SOMETHING');
@@ -16,7 +16,7 @@ export default class FunctionNode extends BaseBlockNode {
         this.body = body;
 
         this.catches = catches;
-        this.finallies = finallies;
+        this.finally = finally_;
     }
 
     get id() {
@@ -30,14 +30,16 @@ export default class FunctionNode extends BaseBlockNode {
         bitstr.writebits(this.params.length, 32);
         this.params.forEach(p => p.pack(bitstr));
         this.packBlock(bitstr, 'body');
+        this.catches.forEach(c => c.pack(bitstr));
+        if (this.finally) this.finally.pack(bitstr);
     }
 
     traverse(cb) {
-        cb(this.returnType, 'returnType');
+        if (this.returnType) cb(this.returnType, 'returnType');
         this.params.forEach(p => cb(p, 'params'));
         this.body.forEach(s => cb(s, 'body'));
         this.catches.forEach(s => cb(s, 'catches'));
-        this.finallies.forEach(s => cb(s, 'finallies'));
+        if (this.finally) cb(this.finally, 'finally');
     }
 
     toString() {
@@ -48,7 +50,7 @@ export default class FunctionNode extends BaseBlockNode {
             ') {\n' +
             this.body.map(s => s.toString()).join('') +
             this.catches.map(s => s.toString()).join('') +
-            this.finallies.map(s => s.toString()).join('') +
+            (this.finally ? this.finally.toString() : '') +
             '}\n';
     }
 

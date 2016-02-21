@@ -88,10 +88,10 @@ function parseFunctionDeclaration(lex, func) {
     var body = parseStatements(lex, ['}', 'catch']);
 
     var catches = [];
-    var finallies = [];
+    var finally_ = null;
     if (lex.peek().type === 'catch') {
         catches = parseCatches(lex);
-        finallies = parseFinallies(lex);
+        finally_ = parseFinally(lex);
     }
 
     var end = lex.assert('}');
@@ -102,7 +102,7 @@ function parseFunctionDeclaration(lex, func) {
         parameters,
         body,
         catches,
-        finallies,
+        finally_,
         func.start,
         end.end
     );
@@ -131,10 +131,10 @@ function parseFunctionExpression(lex, func) {
     var body = parseStatements(lex, ['}', 'catch']);
 
     var catches = [];
-    var finallies = [];
+    var finally_ = null;
     if (lex.peek().type === 'catch') {
         catches = parseCatches(lex);
-        finallies = parseFinallies(lex);
+        finally_ = parseFinally(lex);
     }
 
     var end = lex.assert('}');
@@ -145,7 +145,7 @@ function parseFunctionExpression(lex, func) {
         parameters,
         body,
         catches,
-        finallies,
+        finally_,
         func.start,
         end.end
     );
@@ -170,22 +170,19 @@ function parseCatches(lex) {
     }
     return result;
 }
-function parseFinallies(lex) {
-    var result = [];
-    var finallyStart;
-    while (finallyStart = lex.accept('finally')) {
-        lex.assert('{');
-        let body = parseStatements(lex, '}');
-        let finallyEnd = lex.assert('}');
-        result.push(
-            new nodes.FinallyNode(
-                body,
-                finallyStart.start,
-                finallyEnd.end
-            )
-        );
+function parseFinally(lex) {
+    var finallyStart = lex.accept('finally');
+    if (!finallyStart) {
+        return null;
     }
-    return result;
+    lex.assert('{');
+    var body = parseStatements(lex, '}');
+    var finallyEnd = lex.assert('}');
+    return new nodes.FinallyNode(
+        body,
+        finallyStart.start,
+        finallyEnd.end
+    );
 }
 
 function parseIf(lex) {

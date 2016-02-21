@@ -21,7 +21,9 @@ describe('Function parser', function() {
                         returnType: _type('retType'),
                         name: 'foo',
                         params: [],
-                        body: []
+                        body: [],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -39,7 +41,9 @@ describe('Function parser', function() {
                         returnType: _type('retType'),
                         name: 'foo',
                         params: [],
-                        body: []
+                        body: [],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -57,7 +61,9 @@ describe('Function parser', function() {
                         returnType: null,
                         name: 'nameNotRetType',
                         params: [],
-                        body: []
+                        body: [],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -79,7 +85,9 @@ describe('Function parser', function() {
                             _typed('x', _type('int')),
                             _typed('y', _type('str'))
                         ],
-                        body: []
+                        body: [],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -110,7 +118,9 @@ describe('Function parser', function() {
                                 )
                             )
                         ],
-                        body: []
+                        body: [],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -167,10 +177,14 @@ describe('Function parser', function() {
                                     params: [
                                         _typed('z', _type('bool'))
                                     ],
-                                    body: []
+                                    body: [],
+                                    catches: [],
+                                    finally: null,
                                 }
-                            )
-                        ]
+                            ),
+                        ],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -195,7 +209,9 @@ describe('Function parser', function() {
                                 25,
                                 {value: _int(3)}
                             )
-                        ]
+                        ],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -220,7 +236,9 @@ describe('Function parser', function() {
                                 23,
                                 {value: null}
                             )
-                        ]
+                        ],
+                        catches: [],
+                        finally: null,
                     }
                 )
             ])
@@ -252,7 +270,9 @@ describe('Function parser', function() {
                                         31,
                                         {value: _int(1)}
                                     )
-                                ]
+                                ],
+                                catches: [],
+                                finally: null,
                             }
                         ),
                     }
@@ -286,7 +306,9 @@ describe('Function parser', function() {
                                         29,
                                         {value: _int(1)}
                                     )
-                                ]
+                                ],
+                                catches: [],
+                                finally: null,
                             }
                         ),
                     }
@@ -320,7 +342,9 @@ describe('Function parser', function() {
                                         25,
                                         {value: null}
                                     )
-                                ]
+                                ],
+                                catches: [],
+                                finally: null,
                             }
                         ),
                     }
@@ -354,7 +378,9 @@ describe('Function parser', function() {
                                         23,
                                         {value: null}
                                     )
-                                ]
+                                ],
+                                catches: [],
+                                finally: null,
                             }
                         ),
                     }

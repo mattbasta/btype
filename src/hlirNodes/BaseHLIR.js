@@ -6,7 +6,6 @@ const BODY_FIELDS = new Set([
     'consequent',
     'alternate',
     'catches',
-    'finallies',
 ]);
 
 
