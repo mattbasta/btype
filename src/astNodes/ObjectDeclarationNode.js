@@ -52,8 +52,8 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         return 'object ' + this.name +
             (this.attributes.length ? '<' + this.attributes.map(a => a.toString()).join(', ') + '>' : '') +
             ' {\n' +
-            this.members.map(m => m.toString()).join('') +
             (this.objConstructor ? this.objConstructor.toString() : '') +
+            this.members.map(m => m.toString()).join('') +
             this.methods.map(m => m.toString()).join('') +
             this.operators.map(o => o.toString()).join('') +
             '}\n';
