@@ -22,8 +22,6 @@ describe('Function parser', function() {
                         name: 'foo',
                         params: [],
                         body: [],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -42,8 +40,6 @@ describe('Function parser', function() {
                         name: 'foo',
                         params: [],
                         body: [],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -62,8 +58,6 @@ describe('Function parser', function() {
                         name: 'nameNotRetType',
                         params: [],
                         body: [],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -86,8 +80,6 @@ describe('Function parser', function() {
                             _typed('y', _type('str'))
                         ],
                         body: [],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -119,8 +111,6 @@ describe('Function parser', function() {
                             )
                         ],
                         body: [],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -178,13 +168,9 @@ describe('Function parser', function() {
                                         _typed('z', _type('bool'))
                                     ],
                                     body: [],
-                                    catches: [],
-                                    finally: null,
                                 }
                             ),
                         ],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -210,8 +196,6 @@ describe('Function parser', function() {
                                 {value: _int(3)}
                             )
                         ],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -237,8 +221,6 @@ describe('Function parser', function() {
                                 {value: null}
                             )
                         ],
-                        catches: [],
-                        finally: null,
                     }
                 )
             ])
@@ -271,8 +253,6 @@ describe('Function parser', function() {
                                         {value: _int(1)}
                                     )
                                 ],
-                                catches: [],
-                                finally: null,
                             }
                         ),
                     }
@@ -307,8 +287,6 @@ describe('Function parser', function() {
                                         {value: _int(1)}
                                     )
                                 ],
-                                catches: [],
-                                finally: null,
                             }
                         ),
                     }
@@ -343,8 +321,6 @@ describe('Function parser', function() {
                                         {value: null}
                                     )
                                 ],
-                                catches: [],
-                                finally: null,
                             }
                         ),
                     }
@@ -379,8 +355,6 @@ describe('Function parser', function() {
                                         {value: null}
                                     )
                                 ],
-                                catches: [],
-                                finally: null,
                             }
                         ),
                     }

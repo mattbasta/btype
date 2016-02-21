@@ -85,15 +85,7 @@ function parseFunctionDeclaration(lex, func) {
     }
     lex.assert('{');
 
-    var body = parseStatements(lex, ['}', 'catch']);
-
-    var catches = [];
-    var finally_ = null;
-    if (lex.peek().type === 'catch') {
-        catches = parseCatches(lex);
-        finally_ = parseFinally(lex);
-    }
-
+    var body = parseStatementsWithCatchesAndFinally(lex, '}');
     var end = lex.assert('}');
 
     return new nodes.FunctionNode(
@@ -101,8 +93,6 @@ function parseFunctionDeclaration(lex, func) {
         identifier,
         parameters,
         body,
-        catches,
-        finally_,
         func.start,
         end.end
     );
@@ -128,14 +118,7 @@ function parseFunctionExpression(lex, func) {
     }
     lex.assert('{');
 
-    var body = parseStatements(lex, ['}', 'catch']);
-
-    var catches = [];
-    var finally_ = null;
-    if (lex.peek().type === 'catch') {
-        catches = parseCatches(lex);
-        finally_ = parseFinally(lex);
-    }
+    var body = parseStatementsWithCatchesAndFinally(lex, '}');
 
     var end = lex.assert('}');
 
@@ -144,11 +127,22 @@ function parseFunctionExpression(lex, func) {
         null,
         parameters,
         body,
-        catches,
-        finally_,
         func.start,
         end.end
     );
+}
+
+
+function parseStatementsWithCatchesAndFinally(lex, stmts) {
+    stmts = Array.isArray(stmts) ? stmts : [stmts];
+
+    var body = parseStatements(lex, stmts.concat(['catch', 'finally']));
+    body = body.concat(parseCatches(lex));
+    if (lex.peek().type === 'finally') {
+        body.push(parseFinally(lex));
+    }
+
+    return body;
 }
 
 function parseCatches(lex) {
@@ -171,10 +165,7 @@ function parseCatches(lex) {
     return result;
 }
 function parseFinally(lex) {
-    var finallyStart = lex.accept('finally');
-    if (!finallyStart) {
-        return null;
-    }
+    var finallyStart = lex.assert('finally');
     lex.assert('{');
     var body = parseStatements(lex, '}');
     var finallyEnd = lex.assert('}');
@@ -835,7 +826,7 @@ function parseOperatorStatement(lex) {
     var returnType = parseType(lex);
 
     lex.assert('{');
-    var body = parseStatements(lex, '}');
+    var body = parseStatementsWithCatchesAndFinally(lex, '}');
     var endBrace = lex.assert('}');
 
     return new nodes.OperatorStatementNode(
@@ -961,7 +952,7 @@ function parseObjectDeclaration(lex) {
 
             lex.assert(')');
             lex.assert('{');
-            let methodBody = parseStatements(lex, '}');
+            let methodBody = parseStatementsWithCatchesAndFinally(lex, '}');
             endBrace = lex.assert('}');
 
             constructor = new nodes.ObjectConstructorNode(
@@ -1054,7 +1045,7 @@ function parseObjectDeclaration(lex) {
 
             endBrace = lex.assert(')');
             lex.assert('{');
-            let methodBody = parseStatements(lex, '}');
+            let methodBody = parseStatementsWithCatchesAndFinally(lex, '}');
             let methodEndBrace = lex.assert('}');
 
             methods.push(
