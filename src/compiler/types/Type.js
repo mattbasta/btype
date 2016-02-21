@@ -32,6 +32,13 @@ export default class Type {
         x = Object.assign(x, this);
         x.constructor = this.constructor;
         x.prototype = this.prototype;
+
+        Object.keys(x).forEach(key => {
+            if (Array.isArray(x[key])) {
+                x[key] = x[key].slice(0);
+            }
+        });
+
         return x;
     }
 

@@ -1,3 +1,4 @@
+import Array_ from '../compiler/types/Array';
 import BaseExpressionHLIR from './BaseExpressionHLIR';
 import LiteralHLIR from './LiteralHLIR';
 
@@ -19,8 +20,8 @@ export default class SubscriptHLIR extends BaseExpressionHLIR {
             return temp;
         }
 
-        if (!(this.childExpr instanceof LiteralHLIR) ||
-            this.childExpr.litType !== 'int') {
+        if (!(baseType instanceof Array_) &&
+            (!(this.childExpr instanceof LiteralHLIR) || this.childExpr.litType !== 'int')) {
             throw this.TypeError('Cannot subscript built-in types with non-static ints');
         }
 

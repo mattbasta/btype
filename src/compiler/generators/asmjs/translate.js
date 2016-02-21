@@ -156,11 +156,16 @@ NODES.set(hlirNodes.RootHLIR, function(env, ctx, tctx) {
 NODES.set(hlirNodes.AssignmentHLIR, function(env, ctx, tctx) {
     var baseContent = typeAnnotation(_node(this.value, env, ctx, tctx, 'Assignment'), this.value.resolveType(ctx));
 
+    var lval = _node(this.base, env, ctx, tctx, 'Assignment');
+    if (this.base.resolveType(ctx)._type !== 'primitive') {
+        tctx.write(`gcderef(${lval} | 0);`);
+    }
+
     var valueType = this.value.resolveType(ctx);
     if (valueType._type !== 'primitive') {
         baseContent = '(gcref((' + baseContent + ')|0)|0)';
     }
-    tctx.write(_node(this.base, env, ctx, tctx, 'Assignment') + ' = ' + baseContent + ';');
+    tctx.write(lval + ' = ' + baseContent + ';');
 });
 
 NODES.set(hlirNodes.BinopArithmeticHLIR, _binop);
@@ -264,7 +269,15 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     output += def + ';\n';
 
     tctx.write(output);
-    tctx.write(this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';');
+
+    if (!this.value) return;
+
+    var baseContent = _node(this.value, env, ctx, tctx);
+    var valueType = this.value.resolveType(ctx);
+    if (valueType._type !== 'primitive') {
+        baseContent = '(gcref((' + baseContent + ')|0)|0)';
+    }
+    tctx.write(this[symbols.ASSIGNED_NAME] + ' = ' + baseContent + ';');
 });
 
 NODES.set(hlirNodes.FunctionHLIR, function(env, parentCtx, tctx) {
@@ -457,10 +470,6 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
             env[HAS_NEW_ARRAY] = true;
         }
 
-        // 16 because it's 8 bytes of overhead for normal object shape plus
-        // an extra eight bytes to store the length. We use 8 bytes instead
-        // of 4 (it's a 32-bit unsigned integer) because the start of the
-        // array body needs to be at an 8-byte multiple.
         var innerTypeSize = baseType.contentsType._type === 'primitive' ? baseType.contentsType.getSize() : 4;
         return '(makeArray(' +
             typeAnnotation(
@@ -510,7 +519,7 @@ NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
     tctx.write('return ' + typeAnnotation(_node(this.value, env, ctx, tctx, 'Return'), this.value.resolveType(ctx)) + ';');
 });
 
-NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx) {
+NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx, parent) {
     var baseType = this.base.resolveType(ctx);
     var subscriptType = this.childExpr.resolveType(ctx);
 

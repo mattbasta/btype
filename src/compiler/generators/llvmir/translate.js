@@ -822,29 +822,34 @@ NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx, parent) {
 
     var childType;
     var posPtr;
-    var valReg;
 
-    let base = _node(this.base, env, ctx, tctx);
+    var base = _node(this.base, env, ctx, tctx);
 
     if (baseType._type === 'tuple') {
         // TODO: make this validate the subscript?
         childType = baseType.contentsTypeArr[this.childExpr.value];
 
         posPtr = tctx.getRegister();
-        tctx.write(posPtr + ' = getelementptr inbounds ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 ' + this.childExpr.value);
-        valReg = tctx.getRegister();
-        tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr + ', align ' + getAlignment(childType));
-        return valReg;
+        tctx.write(`${posPtr} = getelementptr ${getLLVMType(baseType)} ${base}, i32 0, i32 ${this.childExpr.value}`);
+
+    } else {
+        childType = baseType.contentsType;
+        let child = _node(this.childExpr, env, ctx, tctx);
+
+        let arrBodyPtr = tctx.getRegister();
+        tctx.write(`${arrBodyPtr} = getelementptr inbounds ${getLLVMType(baseType)} ${base}, i32 0, i32 1`);
+        let arrBody = tctx.getRegister();
+        tctx.write(`${arrBody} = load ${getLLVMType(childType)}** ${arrBodyPtr}`);
+
+        posPtr = tctx.getRegister();
+        tctx.write(`${posPtr} = getelementptr ${getLLVMType(childType)}* ${arrBody}, i32 ${child}`);
+    }
+    if (parent === 'lvalue') {
+        return posPtr;
     }
 
-    childType = baseType.contentsType;
-    var child = _node(this.childExpr, env, ctx, tctx);
-
-    posPtr = tctx.getRegister();
-    tctx.write(posPtr + ' = getelementptr inbounds ' + getLLVMType(baseType) + ' ' + base + ', i32 0, i32 1, i64 ' + child);
-    valReg = tctx.getRegister();
-    tctx.write(valReg + ' = load ' + getLLVMType(childType) + '* ' + posPtr + ', align ' + getAlignment(childType));
-
+    var valReg = tctx.getRegister();
+    tctx.write(`${valReg} = load ${getLLVMType(childType)}* ${posPtr}, align ${getAlignment(childType)}`);
     return valReg;
 });
 
@@ -869,8 +874,8 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
         var valueType = getLLVMType(exp.resolveType(ctx));
 
         var pReg = tctx.getRegister();
-        tctx.write(pReg + ' = getelementptr inbounds ' + typeName + ' ' + ptrReg + ', i32 0, i32 ' + i);
-        tctx.write('store ' + valueType + ' ' + value + ', ' + valueType + '* ' + pReg);
+        tctx.write(`${pReg} = getelementptr inbounds ${typeName} ${ptrReg}, i32 0, i32 ${i}`);
+        tctx.write(`store ${valueType} ${value}, ${valueType}* ${pReg}`);
     });
 
     return ptrReg;

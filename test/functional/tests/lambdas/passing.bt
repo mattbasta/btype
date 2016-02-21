@@ -1,0 +1,11 @@
+func int:main() {
+    var arr = new array<func<int, int>>(3);
+    arr[0] = (x): x + 1;
+    arr[1] = (x): x - 1;
+    arr[2] = (x): x * 1;
+
+    var key = 1;
+    return arr[key](3);
+
+}
+export main;

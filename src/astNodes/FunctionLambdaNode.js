@@ -76,7 +76,10 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
         ctx.functionDeclarations.set(assignedName, node);
         ctx.isFuncSet.add(assignedName);
 
-        node[symbols.IS_FIRSTCLASS] = true;
+        // Even though these are technically always first-class from the
+        // developer's perspective, they might just be uplifted and treated as
+        // static closures.
+        node[symbols.IS_FIRSTCLASS] = false;
 
         var newCtx = new Context(builder.env, node, ctx, builder.privileged);
         paramNodes.forEach(pn => {

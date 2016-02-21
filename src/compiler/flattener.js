@@ -85,10 +85,13 @@ function upliftExpressionsFromBody(ctx, body) {
 
                 for (i = 0; i < stack.length; i++) {
                     let stackItem = stack[i];
-                    if (stackItem instanceof hlirNodes.BinopLogicalHLIR ||
+                    let isBinop = (
+                        stackItem instanceof hlirNodes.BinopLogicalHLIR ||
                         stackItem instanceof hlirNodes.BinopEqualityHLIR ||
                         stackItem instanceof hlirNodes.BinopBitwiseHLIR ||
-                        stackItem instanceof hlirNodes.BinopArithmeticHLIR) {
+                        stackItem instanceof hlirNodes.BinopArithmeticHLIR
+                    );
+                    if (isBinop) {
                         stackItem[SHOULD_FLATTEN] = true;
                     }
 

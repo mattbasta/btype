@@ -1,3 +1,4 @@
+import BaseNode from './astNodes/BaseNode';
 import * as nodes from './astNodes';
 import * as symbols from './symbols';
 
@@ -641,7 +642,9 @@ function parseExpressionBase(lex) {
 
     function convertStackToMember(stack) {
         var bottomToken = stack.shift();
-        var bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
+        var bottom = bottomToken instanceof BaseNode ?
+            bottomToken :
+            new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
         while (stack.length) {
             let token = stack.shift();
             bottom = new nodes.MemberNode(bottom, token.text, bottom.start, token.end);
@@ -671,13 +674,18 @@ function parseExpressionBase(lex) {
             lex.assert(':'); // for sanity and to pop
             return parseDeclaration(lex, temp);
         }
-        if (peeked.type === '(' ||
-            peeked.type === '[') {
+        if (peeked.type === '[') {
+            let temp = convertStackToMember(base);
+            lex.assert('[');
+            let subscript = parseExpression(lex);
+            let end = lex.assert(']');
+            return accumulate([new nodes.SubscriptNode(temp, subscript, temp.start, end)]);
+        }
+        if (peeked.type === '(') {
             // We've hit a call or subscript. This means that we can defer
             // to the normal expression parse flow because it cannot be a
             // declaration:
             //   foo.bar() ...
-            //   foo[bar] = ...
             let temp = convertStackToMember(base);
             temp = parseExpression(lex, temp, 0);
             let semicolon = lex.assert(';');

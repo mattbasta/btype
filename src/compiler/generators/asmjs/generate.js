@@ -11,7 +11,7 @@ import * as symbols from '../../../symbols';
 var argv = require('minimist')(process.argv.slice(2));
 
 
-function getHeapSize(n) {
+function nextPowerOfTwo(n) {
     // This calculates the next power of two
     var x = Math.log(n) / Math.LN2;
     x = Math.floor(x);
@@ -24,7 +24,7 @@ function makeModule(env, ENV_VARS, body) {
     return [
         '(function(module) {',
         // Create the heap
-        'var heap = new ArrayBuffer(' + getHeapSize(ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
+        'var heap = new ArrayBuffer(' + nextPowerOfTwo(ENV_VARS.HEAP_SIZE + ENV_VARS.BUDDY_SPACE) + ');',
         // Shim imul if it doesn't exist (*COUGH* NODE *COUGH*)
         'this.Math.imul = this.Math.imul || function imul(a, b) {return (a | 0) * (b | 0) | 0;};',
         // Shim fround in the same way
@@ -201,21 +201,27 @@ export default function generate(env, ENV_VARS) {
             ctxlessType.args.splice(0, 1);
             if (env.funcListTypeMap.has(ctxlessType.flatTypeName(true))) {
                 return;
+            } else {
+                type = type.clone();
+                type.args.splice(0, 1);
             }
         }
 
         var contextedSignatureType = type.clone();
         contextedSignatureType.args.unshift({
             [symbols.IS_CTX_OBJ]: true,
-            flatTypeName: () => 'ptr'
+            flatTypeName: () => 'ptr',
         });
         var contextedSignatureFlistName = env.getFuncListName(contextedSignatureType);
 
         var arglist = type.args.map((_, i) => '_' + i).join(', ');
+
+        var flistSize = nextPowerOfTwo(flist.length) - 1;
+
         body += `
         function calldyn${name}(
             ptr
-            ${type.args.length ? ', ' + arglist : ''}
+            ${arglist ? ', ' + arglist : ''}
         ) {
             ptr = ptr | 0;
             ${type.args.map((t, i) => `_${i} = ${typeAnnotation('_' + i, t)};`).join('\n    ')}
@@ -224,9 +230,9 @@ export default function generate(env, ENV_VARS) {
             funcIdx = ptrheap[ptr + 8 >> 2] | 0;
             ctxPtr = ptrheap[ptr + 12 >> 2] | 0;
             if (!ctxPtr) {
-                return ${name}[funcIdx & ${flist.length - 1}](${arglist});
+                return ${name}[funcIdx & ${flistSize}](${arglist});
             } else {
-                return ${contextedSignatureFlistName}[funcIdx & ${flist.length - 1}](ctxPtr${arglist ? ', ' + arglist : ''});
+                return ${contextedSignatureFlistName}[funcIdx & ${flistSize}](ctxPtr${arglist ? ', ' + arglist : ''});
             }
         }\n`;
     });
