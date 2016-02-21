@@ -56,8 +56,11 @@ function makeModule(env, ENV_VARS, body) {
         '    }',
         '    return out;',
         '}',
+        'function throwErr(str) {',
+        '    throw new Error(readString(str));',
+        '}',
         // Get an instance of the asm module, passing in all of the externally requested items
-        'var ret = module(this, {__initString: initString,' +
+        'var ret = module(this, {__initString: initString, throwErr: throwErr,' +
             env.foreigns.map(foreign => {
                 var base = JSON.stringify(foreign) + ':';
                 if (foreign in externalFuncs) {

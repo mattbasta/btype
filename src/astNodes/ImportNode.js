@@ -1,5 +1,5 @@
 import BaseStatementNode from './BaseStatementNode';
-import ImportHLIR from '../hlirNodes/ImportHLIR';
+import {ImportHLIR} from '../hlirNodes';
 import * as symbols from '../symbols';
 
 

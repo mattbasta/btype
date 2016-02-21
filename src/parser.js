@@ -218,6 +218,13 @@ function parseReturn(lex) {
     }
     return new nodes.ReturnNode(value, head.start, end.end);
 }
+function parseRaise(lex) {
+    var head = lex.accept('raise');
+    if (!head) return;
+    var value = parseExpression(lex);
+    var end = lex.assert(';');
+    return new nodes.RaiseNode(value, head.start, end.end);
+}
 function parseExport(lex) {
     var head = lex.accept('export');
     if (!head) return;
@@ -1132,6 +1139,7 @@ function parseStatement(lex, isRoot = false) {
            isRoot && parseOperatorStatement(lex) ||
            isRoot && parseObjectDeclaration(lex) ||
            parseIf(lex) ||
+           parseRaise(lex) ||
            parseReturn(lex) ||
            isRoot && parseExport(lex) ||
            isRoot && parseImport(lex) ||

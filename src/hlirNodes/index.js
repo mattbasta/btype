@@ -6,9 +6,11 @@ import BinopLogicalHLIR from './BinopLogicalHLIR';
 import BreakHLIR from './BreakHLIR';
 import CallHLIR from './CallHLIR';
 import CallStatementHLIR from './CallStatementHLIR';
+import CatchHLIR from './CatchHLIR';
 import ContinueHLIR from './ContinueHLIR';
 import DeclarationHLIR from './DeclarationHLIR';
 import ExportHLIR from './ExportHLIR';
+import FinallyHLIR from './FinallyHLIR';
 import FunctionHLIR from './FunctionHLIR';
 import IfHLIR from './IfHLIR';
 import ImportHLIR from './ImportHLIR';
@@ -19,6 +21,7 @@ import NegateHLIR from './NegateHLIR';
 import NewHLIR from './NewHLIR';
 import ObjectDeclarationHLIR from './ObjectDeclarationHLIR';
 import ObjectMemberHLIR from './ObjectMemberHLIR';
+import RaiseHLIR from './RaiseHLIR';
 import ReturnHLIR from './ReturnHLIR';
 import RootHLIR from './RootHLIR';
 import SubscriptHLIR from './SubscriptHLIR';
@@ -38,9 +41,11 @@ export {
     BreakHLIR,
     CallHLIR,
     CallStatementHLIR,
+    CatchHLIR,
     ContinueHLIR,
     DeclarationHLIR,
     ExportHLIR,
+    FinallyHLIR,
     FunctionHLIR,
     IfHLIR,
     ImportHLIR,
@@ -51,6 +56,7 @@ export {
     NewHLIR,
     ObjectDeclarationHLIR,
     ObjectMemberHLIR,
+    RaiseHLIR,
     ReturnHLIR,
     RootHLIR,
     SubscriptHLIR,

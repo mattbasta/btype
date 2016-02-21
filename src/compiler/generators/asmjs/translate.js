@@ -504,6 +504,14 @@ NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
     this.operatorStatements.forEach(op => _node(op, env, ctx, tctx));
 });
 
+NODES.set(hlirNodes.RaiseHLIR, function(env, ctx, tctx) {
+    tctx.write(getFunctionDerefs(ctx, this.value));
+
+    tctx.write(
+        `foreign.throwErr(${_node(this.value, env, ctx, tctx)} | 0);`
+    );
+});
+
 NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
     tctx.write(getFunctionDerefs(ctx, this.value));
 

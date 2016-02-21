@@ -1,5 +1,6 @@
 import BaseBlockNode from './BaseBlockNode';
 import * as symbols from '../symbols';
+import {FinallyHLIR} from '../hlirNodes';
 
 
 export default class FinallyNode extends BaseBlockNode {
@@ -28,6 +29,11 @@ export default class FinallyNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
+        return new FinallyHLIR(
+            this[symbols.FMAKEHLIRBLOCK](builder, this.body),
+            this.start,
+            this.end
+        );
     }
 
 };

@@ -4,7 +4,7 @@ import * as symbols from '../symbols';
 export default class BaseBlockNode extends BaseStatementNode {
 
     packBlock(bitstr, propName) {
-        var prop = this[propName]
+        var prop = this[propName];
         if (!prop) {
             bitstr.writebits(0, 1);
             return;

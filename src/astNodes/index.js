@@ -9,6 +9,7 @@ import ContinueNode from './ContinueNode';
 import DeclarationNode from './DeclarationNode';
 import DoWhileNode from './DoWhileNode';
 import ExportNode from './ExportNode';
+import FinallyNode from './FinallyNode';
 import ForNode from './ForNode';
 import FunctionLambdaNode from './FunctionLambdaNode';
 import FunctionNode from './FunctionNode';
@@ -23,6 +24,7 @@ import ObjectMemberNode from './ObjectMemberNode';
 import ObjectMethodNode from './ObjectMethodNode';
 import ObjectOperatorStatementNode from './ObjectOperatorStatementNode';
 import OperatorStatementNode from './OperatorStatementNode';
+import RaiseNode from './RaiseNode';
 import ReturnNode from './ReturnNode';
 import RootNode from './RootNode';
 import SubscriptNode from './SubscriptNode';
@@ -49,6 +51,7 @@ export {
     DeclarationNode,
     DoWhileNode,
     ExportNode,
+    FinallyNode,
     ForNode,
     FunctionLambdaNode,
     FunctionNode,
@@ -63,6 +66,7 @@ export {
     ObjectMethodNode,
     ObjectOperatorStatementNode,
     OperatorStatementNode,
+    RaiseNode,
     ReturnNode,
     RootNode,
     SubscriptNode,

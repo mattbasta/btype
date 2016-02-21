@@ -1,5 +1,6 @@
 import BaseBlockNode from './BaseBlockNode';
 import * as symbols from '../symbols';
+import {CatchHLIR} from '../hlirNodes';
 
 
 export default class CatchNode extends BaseBlockNode {
@@ -34,6 +35,12 @@ export default class CatchNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
+        return new CatchHLIR(
+            this.ident ? this.ident[symbols.FMAKEHLIR](builder) : null,
+            this[symbols.FMAKEHLIRBLOCK](builder, this.body),
+            this.start,
+            this.end
+        );
     }
 
 };

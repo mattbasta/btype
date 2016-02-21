@@ -296,6 +296,12 @@ NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
     this.operatorStatements.forEach(op => _node(op, env, ctx, tctx));
 });
 
+NODES.set(hlirNodes.RaiseHLIR, function(env, ctx, tctx) {
+    tctx.write(
+        `throw new Error(${_node(this.value, env, ctx, tctx)});`
+    );
+});
+
 NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
     if (!this.value) {
         if (ctx.scope[symbols.IS_CONSTRUCTOR] === 'constructor') {

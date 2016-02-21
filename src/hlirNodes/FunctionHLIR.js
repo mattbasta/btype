@@ -15,6 +15,7 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
         this.params = params;
         this.name = name;
         this.body = null;
+        this.hasLandingPad = false;
     }
 
     setBody(body) {
