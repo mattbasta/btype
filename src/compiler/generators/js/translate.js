@@ -124,6 +124,11 @@ NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
     return `${callee}(${params()})`;
 });
 
+NODES.set(hlirNodes.CatchHLIR, function(env, ctx, tctx) {
+    tctx.write(`var ${_node(this.ident, env, ctx, tctx)} = e;`);
+    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
+});
+
 NODES.set(hlirNodes.ContinueHLIR, function() {
     tctx.write('continue;');
 });
@@ -148,11 +153,27 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
     tctx.write(this[symbols.ASSIGNED_NAME] + ' = ' + _node(this.value, env, ctx, tctx) + ';');
 });
 
+NODES.set(hlirNodes.FinallyHLIR, function(env, ctx, tctx) {
+    tctx.write('finally {');
+    tctx.write('if (finishedCatch) {');
+    this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
+    tctx.write('}');
+    tctx.write('}');
+});
+
 NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     var context = this[symbols.CONTEXT];
 
+    var hasLandingpad = Boolean(this.catches.length || this.finally);
+
+
+    var funcActualName = this[symbols.ASSIGNED_NAME];
+    if (hasLandingpad) {
+        funcActualName += '$inner';
+    }
+
     tctx.write(
-        `function ${this[symbols.ASSIGNED_NAME]}(${
+        `function ${funcActualName}(${
             this.params.map(param => _node(param, env, context, tctx)).join(',')
         }) {`
     );
@@ -167,6 +188,28 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     tctx.pop();
 
     tctx.write('}');
+
+    // If the function deals with panics, we uplift the main body to another
+    // function. This is because most JS engines don't optimize functions with
+    // a try block.
+    if (hasLandingpad) {
+        // We use collapsed params because it's faster at runtime than using
+        // the `arguments` object.
+        let collapsedParams = this.params.map((_, i) => `_${i}`).join(',');
+        tctx.write(
+            `function ${this[symbols.ASSIGNED_NAME]}(${collapsedParams}) {
+                var finishedCatch = ${this.catches.length ? 'false' : 'true'};
+                try {
+                    return ${this[symbols.ASSIGNED_NAME]}$inner(${collapsedParams});
+                } catch (e) {
+                    ${this.catches.length ?
+                        _node(this.catches[0], env, ctx, tctx) + '\nfinishedCatch = true;\n' :
+                        'throw e;'}
+                }
+                ${this.finally ? _node(this.finally, env, context, tctx) : ''}
+            }`
+        );
+    }
 });
 
 NODES.set(hlirNodes.IfHLIR, function(env, ctx, tctx) {
@@ -311,7 +354,7 @@ NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
         tctx.write('return;');
         return;
     }
-    tctx.write('return ' + _node(this.value, env, ctx, tctx) + ';');
+    tctx.write(`return ${_node(this.value, env, ctx, tctx)};`);
 });
 
 NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx) {
@@ -325,14 +368,14 @@ NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx) {
     if ((temp = env.registeredOperators.get(baseType.flatTypeName())) &&
         (temp = temp.get(subscriptType.flatTypeName())) &&
         temp.has('[]')) {
-        return temp.get('[]') + '(' + baseOutput + ',' + subscriptOutput + ')';
+        return `${temp.get('[]')}(${baseOutput}, ${subscriptOutput})`;
     }
 
     if (baseType._type === 'string') {
-        return baseOutput + '.charCodeAt(' + subscriptOutput + ')';
+        return `${baseOutput}.charCodeAt(${subscriptOutput})`;
     }
 
-    return baseOutput + '[' + subscriptOutput + ']';
+    return `${baseOutput}[${subscriptOutput}]`;
 });
 
 NODES.set(hlirNodes.SymbolHLIR, function() {
