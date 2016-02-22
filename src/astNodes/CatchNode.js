@@ -1,6 +1,7 @@
 import BaseBlockNode from './BaseBlockNode';
-import * as symbols from '../symbols';
 import {CatchHLIR} from '../hlirNodes';
+import {Context} from '../compiler/context';
+import * as symbols from '../symbols';
 
 
 export default class CatchNode extends BaseBlockNode {
@@ -35,12 +36,28 @@ export default class CatchNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        return new CatchHLIR(
+        var catchNode = new CatchHLIR(
             this.ident ? this.ident[symbols.FMAKEHLIR](builder) : null,
-            this[symbols.FMAKEHLIRBLOCK](builder, this.body),
             this.start,
             this.end
         );
+
+        var ctx = builder.peekCtx();
+        var newCtx = new Context(builder.env, catchNode, ctx, builder.privileged);
+        if (this.ident) {
+            // FIXME: This needs a type.
+            catchNode.ident[symbols.ASSIGNED_NAME] = newCtx.addVar(this.ident.name, null);
+        }
+
+        catchNode[symbols.CONTEXT] = newCtx;
+
+        builder.pushCtx(newCtx);
+        catchNode.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
+        builder.popCtx();
+
+        catchNode.settleTypes();
+
+        return catchNode;
     }
 
 };
