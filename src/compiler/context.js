@@ -56,10 +56,11 @@ class BaseContext {
     }
 
     serializePrototypeName(name, attributes) {
+        const assignedName = this.prototypes.get(name);
         // We don't need to recursively use serializePrototypeName because at
         // this point, the constructor would have already been built if the
         // type needs to go through the construction process.
-        return `${name}<${attributes.map(a => a.flatTypeName()).join(',')}>`;
+        return `${assignedName}<${attributes.map(a => a.flatTypeName()).join(',')}>`;
     }
 
 }
@@ -75,10 +76,6 @@ export class RootContext extends BaseContext {
 
         // A mapping of user-provided names to object declaration prototypes
         this.prototypes = new Map();
-        // A mapping of serialized prototype names of constructed prototypes to the cloned object declaration
-        this.constructedPrototypes = new Map();
-        // A mapping of serialized prototype names of constructed prototypes to their respective types
-        this.constructedPrototypeTypes = new Map();
 
         // A mapping of given names for types in this context to assigned names
         this.typeNameMap = new Map();  // Actual types are stored in the environment
@@ -137,14 +134,18 @@ export class RootContext extends BaseContext {
     /**
      * Registers an object declaration as a prototype
      * @param  {string} givenTypeName
-     * @param  {*} type The AST node of the object
+     * @param  {*} node The AST node of the object
      * @return {void}
      */
-    registerPrototype(givenTypeName, type) {
+    registerPrototype(givenTypeName, node) {
         if (this.prototypes.has(givenTypeName)) {
             throw new TypeError(`Cannot declare object more than once: ${givenTypeName}`);
         }
-        this.prototypes.set(givenTypeName, type);
+        const assignedName = this.env.namer();
+        this.prototypes.set(givenTypeName, assignedName);
+        node[symbols.ASSIGNED_NAME] = assignedName;
+        node[symbols.CONTEXT] = this;
+        this.env.prototypes.set(assignedName, node);
     }
 
     registerType(givenTypeName, type, assignedName) {
@@ -160,7 +161,7 @@ export class RootContext extends BaseContext {
         }
 
         if (this.typeNameMap.has(typeName)) {
-            return this.env.typeMap[this.typeNameMap[typeName]];
+            return this.env.typeMap.get(this.typeNameMap.get(typeName));
         }
 
         // There are no primitives that use attributes.
@@ -168,28 +169,32 @@ export class RootContext extends BaseContext {
     }
 
     resolvePrototype(typeName, attributes) {
+        const nodeAssignedName = this.prototypes.get(typeName);
         const serName = this.serializePrototypeName(typeName, attributes);
+        const env = this.env;
+
         // If we've already seen the constructed version of this prototype,
         // return it directly.
-        if (this.constructedPrototypes.has(serName)) {
-            return this.constructedPrototypeTypes.get(serName);
+        if (this.env.constructedPrototypes.has(serName)) {
+            return env.constructedPrototypeTypes.get(serName);
         }
 
         const typeMap = new Map();
         const type = new Struct(typeName, typeMap, attributes);
 
-        const astNode = this.prototypes.get(typeName);
-        const hlirNode = astNode[symbols.FCONSTRUCT](this, attributes);
+        const astNode = env.prototypes.get(nodeAssignedName);
+        const astNodeContext = astNode[symbols.CONTEXT];
+        const hlirNode = astNode[symbols.FCONSTRUCT](astNodeContext, attributes);
 
         const assignedName = hlirNode[symbols.ASSIGNED_NAME];
         type[symbols.ASSIGNED_NAME] = assignedName;
 
         // Register the incomplete type immediately.
-        this.env.registerType(assignedName, type, this);
+        env.registerType(assignedName, type, astNodeContext);
         // Record a copy of the constructed declaration
-        this.constructedPrototypes.set(serName, hlirNode);
+        env.constructedPrototypes.set(serName, hlirNode);
         // Record the incomplete type, which will get fully populated below.
-        this.constructedPrototypeTypes.set(serName, type);
+        env.constructedPrototypeTypes.set(serName, type);
 
         hlirNode.members.forEach(m => {
             typeMap.set(m.name, m.resolveType(hlirNode[symbols.CONTEXT]));
@@ -198,7 +203,7 @@ export class RootContext extends BaseContext {
         });
 
         // Settle types of any non-member properties on the objects.
-        hlirNode.settleTypes(this);
+        hlirNode.settleTypes(astNodeContext);
 
         // Now we bind the methods and constructors, since we've registered
         // everything. That means we won't get into a recursive loop trying to
@@ -207,8 +212,8 @@ export class RootContext extends BaseContext {
 
         if (hlirNode.objConstructor) {
             const constructorAN = hlirNode.objConstructor[symbols.ASSIGNED_NAME];
-            this.functionDeclarations.set(constructorAN, hlirNode.objConstructor);
-            this.isFuncSet.add(constructorAN);
+            astNodeContext.functionDeclarations.set(constructorAN, hlirNode.objConstructor);
+            astNodeContext.isFuncSet.add(constructorAN);
 
             type.objConstructor = constructorAN;
 
@@ -220,8 +225,8 @@ export class RootContext extends BaseContext {
 
         hlirNode.methods.forEach(m => {
             const assignedName = m[symbols.ASSIGNED_NAME];
-            this.functionDeclarations.set(assignedName, m);
-            this.isFuncSet.add(assignedName);
+            astNodeContext.functionDeclarations.set(assignedName, m);
+            astNodeContext.isFuncSet.add(assignedName);
 
             type.methods.set(m.name, assignedName);
             if (m[symbols.IS_PRIVATE]) type.privateMembers.add(m.name);
@@ -232,12 +237,12 @@ export class RootContext extends BaseContext {
 
         hlirNode.operatorStatements.forEach(m => {
             const assignedName = m[symbols.ASSIGNED_NAME];
-            this.functionDeclarations.set(assignedName, m);
-            this.isFuncSet.add(assignedName);
+            astNodeContext.functionDeclarations.set(assignedName, m);
+            astNodeContext.isFuncSet.add(assignedName);
             m[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
         });
 
-        this.scope.body.push(hlirNode);
+        astNodeContext.scope.body.push(hlirNode);
 
         constructionTasks.forEach(task => task());
 

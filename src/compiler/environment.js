@@ -74,6 +74,13 @@ export default class Environment {
         // Mapping of string literal text to a global name for the string
         this.registeredStringLiterals = new Map();
 
+        // Map of unconstructed prototype assigned names to AST nodes
+        this.prototypes = new Map();
+        // Map of constructed prototype serialized names to the cloned object declaration AST
+        this.constructedPrototypes = new Map();
+        // Map of constructed prototype serialized names to the object's resolve type
+        this.constructedPrototypeTypes = new Map();
+
         setupEnvironment(this);
     }
 
