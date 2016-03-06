@@ -35,14 +35,14 @@ export default class DoWhileNode extends BaseLoopNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+        const conditionNode = this.condition[symbols.FMAKEHLIR](builder);
 
-        var node = new LoopHLIR(
+        const node = new LoopHLIR(
             new LiteralHLIR(new TypeHLIR('bool'), true, 0, 0),
             this.start,
             this.end
         );
-        var body = this[symbols.FMAKEHLIRBLOCK](builder, this.body);
+        const body = this[symbols.FMAKEHLIRBLOCK](builder, this.body);
         body.push(
             new IfHLIR(conditionNode, [new BreakHLIR(0, 0)], null, 0, 0)
         );

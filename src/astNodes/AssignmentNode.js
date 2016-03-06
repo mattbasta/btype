@@ -37,19 +37,19 @@ export default class AssignmentNode extends BaseStatementNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var baseNode = this.base[symbols.FMAKEHLIR](builder);
+        const baseNode = this.base[symbols.FMAKEHLIR](builder);
 
         if (baseNode instanceof SymbolHLIR &&
             baseNode[symbols.REFCONTEXT].isFuncSet.has(baseNode[symbols.REFNAME])) {
             throw this.TypeError('Cannot assign values to function declarations');
         }
 
-        var baseType = baseNode.resolveType(builder.peekCtx());
+        const baseType = baseNode.resolveType(builder.peekCtx());
         if (builder.peekCtx().sideEffectFree) {
             this[HAS_SIDEEFFECTS](builder, baseType);
         }
 
-        var valueNode = this.value[symbols.FMAKEHLIR](builder, baseType);
+        const valueNode = this.value[symbols.FMAKEHLIR](builder, baseType);
 
         return new AssignmentHLIR(baseNode, valueNode, this.start, this.end);
     }
@@ -60,7 +60,8 @@ export default class AssignmentNode extends BaseStatementNode {
                 if (!called &&
                     node[symbols.REFCONTEXT] !== builder.rootCtx() &&
                     node[symbols.REFCONTEXT] !== builder.peekCtx()) {
-                    var i = builder.contextStack.length - 1;
+
+                    let i = builder.contextStack.length - 1;
                     while (builder.contextStack[i] &&
                            builder.contextStack[i] !== node[symbols.REFCONTEXT]) {
                         builder.contextStack[i].lexicalModifications.add(node[symbols.REFNAME]);
@@ -83,8 +84,8 @@ export default class AssignmentNode extends BaseStatementNode {
                 return follow(node.callee, true);
             }
         }
-        var hasSideEffects = follow(baseNode);
 
+        const hasSideEffects = follow(baseNode);
         if (hasSideEffects) {
             builder.peekCtx().sideEffectFree = false;
         }

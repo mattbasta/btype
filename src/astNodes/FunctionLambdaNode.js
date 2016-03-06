@@ -48,10 +48,10 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
             throw this.TypeError(`Lambda function expected inferred type with ${this.params.length} arguments, ${expectedType.args.length} found`);
         }
 
-        var returnType = expectedType.returnType;
+        const returnType = expectedType.returnType;
         this[INFERRED_RETURN_TYPE] = returnType;
 
-        var paramNodes = this.params.map((p, i) => {
+        const paramNodes = this.params.map((p, i) => {
             return new TypedIdentifierHLIR(
                 p.name,
                 TypeHLIR.from(expectedType.args[i]),
@@ -60,9 +60,9 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
             );
         });
 
-        var assignedName = builder.env.namer();
+        const assignedName = builder.env.namer();
 
-        var node = new FunctionHLIR(
+        const node = new FunctionHLIR(
             TypeHLIR.from(returnType),
             'anonymous',
             paramNodes,
@@ -71,7 +71,7 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
         );
 
         node[symbols.ASSIGNED_NAME] = assignedName;
-        var ctx = builder.peekCtx();
+        const ctx = builder.peekCtx();
         ctx.functions.add(node);
         ctx.functionDeclarations.set(assignedName, node);
         ctx.isFuncSet.add(assignedName);
@@ -81,7 +81,7 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
         // static closures.
         node[symbols.IS_FIRSTCLASS] = false;
 
-        var newCtx = new Context(builder.env, node, ctx, builder.privileged);
+        const newCtx = new Context(builder.env, node, ctx, builder.privileged);
         paramNodes.forEach(pn => {
             pn[symbols.ASSIGNED_NAME] = newCtx.addVar(pn.name, pn.resolveType(newCtx));
         });
@@ -92,7 +92,7 @@ export default class FunctionLambdaNode extends BaseExpressionNode {
     }
 
     [symbols.FCONSTRUCT](builder, hlir) {
-        var ctx = hlir[symbols.CONTEXT];
+        const ctx = hlir[symbols.CONTEXT];
         builder.pushCtx(ctx);
         hlir.setBody([
             new ReturnHLIR(

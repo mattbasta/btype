@@ -9,7 +9,7 @@ import * as symbols from './symbols';
  * @return {string}
  */
 function parseString(input) {
-    var stripped = input.substring(1, input.length - 1);
+    const stripped = input.substring(1, input.length - 1);
 
     return stripped.replace(/\\(\w|\\)/gi, function(_, b) {
         switch (b) {
@@ -47,7 +47,7 @@ export default function parse(lex) {
 };
 
 function raiseSyntaxError(message, startIndex, endIndex) {
-    var err = new SyntaxError(message);
+    const err = new SyntaxError(message);
     err[symbols.ERR_MSG] = message;
     err[symbols.ERR_START] = startIndex;
     err[symbols.ERR_END] = endIndex;
@@ -61,8 +61,8 @@ function parseFunctionDeclaration(lex, func) {
         return parseDeclaration(lex, func);
     }
 
-    var returnType = parseType(lex);
-    var identifier = null;
+    let returnType = parseType(lex);
+    let identifier = null;
 
     // If no return type is specified, swap the return type and name
     if (lex.accept(':')) {
@@ -72,7 +72,7 @@ function parseFunctionDeclaration(lex, func) {
         returnType = null;
     }
 
-    var parameters = [];
+    let parameters = [];
     // Parameter lists are optional.
     if (lex.accept('(')) {
         // If it's not an empty parameter list, start parsing.
@@ -85,8 +85,8 @@ function parseFunctionDeclaration(lex, func) {
     }
     lex.assert('{');
 
-    var body = parseStatementsWithCatchesAndFinally(lex, '}');
-    var end = lex.assert('}');
+    const body = parseStatementsWithCatchesAndFinally(lex, '}');
+    const end = lex.assert('}');
 
     return new nodes.FunctionNode(
         returnType,
@@ -99,13 +99,9 @@ function parseFunctionDeclaration(lex, func) {
 }
 
 function parseFunctionExpression(lex, func) {
-    var returnType = null;
+    const returnType = lex.peek().type === 'identifier' ? parseType(lex) : null;
 
-    if (lex.peek().type === 'identifier') {
-        returnType = parseType(lex);
-    }
-
-    var parameters = [];
+    let parameters = [];
     // Parameter lists are optional.
     if (lex.accept('(')) {
         // If it's not an empty parameter list, start parsing.
@@ -118,9 +114,8 @@ function parseFunctionExpression(lex, func) {
     }
     lex.assert('{');
 
-    var body = parseStatementsWithCatchesAndFinally(lex, '}');
-
-    var end = lex.assert('}');
+    const body = parseStatementsWithCatchesAndFinally(lex, '}');
+    const end = lex.assert('}');
 
     return new nodes.FunctionNode(
         returnType,
@@ -146,13 +141,16 @@ function parseStatementsWithCatchesAndFinally(lex, stmts) {
 }
 
 function parseCatches(lex) {
-    var result = [];
-    var catchStart;
-    while (catchStart = lex.accept('catch')) {
-        let ident = lex.accept('identifier');
+    const result = [];
+    while (true) {
+        const catchStart = lex.accept('catch')
+        if (!catchStart) {
+            return result;
+        }
+        const ident = lex.accept('identifier');
         lex.assert('{');
-        let body = parseStatements(lex, '}');
-        let catchEnd = lex.assert('}');
+        const body = parseStatements(lex, '}');
+        const catchEnd = lex.assert('}');
         result.push(
             new nodes.CatchNode(
                 ident,
@@ -162,13 +160,12 @@ function parseCatches(lex) {
             )
         );
     }
-    return result;
 }
 function parseFinally(lex) {
-    var finallyStart = lex.assert('finally');
+    const finallyStart = lex.assert('finally');
     lex.assert('{');
-    var body = parseStatements(lex, '}');
-    var finallyEnd = lex.assert('}');
+    const body = parseStatements(lex, '}');
+    const finallyEnd = lex.assert('}');
     return new nodes.FinallyNode(
         body,
         finallyStart.start,
@@ -177,16 +174,14 @@ function parseFinally(lex) {
 }
 
 function parseIf(lex) {
-    var head;
-    if (!(head = lex.accept('if'))) return;
-    var condition = parseExpression(lex);
-    lex.assert('{')
-    var body;
-    var end;
-    body = parseStatements(lex, '}');
-    end = lex.assert('}');
+    const head = lex.accept('if');
+    if (!head) return;
+    const condition = parseExpression(lex);
+    lex.assert('{');
+    const body = parseStatements(lex, '}');
+    let end = lex.assert('}');
 
-    var alternate = null;
+    let alternate = null;
     if (lex.accept('else')) {
         if (lex.peek().type === 'if') {
             alternate = [end = parseIf(lex)];
@@ -199,14 +194,10 @@ function parseIf(lex) {
     return new nodes.IfNode(condition, body, alternate, head.start, end.end);
 }
 function parseReturn(lex) {
-    var head = lex.accept('return');
+    const head = lex.accept('return');
     if (!head) return;
-    var end = head;
-    var value = null;
-    if (!(end = lex.accept(';'))) {
-        value = parseExpression(lex);
-        end = lex.assert(';');
-    }
+    const value = lex.peek().type !== ';' ? parseExpression(lex) : null;
+    const end = lex.assert(';');
     return new nodes.ReturnNode(value, head.start, end.end);
 }
 function parseRaise(lex) {
@@ -217,94 +208,80 @@ function parseRaise(lex) {
     return new nodes.RaiseNode(value, head.start, end.end);
 }
 function parseExport(lex) {
-    var head = lex.accept('export');
+    const head = lex.accept('export');
     if (!head) return;
-    var value = lex.accept('identifier');
-    var end = lex.assert(';');
+    const value = lex.accept('identifier');
+    const end = lex.assert(';');
     return new nodes.ExportNode(value.text, head.start, end.end);
 }
 
 function parseImport(lex) {
-    var head = lex.accept('import');
+    const head = lex.accept('import');
     if (!head) return;
 
-    var value = parseSymbol(lex);
     function parseImportBase(lex, base) {
-        var child;
         if (lex.accept('.')) {
-            child = lex.assert('identifier');
+            const child = lex.assert('identifier');
             base = new nodes.MemberNode(base, child.text, base.start, child.end);
             return parseImportBase(lex, base);
         }
         return base;
     }
-    value = parseImportBase(lex, value);
+    const value = parseImportBase(lex, parseSymbol(lex));
     if (!(value instanceof nodes.MemberNode) && value instanceof nodes.MemberNode) {
         throw new SyntaxError('Unexpected import expression');
     } else if (value instanceof nodes.MemberNode && !(value.base instanceof nodes.SymbolNode)) {
         throw new SyntaxError('Cannot import complex expressions');
     }
 
-    var base = value;
-    var member = null;
-    if (base instanceof nodes.MemberNode) {
-        base = value.base;
-        member = value.child;
-    }
+    const valueIsMember = value instanceof nodes.MemberNode;
+    const base = valueIsMember ? value.base : value;
+    const member = valueIsMember ? value.child : null;
 
-    var alias = null;
-    if (lex.accept('as')) {
-        alias = parseSymbol(lex).name;
-    }
-
-    var end = lex.assert(';');
+    const alias = lex.accept('as') ? parseSymbol(lex).name : null;
+    const end = lex.assert(';');
     return new nodes.ImportNode(base.name, member, alias, head.start, end.end);
 }
 
-var loopDepth = 0;
 function parseWhile(lex) {
-    var head;
-    if (!(head = lex.accept('while'))) return;
-    var condition = parseExpression(lex);
+    const head = lex.accept('while');
+    if (!head) return;
+    const condition = parseExpression(lex);
     lex.assert('{');
-    var body;
-    var end;
-    loopDepth++;
-    body = parseStatements(lex, '}');
-    loopDepth--;
-    end = lex.assert('}');
+    lex.loopDepth++;
+    const body = parseStatements(lex, '}');
+    lex.loopDepth--;
+    const end = lex.assert('}');
     return new nodes.WhileNode(condition, body, head.start, end.end);
 }
 function parseDoWhile(lex) {
-    var head;
-    if (!(head = lex.accept('do'))) return;
+    const head = lex.accept('do');
+    if (!head) return;
     lex.assert('{');
-    loopDepth++;
-    var body = parseStatements(lex, '}');
-    loopDepth--;
+    lex.loopDepth++;
+    const body = parseStatements(lex, '}');
+    lex.loopDepth--;
     lex.assert('}');
     lex.assert('while');
-    var condition = parseExpression(lex);
-    var end = lex.assert(';');
+    const condition = parseExpression(lex);
+    const end = lex.assert(';');
     return new nodes.DoWhileNode(condition, body, head.start, end.end);
 }
 function parseFor(lex) {
-    var head;
-    if (!(head = lex.accept('for'))) return;
-    var assignment = parseAssignment(lex);
-    var condition = parseExpression(lex);
+    const head = lex.accept('for');
+    if (!head) return;
+    const assignment = parseAssignment(lex);
+    const condition = parseExpression(lex);
     lex.assert(';');
-    var iteration;
+    let iteration;
     if (lex.peek().type !== '{') {
         iteration = parseAssignment(lex);
     }
     lex.assert('{');
-    var end;
-    var body;
-    loopDepth++;
-    body = parseStatements(lex, '}');
-    loopDepth--;
-    end = lex.assert('}');
+    lex.loopDepth++;
+    const body = parseStatements(lex, '}');
+    lex.loopDepth--;
+    const end = lex.assert('}');
     return new nodes.ForNode(
         assignment,
         condition,
@@ -315,7 +292,7 @@ function parseFor(lex) {
     );
 }
 function parseDeclaration(lex, type, start, isConst) {
-    var origType = type;
+    const origType = type;
     if (type &&
         (!(type instanceof nodes.TypeNode) &&
          !(type instanceof nodes.TypeMemberNode))) {
@@ -325,10 +302,10 @@ function parseDeclaration(lex, type, start, isConst) {
         }
     }
 
-    var identifier = lex.assert('identifier');
+    const identifier = lex.assert('identifier');
     lex.assert('=');
-    var value = parseExpression(lex);
-    var end = lex.assert(';');
+    const value = parseExpression(lex);
+    const end = lex.assert(';');
     if (isConst) {
         return new nodes.ConstDeclarationNode(
             type || null,
@@ -357,25 +334,24 @@ function parseAssignment(lex, base) {
     }
 
     lex.assert('=');
-    var expression = parseExpression(lex);
+    const expression = parseExpression(lex);
     return new nodes.AssignmentNode(base, expression, base.start, expression.end);
 }
 
 function parseTypeCast(lex, base) {
     lex.assert('as');
-    var type = parseType(lex);
+    const type = parseType(lex);
     return new nodes.TypeCastNode(base, type, base.start, type.end);
 }
 
 function parseSignature(lex, typed, endToken, firstParam) {
-    var params = [];
+    const params = [];
     if (lex.peek().type === endToken) return params;
-    var temp;
     while (true) {
         if (typed) {
             params.push(parseTypedIdentifier(lex));
         } else {
-            temp = parseExpression(lex);
+            let temp = parseExpression(lex);
             params.push(temp);
         }
         if (lex.peek().type === endToken) {
@@ -387,13 +363,13 @@ function parseSignature(lex, typed, endToken, firstParam) {
 }
 function parseCall(lex, base) {
     lex.assert('(');
-    var params = parseSignature(lex, false, ')');
-    var end = lex.assert(')');
+    const params = parseSignature(lex, false, ')');
+    const end = lex.assert(')');
     return new nodes.CallNode(base, params, base.start, end.end);
 }
 function parseMember(lex, base) {
     lex.assert('.');
-    var child = lex.assert('identifier');
+    const child = lex.assert('identifier');
     return new nodes.MemberNode(base, child.text, base.start, child.end);
 }
 
@@ -423,34 +399,32 @@ const OPERATOR_PRECEDENCE = {
 };
 
 function parseOperator(lex, left, newPrec) {
-    var operator = lex.next();
-    var precedence = newPrec;
-    var right = parseExpression(lex, null, precedence);
+    const operator = lex.next();
+    const precedence = newPrec;
+    const right = parseExpression(lex, null, precedence);
     return new nodes.BinopNode(left, operator.type, right, left.start, right.end);
 }
 
 function parseSubscript(lex, base) {
     lex.assert('[');
-    var subscript = parseExpression(lex);
-    var end = lex.assert(']');
+    const subscript = parseExpression(lex);
+    const end = lex.assert(']');
     return new nodes.SubscriptNode(base, subscript, base.start, end.end);
 }
 
 function parseTuple(lex, base) {
-    var endBracket;
-    var content = [];
+    const content = [];
     do {
         content.push(parseExpression(lex));
     } while (lex.accept(','));
 
-    endBracket = lex.assert(']');
-
+    const endBracket = lex.assert(']');
     return new nodes.TupleLiteralNode(content, base.start, endBracket.end);
 }
 
 function parseExpressionModifier(lex, base, precedence) {
-    var part;
-    var peeked = lex.peek();
+    let part;
+    const peeked = lex.peek();
 
     switch (peeked.type) {
         case 'as':
@@ -482,7 +456,7 @@ function parseExpressionModifier(lex, base, precedence) {
         case '>':
         case 'and':
         case 'or':
-            var newPrec = OPERATOR_PRECEDENCE[peeked.type];
+            const newPrec = OPERATOR_PRECEDENCE[peeked.type];
             if (newPrec > precedence) {
                 return parseExpression(lex, parseOperator(lex, base, newPrec), newPrec);
             }
@@ -502,14 +476,13 @@ function parseExpression(lex, base, precedence) {
         if (base === 'EOF' || base.type === 'EOF') {
             throw new SyntaxError('Unexpected end of file in expression');
         }
-        var parsed;
-        var exprBody;
+        let parsed;
         switch (base.type) {
             case '(':
                 if (lex.peek().type === ')') {
                     lex.assert(')');
                     lex.assert(':');
-                    exprBody = parseExpression(lex);
+                    const exprBody = parseExpression(lex);
                     return new nodes.FunctionLambdaNode([], exprBody, base.start, exprBody.end);
                 }
 
@@ -519,7 +492,7 @@ function parseExpression(lex, base, precedence) {
                     return parsed;
                 }
 
-                var args = [parsed];
+                const args = [parsed];
                 while (lex.accept(',')) {
                     args.push(parseSymbol(lex));
                 }
@@ -528,7 +501,7 @@ function parseExpression(lex, base, precedence) {
                 if (!lex.accept(':')) {
                     return parsed;
                 }
-                exprBody = parseExpression(lex);
+                const exprBody = parseExpression(lex);
                 return new nodes.FunctionLambdaNode(args, exprBody, base.start, exprBody.end);
             case '[:':
                 return parseTuple(lex, base);
@@ -552,8 +525,8 @@ function parseExpression(lex, base, precedence) {
             case 'new':
                 parsed = parseType(lex);
                 lex.assert('(');
-                var params = parseSignature(lex, false, ')');
-                var closingParen = lex.assert(')');
+                const params = parseSignature(lex, false, ')');
+                const closingParen = lex.assert(')');
                 return new nodes.NewNode(parsed, params, parsed.start, closingParen.end);
             case 'identifier':
                 return parseSymbol(lex, base);
@@ -569,8 +542,8 @@ function parseExpression(lex, base, precedence) {
         }
     }
     precedence = precedence || 0;
-    var next = parseNext(base || lex.next(), precedence);
-    var prev;
+    let next = parseNext(base || lex.next(), precedence);
+    let prev;
     do {
         prev = next;
         next = parseExpressionModifier(lex, next, precedence);
@@ -583,9 +556,9 @@ function parseType(lex, base, isAttribute) {
         return null;
     }
 
-    var type = base || lex.accept('func') || lex.assert('identifier');
-    var typeEnd = type;
-    var attributes = [];
+    const type = base || lex.accept('func') || lex.assert('identifier');
+    let typeEnd = type;
+    const attributes = [];
 
     function parseAttributes() {
         if (type.type !== 'null' && lex.accept('<')) {
@@ -605,7 +578,7 @@ function parseType(lex, base, isAttribute) {
             }
         }
         function splitRShift() {
-            var orig = typeEnd;
+            const orig = typeEnd;
             typeEnd = orig.clone();
 
             orig.type = '>';
@@ -620,29 +593,26 @@ function parseType(lex, base, isAttribute) {
     }
     parseAttributes();
 
-    var output;
-
     if (!attributes.length && lex.peek().type === '.') {
-        output = new nodes.SymbolNode(type.text, type.start, typeEnd.end);
+        let output = new nodes.SymbolNode(type.text, type.start, typeEnd.end);
 
         while (lex.accept('.')) {
-            let member = lex.assert('identifier');
+            const member = lex.assert('identifier');
             output = new nodes.TypeMemberNode(output, member.text, [], output.start, member.end);
         }
 
         parseAttributes();
         output.attributes = attributes;
-    } else {
-        output = new nodes.TypeNode(type.text, attributes, type.start, typeEnd.end);
+        return output;
     }
+    return new nodes.TypeNode(type.text, attributes, type.start, typeEnd.end);
 
-    return output;
 }
 
 function parseTypedIdentifier(lex, base) {
-    var type = parseType(lex, base);
+    const type = parseType(lex, base);
     lex.assert(':');
-    var ident = lex.assert('identifier');
+    const ident = lex.assert('identifier');
     return new nodes.TypedIdentifierNode(type, ident.text, type.start, ident.end);
 }
 
@@ -650,7 +620,7 @@ function parseExpressionBase(lex) {
     // This function recursively accumulates tokens until the proper node
     // can be determined.
 
-    var base = lex.accept('func');
+    let base = lex.accept('func');
     // If the first token is `func`, we've got two options:
     // - Variable declaration: func<foo>:bar = ...
     // - Function declaration: func foo:bar()...
@@ -659,22 +629,21 @@ function parseExpressionBase(lex) {
         return parseFunctionDeclaration(lex, base);
     }
 
-    var peeked = lex.peek();
+    const peeked = lex.peek();
     // Another option is a paren, which allows its contents to be any valid
     // expression:
     //   (foo as Bar).member = ...
     //   (foo as Bar).method();
     if (peeked.type === '(') {
         lex.accept('(');
-        let base = parseExpression(lex);
+        const base = parseExpression(lex);
         lex.assert(')');
         return accumulate([base]);
     }
 
     // `var` and `const` are giveaways for a Declaration node.
-    if (peeked.type === 'var' ||
-        peeked.type === 'const') {
-        let temp = lex.next();
+    if (peeked.type === 'var' || peeked.type === 'const') {
+        const temp = lex.next();
         return parseDeclaration(lex, null, temp.start, temp.type === 'const');
     }
 
@@ -682,10 +651,10 @@ function parseExpressionBase(lex) {
     base = lex.assert('identifier');
 
     function convertStackToTypeMember(stack) {
-        var bottomToken = stack.shift();
-        var bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
+        const bottomToken = stack.shift();
+        let bottom = new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
         while (stack.length) {
-            let token = stack.shift();
+            const token = stack.shift();
             bottom = new nodes.TypeMemberNode(bottom, token.text, [], bottom.start, token.end);
         }
 
@@ -693,12 +662,12 @@ function parseExpressionBase(lex) {
     }
 
     function convertStackToMember(stack) {
-        var bottomToken = stack.shift();
-        var bottom = bottomToken instanceof BaseNode ?
+        const bottomToken = stack.shift();
+        let bottom = bottomToken instanceof BaseNode ?
             bottomToken :
             new nodes.SymbolNode(bottomToken.text, bottomToken.start, bottomToken.end);
         while (stack.length) {
-            let token = stack.shift();
+            const token = stack.shift();
             bottom = new nodes.MemberNode(bottom, token.text, bottom.start, token.end);
         }
 
@@ -712,25 +681,25 @@ function parseExpressionBase(lex) {
             base.push(lex.assert('identifier'));
             return accumulate(base);
         }
-        var peeked = lex.peek();
+        const peeked = lex.peek();
         if (peeked.type === ':') {
             // We've parsed the type of a declaration.
-            let temp = base.length === 1 ?
+            const temp = base.length === 1 ?
                 parseType(lex, base[0]) :
                 convertStackToTypeMember(base);
             lex.assert(':'); // for sanity and to pop
             return parseDeclaration(lex, temp);
         } else if (peeked.type === '<') {
             // We've encountered the attributes chunk of a typed identifier.
-            let temp = parseType(lex, base.length === 1 ? base[0] : convertStackToMember(base));
+            const temp = parseType(lex, base.length === 1 ? base[0] : convertStackToMember(base));
             lex.assert(':'); // for sanity and to pop
             return parseDeclaration(lex, temp);
         }
         if (peeked.type === '[') {
-            let temp = convertStackToMember(base);
+            const temp = convertStackToMember(base);
             lex.assert('[');
-            let subscript = parseExpression(lex);
-            let end = lex.assert(']');
+            const subscript = parseExpression(lex);
+            const end = lex.assert(']');
             return accumulate([new nodes.SubscriptNode(temp, subscript, temp.start, end)]);
         }
         if (peeked.type === '(') {
@@ -740,7 +709,7 @@ function parseExpressionBase(lex) {
             //   foo.bar() ...
             let temp = convertStackToMember(base);
             temp = parseExpression(lex, temp, 0);
-            let semicolon = lex.assert(';');
+            const semicolon = lex.assert(';');
             if (temp instanceof nodes.CallNode) {
                 temp = new nodes.CallStatementNode(temp, temp.start, semicolon.end);
             }
@@ -750,9 +719,8 @@ function parseExpressionBase(lex) {
         if (peeked.type === '=') {
             // We've hit an assignment:
             //   foo.bar.zap = ...
-            let temp = convertStackToMember(base);
-            temp = parseAssignment(lex, temp);
-            let semicolon = lex.assert(';');
+            const temp = parseAssignment(lex, convertStackToMember(base));
+            const semicolon = lex.assert(';');
             temp.end = semicolon.end;
             return temp;
         }
@@ -762,22 +730,22 @@ function parseExpressionBase(lex) {
 }
 
 function parseBreak(lex) {
-    var stmt = lex.accept('break');
+    const stmt = lex.accept('break');
     if (!stmt) {
         return;
     }
-    if (!loopDepth) {
+    if (!lex.loopDepth) {
         throw new Error('Cannot use `break` when not within a loop');
     }
     lex.assert(';');
     return new nodes.BreakNode(stmt.start, stmt.end);
 }
 function parseContinue(lex) {
-    var stmt = lex.accept('continue');
+    const stmt = lex.accept('continue');
     if (!stmt) {
         return;
     }
-    if (!loopDepth) {
+    if (!lex.loopDepth) {
         throw new Error('Cannot use `continue` when not within a loop');
     }
     lex.assert(';');
@@ -785,15 +753,14 @@ function parseContinue(lex) {
 }
 
 function parseOperatorStatement(lex) {
-    var operator = lex.accept('operator');
+    const operator = lex.accept('operator');
     if (!operator) return;
 
     lex.assert('(');
-    var left = parseTypedIdentifier(lex);
+    const left = parseTypedIdentifier(lex);
     if (lex.accept('[')) {
         return parseOperatorStatementSubscript(lex, operator, left);
     }
-    var binOp;
     switch (lex.peek().type) {
         case '+':
         case '-':
@@ -813,21 +780,26 @@ function parseOperatorStatement(lex) {
         case '>=':
         case '==':
         case '!=':
-            binOp = lex.next().type;
             break;
 
         default:
-            throw new Error('Overriding invalid operator "' + lex.peek().text + '"');
+            throw new Error(`Overriding invalid operator "${lex.peek().text}"`);
     }
-    var right = parseTypedIdentifier(lex);
+    const binOp = lex.next().type;
+    const right = parseTypedIdentifier(lex);
 
     lex.assert(')');
 
-    var returnType = parseType(lex);
+    const returnType = parseType(lex);
 
     lex.assert('{');
+<<<<<<< 9660f2cf88a6d3d47708c9aaaced5c03c92f806c
     var body = parseStatementsWithCatchesAndFinally(lex, '}');
     var endBrace = lex.assert('}');
+=======
+    const body = parseStatements(lex, '}');
+    const endBrace = lex.assert('}');
+>>>>>>> Cleanup, const-ification
 
     return new nodes.OperatorStatementNode(
         returnType,
@@ -841,15 +813,15 @@ function parseOperatorStatement(lex) {
 }
 
 function parseOperatorStatementSubscript(lex, operator, left) {
-    var right = parseTypedIdentifier(lex);
+    const right = parseTypedIdentifier(lex);
     lex.assert(']');
     lex.assert(')');
 
-    var returnType = parseType(lex);
+    const returnType = parseType(lex);
 
     lex.assert('{');
-    var body = parseStatements(lex, '}');
-    var endBrace = lex.assert('}');
+    const body = parseStatements(lex, '}');
+    const endBrace = lex.assert('}');
 
     return new nodes.OperatorStatementNode(
         returnType,
@@ -863,17 +835,17 @@ function parseOperatorStatementSubscript(lex, operator, left) {
 }
 
 function parseObjectDeclaration(lex) {
-    var obj = lex.accept('object');
+    const obj = lex.accept('object');
     if (!obj) return;
 
-    var name = lex.assert('identifier');
+    const name = lex.assert('identifier');
 
-    var attributes = [];
-    var definedAttributes = new Set();
+    const attributes = [];
+    const definedAttributes = new Set();
     if (lex.accept('<')) {
         while (true) {
-            let ident = lex.assert('identifier')
-            let attrIdent = ident.text;
+            const ident = lex.assert('identifier')
+            const attrIdent = ident.text;
             if (definedAttributes.has(attrIdent)) {
                 throw new SyntaxError(
                     `Cannot declare attribute "${attrIdent}" multiple times`
@@ -894,19 +866,18 @@ function parseObjectDeclaration(lex) {
 
     lex.assert('{');
 
-    var constructor = null;
-    var members = [];
-    var methods = [];
-    var operatorStatements = [];
+    let constructor = null;
+    const members = [];
+    const methods = [];
+    const operatorStatements = [];
 
-    var endBrace;
-    while (!(endBrace = lex.accept('}'))) {
+    while (lex.peek().type !== '}') {
         let methodSelfParam = null;
 
-        let isPrivate = lex.accept('private');
-        let isFinal = lex.accept('final');
+        const isPrivate = lex.accept('private');
+        const isFinal = lex.accept('final');
 
-        let constructorBase = lex.accept('new');
+        const constructorBase = lex.accept('new');
         if (constructorBase) {
 
             if (isPrivate) {
@@ -932,10 +903,7 @@ function parseObjectDeclaration(lex) {
                 lex.assert(']');
             }
 
-            let methodSignature = [];
-            if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
-                methodSignature = parseSignature(lex, true, ')');
-            }
+            const methodSignature = !methodSelfParam || lex.accept(',') ? parseSignature(lex, true, ')') : [];
             methodSignature.unshift(
                 methodSelfParam || new nodes.TypedIdentifierNode(
                     new nodes.TypeNode(
@@ -952,8 +920,8 @@ function parseObjectDeclaration(lex) {
 
             lex.assert(')');
             lex.assert('{');
-            let methodBody = parseStatementsWithCatchesAndFinally(lex, '}');
-            endBrace = lex.assert('}');
+            const methodBody = parseStatementsWithCatchesAndFinally(lex, '}');
+            const endBrace = lex.assert('}');
 
             constructor = new nodes.ObjectConstructorNode(
                 methodSignature,
@@ -966,7 +934,7 @@ function parseObjectDeclaration(lex) {
             continue;
 
         } else if (lex.peek().type === 'operator') {
-            var tempOpStmt = parseOperatorStatement(lex);
+            let tempOpStmt = parseOperatorStatement(lex);
 
             if (tempOpStmt.left.type.name !== name.text &&
                 tempOpStmt.right.type.name !== name.text) {
@@ -991,9 +959,9 @@ function parseObjectDeclaration(lex) {
             continue;
         }
 
-        let peekedType = lex.peek();
+        const peekedType = lex.peek();
         let memberType = parseSymbol(lex);
-        let memberStart = isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start;
+        const memberStart = isPrivate ? isPrivate.start : isFinal ? isFinal.start : memberType.start;
         if (lex.peek().text === ':' || lex.peek().text === '<') {
             memberType = parseTypedIdentifier(lex, peekedType);
         }
@@ -1025,10 +993,7 @@ function parseObjectDeclaration(lex) {
                 lex.assert(']');
             }
 
-            let methodSignature = [];
-            if (methodSelfParam && lex.accept(',') || !methodSelfParam) {
-                methodSignature = parseSignature(lex, true, ')');
-            }
+            const methodSignature = !methodSelfParam || lex.accept(',') ? parseSignature(lex, true, ')') : [];
             methodSignature.unshift(
                 methodSelfParam || new nodes.TypedIdentifierNode(
                     new nodes.TypeNode(
@@ -1043,10 +1008,10 @@ function parseObjectDeclaration(lex) {
                 )
             );
 
-            endBrace = lex.assert(')');
+            lex.assert(')');
             lex.assert('{');
-            let methodBody = parseStatementsWithCatchesAndFinally(lex, '}');
-            let methodEndBrace = lex.assert('}');
+            const methodBody = parseStatementsWithCatchesAndFinally(lex, '}');
+            const methodEndBrace = lex.assert('}');
 
             methods.push(
                 new nodes.ObjectMethodNode(
@@ -1067,6 +1032,7 @@ function parseObjectDeclaration(lex) {
 
     }
 
+    const endBrace = lex.assert('}');
     return new nodes.ObjectDeclarationNode(
         name.text,
         constructor,
@@ -1085,22 +1051,22 @@ function parseObjectDeclaration(lex) {
  * @return {SwitchType}
  */
 function parseSwitchType(lex) {
-    var start = lex.accept('switchtype');
+    const start = lex.accept('switchtype');
     if (!start) {
         return null;
     }
 
-    var expr = parseExpression(lex);
+    const expr = parseExpression(lex);
     lex.assert('{');
 
-    var cases = [];
-    var end;
-    do {
-        let c = parseSwitchTypeCase(lex);
-        cases.push(c);
-    } while (!(end = lex.accept('}')));
-
-    return new nodes.SwitchTypeNode(expr, cases, start.start, end.end);
+    const cases = [];
+    while (true) {
+        cases.push(parseSwitchTypeCase(lex));
+        const end = lex.accept('}');
+        if (end) {
+            return new nodes.SwitchTypeNode(expr, cases, start.start, end.end);
+        }
+    }
 }
 
 /**
@@ -1109,13 +1075,13 @@ function parseSwitchType(lex) {
  * @return {SwitchTypeCase}
  */
 function parseSwitchTypeCase(lex) {
-    var start = lex.assert('case');
-    var type = parseType(lex);
+    const start = lex.assert('case');
+    const type = parseType(lex);
     lex.assert('{');
 
-    var body = parseStatements(lex, '}', false);
+    const body = parseStatements(lex, '}', false);
 
-    var end = lex.assert('}');
+    const end = lex.assert('}');
     return new nodes.SwitchTypeCaseNode(type, body, start.start, end.end);
 }
 
@@ -1152,8 +1118,8 @@ function parseStatement(lex, isRoot = false) {
  */
 function parseStatements(lex, endTokens, isRoot = false) {
     endTokens = Array.isArray(endTokens) ? endTokens : [endTokens];
-    var statements = [];
-    var temp = lex.peek();
+    const statements = [];
+    let temp = lex.peek();
     while (endTokens.indexOf(temp) === -1 &&
            (temp.type && endTokens.indexOf(temp.type) === -1)) {
         let statement = parseStatement(lex, isRoot);

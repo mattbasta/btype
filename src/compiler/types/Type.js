@@ -28,8 +28,7 @@ export default class Type {
 
 
     clone() {
-        var x = Object.create(this.constructor.prototype);
-        x = Object.assign(x, this);
+        const x = Object.assign(Object.create(this.constructor.prototype), this);
         x.constructor = this.constructor;
         x.prototype = this.prototype;
 

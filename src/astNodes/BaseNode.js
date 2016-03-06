@@ -35,7 +35,7 @@ export default class BaseNode extends NodeBase {
 
     _indent(input, level) {
         level = level || 1;
-        var indentation = '';
+        let indentation = '';
         while (level) {
             indentation += '    ';
             level--;
@@ -46,10 +46,16 @@ export default class BaseNode extends NodeBase {
     }
 
     clone() {
-        var clone = new this.constructor();
-        Object.keys(this).forEach(k => {
-            clone[k] = this[k];
+        const x = Object.assign(Object.create(this.constructor.prototype), this);
+        x.constructor = this.constructor;
+        x.prototype = this.prototype;
+
+        Object.keys(x).forEach(key => {
+            if (Array.isArray(x[key])) {
+                x[key] = x[key].slice(0);
+            }
         });
+
         return clone;
     }
 
@@ -68,7 +74,7 @@ export default class BaseNode extends NodeBase {
     }
     packStr(bitstr, str) {
         bitstr.writebits(str.length, 32);
-        for (var i = 0 ; i < str.length; i++) {
+        for (let i = 0 ; i < str.length; i++) {
             bitstr.writebits(str.charCodeAt(i), 16);
         }
     }
@@ -79,7 +85,7 @@ export default class BaseNode extends NodeBase {
             if (!node) {
                 return;
             }
-            var ret = cb(node, member);
+            const ret = cb(node, member);
             if (ret === false) {
                 return;
             }

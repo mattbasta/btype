@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import minimist from 'minimist';
-var argv = minimist(process.argv.slice(2));
+const argv = minimist(process.argv.slice(2));
 
 import constantFold from './optimizer/constantFold';
 import ErrorFormatter from '../errorFormatter';
@@ -14,6 +14,7 @@ import Module from './types/Module';
 import NamerFactory from './namer';
 import parser from '../parser';
 import RootContext from './context';
+import {setupEnvironment} from './universalScope';
 import * as specialModules from './specialModules/__directory';
 import * as symbols from '../symbols';
 import transform from './transformer';
@@ -24,9 +25,9 @@ const HEAP_SIZE = argv.heapsize || 64 * 1024 * 1024;
 
 // Declare a set of project environment variables.
 const ENV_VARS = {
-    HEAP_SIZE: HEAP_SIZE,
     BUDDY_SPACE: HEAP_SIZE / LOWEST_ORDER / 4,  // 4 == sizeof(uint8) / 2 bits
-    LOWEST_ORDER: LOWEST_ORDER,
+    HEAP_SIZE,
+    LOWEST_ORDER,
 };
 
 
@@ -73,6 +74,8 @@ export default class Environment {
 
         // Mapping of string literal text to a global name for the string
         this.registeredStringLiterals = new Map();
+
+        setupEnvironment(this);
     }
 
     setConfig(name, value) {

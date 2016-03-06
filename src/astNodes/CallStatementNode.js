@@ -27,7 +27,7 @@ export default class CallStatementNode extends BaseStatementNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var callNode = this.call[symbols.FMAKEHLIR](builder);
+        const callNode = this.call[symbols.FMAKEHLIR](builder);
         return new CallStatementHLIR(callNode, this.start, this.end);
     }
 

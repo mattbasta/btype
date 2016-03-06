@@ -38,8 +38,8 @@ export default class ContextBuilder {
     }
 
     addOpOverload(node) {
-        var [left, right] = node.params;
-        var rootCtx = this.contextStack[0];
+        const [left, right] = node.params;
+        const rootCtx = this.contextStack[0];
         this.env.setOverload(
             left.resolveType(rootCtx),
             right.resolveType(rootCtx),
@@ -52,7 +52,7 @@ export default class ContextBuilder {
 
     processFuncs() {
         this.getFuncs().forEach(f => {
-            let [ast, hlir] = f;
+            const [ast, hlir] = f;
             ast[symbols.FCONSTRUCT](this, hlir);
         });
     }

@@ -53,48 +53,40 @@ export default class BinopNode extends BaseExpressionNode {
     }
 
     toString() {
-        return '(' +
-            this.left.toString() + ' ' +
-            this.operator + ' ' +
-            this.right.toString() +
-            ')';
+        return `(${this.left} ${this.operator} ${this.right})`;
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var node;
-        var leftNode = this.left[symbols.FMAKEHLIR](builder);
-        var rightNode = this.right[symbols.FMAKEHLIR](builder);
+        const leftNode = this.left[symbols.FMAKEHLIR](builder);
+        const rightNode = this.right[symbols.FMAKEHLIR](builder);
 
         switch (this.operator) {
             case 'and':
             case 'or':
-                node = new BinopLogicalHLIR(leftNode, this.operator, rightNode, this.start, this.end);
-                break;
+                return new BinopLogicalHLIR(leftNode, this.operator, rightNode, this.start, this.end);
             case '==':
             case '!=':
             case '>=':
             case '<=':
             case '>':
             case '<':
-                node = new BinopEqualityHLIR(leftNode, this.operator, rightNode, this.start, this.end);
-                break;
+                return new BinopEqualityHLIR(leftNode, this.operator, rightNode, this.start, this.end);
             case '|':
             case '^':
             case '&':
             case '<<':
             case '>>':
-                node = new BinopBitwiseHLIR(leftNode, this.operator, rightNode, this.start, this.end);
-                break;
+                return new BinopBitwiseHLIR(leftNode, this.operator, rightNode, this.start, this.end);
             case '+':
             case '-':
             case '*':
             case '/':
             case '%':
-                node = new BinopArithmeticHLIR(leftNode, this.operator, rightNode, this.start, this.end);
-                break;
+                return new BinopArithmeticHLIR(leftNode, this.operator, rightNode, this.start, this.end);
+            default:
+                throw new Error(`Unrecognized operator "${this.operator}"`);
         }
 
-        return node;
     }
 
 };

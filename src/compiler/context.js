@@ -1,3 +1,4 @@
+import {setupContext} from './universalScope';
 import Struct from './types/Struct';
 import * as symbols from '../symbols';
 import * as types from './types';
@@ -35,6 +36,7 @@ class BaseContext {
         // Map of type aliases to their types
         this.typeDefs = new Map();
 
+        setupContext(this);
     }
 
     /**

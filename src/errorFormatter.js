@@ -12,10 +12,9 @@ export default class ErrorFormatter {
      * @return {int} The column number
      */
     getColumn(startIndex) {
-        var consumed = 0;
+        let consumed = 0;
 
-        var i;
-        for (i = 0; i < this.lines.length; i++) {
+        for (let i = 0; i < this.lines.length; i++) {
             let line = this.lines[i];
             if (consumed + line.length + 1 > startIndex) {
                 break;
@@ -31,10 +30,9 @@ export default class ErrorFormatter {
      * @return {int} The line number
      */
     getLine(startIndex) {
-        var consumed = 0;
+        let consumed = 0;
 
-        var i;
-        for (i = 0; i < this.lines.length; i++) {
+        for (let i = 0; i < this.lines.length; i++) {
             let line = this.lines[i];
             if (consumed + line.length + 1 > startIndex) {
                 return i + 1;
@@ -62,25 +60,20 @@ export default class ErrorFormatter {
      * @return {string} The verbose error
      */
     getVerboseError(line, column) {
-        var [lineData, offset] = this.getTrimmedLine(this.lines[line - 1], column);
+        const [lineData, offset] = this.getTrimmedLine(this.lines[line - 1], column);
 
-        var hasPreviousLine = line > 1;
-        var hasNextLine = line < this.lines.length;
+        const hasPreviousLine = line > 1;
+        const hasNextLine = line < this.lines.length;
 
-        var prefixLength = hasNextLine ? (line + 1).toString().length : line.toString().length;
+        const prefixLength = hasNextLine ? (line + 1).toString().length : line.toString().length;
 
-        var prefix = this.rpad(line.toString(), prefixLength);
-        var cursorPrefix = this.rpad('', prefixLength);
+        const prefix = this.rpad(line.toString(), prefixLength);
+        const cursorPrefix = this.rpad('', prefixLength);
 
-        var output = prefix + ' | ' + lineData + '\n' +
-            cursorPrefix + ' | ' + this.getVerboseErrorCursor(column + offset) + ` (${line}:${column})`;
+        let output = `${prefix} | ${lineData}\n${cursorPrefix} | ${this.getVerboseErrorCursor(column + offset)} (${line}:${column})`;
 
         if (hasPreviousLine) {
-            output = this.rpad((line - 1).toString(), prefixLength) +
-                ' | ' +
-                this.getTrimmedLine(this.lines[line - 2])[0] +
-                '\n' +
-                output;
+            output = `${this.rpad((line - 1).toString(), prefixLength)} | ${this.getTrimmedLine(this.lines[line - 2])[0]}\n${output}`;
         }
         if (hasNextLine) {
             output += '\n' +
@@ -111,7 +104,7 @@ export default class ErrorFormatter {
      * @return {array} Two-tuple containing trimmed line and offset
      */
     getTrimmedLine(lineData, column = 0) {
-        var offset = 0;
+        let offset = 0;
         if (column > 40) {
             lineData = '...' + lineData.substr(column - 37);
             offset -= 40;

@@ -36,8 +36,8 @@ export default class CallNode extends BaseExpressionNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var calleeHLIR = this.callee[symbols.FMAKEHLIR](builder);
-        var calleeHLIRType = calleeHLIR.resolveType(builder.peekCtx());
+        const calleeHLIR = this.callee[symbols.FMAKEHLIR](builder);
+        const calleeHLIRType = calleeHLIR.resolveType(builder.peekCtx());
         return new CallHLIR(
             calleeHLIR,
             this.params.map((p, i) => {

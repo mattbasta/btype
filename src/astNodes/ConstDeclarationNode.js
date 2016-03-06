@@ -31,7 +31,7 @@ export default class ConstDeclarationNode extends BaseStatementNode {
     }
 
     toString() {
-        var out;
+        let out;
         if (this.type) {
             out = this.type.toString() + ':';
         } else {
@@ -47,17 +47,17 @@ export default class ConstDeclarationNode extends BaseStatementNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var typeNode = this.type ? this.type[symbols.FMAKEHLIR](builder) : null;
-        var valueNode = this.value[symbols.FMAKEHLIR](
+        const typeNode = this.type ? this.type[symbols.FMAKEHLIR](builder) : null;
+        const valueNode = this.value[symbols.FMAKEHLIR](
             builder,
             typeNode && typeNode.resolveType(builder.peekCtx())
         );
 
-        var node = new DeclarationHLIR(typeNode, this.name, valueNode);
+        const node = new DeclarationHLIR(typeNode, this.name, valueNode);
         node.setConst(true);
 
-        var ctx = builder.peekCtx();
-        var assignedName = ctx.addVar(this.name, (typeNode || valueNode).resolveType(ctx));
+        const ctx = builder.peekCtx();
+        const assignedName = ctx.addVar(this.name, (typeNode || valueNode).resolveType(ctx));
         node[symbols.ASSIGNED_NAME] = assignedName;
 
         return node;

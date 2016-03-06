@@ -48,13 +48,13 @@ export default class FunctionNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var returnTypeNode = this.returnType ? this.returnType[symbols.FMAKEHLIR](builder) : null;
-        var paramNodes = this.params.map(p => p[symbols.FMAKEHLIR](builder));
+        const returnTypeNode = this.returnType ? this.returnType[symbols.FMAKEHLIR](builder) : null;
+        const paramNodes = this.params.map(p => p[symbols.FMAKEHLIR](builder));
 
-        var assignedName = builder.env.namer();
-        var name = this.name || assignedName;
+        const assignedName = builder.env.namer();
+        const name = this.name || assignedName;
 
-        var node = new FunctionHLIR(
+        const node = new FunctionHLIR(
             returnTypeNode,
             name,
             paramNodes,
@@ -63,7 +63,7 @@ export default class FunctionNode extends BaseBlockNode {
         );
 
         node[symbols.ASSIGNED_NAME] = assignedName;
-        var ctx = builder.peekCtx();
+        const ctx = builder.peekCtx();
         ctx.functions.add(node);
         ctx.addVar(node.name, node.resolveType(ctx), assignedName);
         ctx.functionDeclarations.set(assignedName, node);
@@ -71,7 +71,7 @@ export default class FunctionNode extends BaseBlockNode {
 
         node[symbols.IS_FIRSTCLASS] = false;
 
-        var newCtx = new Context(builder.env, node, ctx, builder.privileged);
+        const newCtx = new Context(builder.env, node, ctx, builder.privileged);
         paramNodes.forEach(pn => {
             pn[symbols.ASSIGNED_NAME] = newCtx.addVar(pn.name, pn.resolveType(newCtx));
         });
@@ -82,7 +82,7 @@ export default class FunctionNode extends BaseBlockNode {
     }
 
     [symbols.FCONSTRUCT](builder, hlir) {
-        var ctx = hlir[symbols.CONTEXT];
+        const ctx = hlir[symbols.CONTEXT];
         builder.pushCtx(ctx);
 
         var exceptBlockFreeBody = this.body.filter(
