@@ -19,8 +19,8 @@ export default class DeclarationHLIR extends BaseHLIR {
 
     settleTypes(ctx) {
         if (this.type) {
-            var baseType = this.type.resolveType(ctx);
-            var valueType = this.value.resolveType(ctx, baseType);
+            const baseType = this.type.resolveType(ctx);
+            const valueType = this.value.resolveType(ctx, baseType);
             if (!baseType.equals(valueType)) {
                 throw this.TypeError(
                     `Cannot assign type ${valueType} to variable of type ${baseType}`

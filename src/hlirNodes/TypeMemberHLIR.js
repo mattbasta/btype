@@ -11,7 +11,7 @@ export default class TypeMemberHLIR extends BaseHLIR {
     }
 
     resolveType(ctx) {
-        var baseType = this.base.resolveType(ctx);
+        const baseType = this.base.resolveType(ctx);
         if (!baseType.hasType(this.child)) {
             throw this.TypeError('Requesting incompatible type (' + this.child + ') from ' + this.base.toString());
         }

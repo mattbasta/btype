@@ -11,7 +11,7 @@ export default class NewHLIR extends BaseExpressionHLIR {
     }
 
     resolveType(ctx, expectedReturn) {
-        var baseType = this.base.resolveType(ctx);
+        const baseType = this.base.resolveType(ctx);
         if (baseType._type === 'primitive') {
             throw this.TypeError(`Cannot instantiate new primitive: ${baseType}`);
         }
@@ -27,8 +27,8 @@ export default class NewHLIR extends BaseExpressionHLIR {
                 }
 
                 this.args.forEach((p, i) => {
-                    var aType = func.params[i + 1].resolveType(func[symbols.CONTEXT]);
-                    var pType = p.resolveType(ctx, aType);
+                    const aType = func.params[i + 1].resolveType(func[symbols.CONTEXT]);
+                    const pType = p.resolveType(ctx, aType);
                     if (!pType.equals(aType)) {
                         throw this.TypeError(
                             `Got ${pType}, but expected ${aType} for parameter ${i} of constructor for ${baseType}`,
@@ -53,7 +53,7 @@ export default class NewHLIR extends BaseExpressionHLIR {
 };
 
 NewHLIR.asFuncRef = function asFuncRef(base, args, start, end) {
-    var fr = new NewHLIR(base, args, start, end);
+    const fr = new NewHLIR(base, args, start, end);
     fr[symbols.IS_FUNCREF] = true;
     return fr;
 };

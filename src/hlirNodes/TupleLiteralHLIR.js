@@ -13,14 +13,14 @@ export default class TupleLiteralHLIR extends BaseExpressionHLIR {
         if (expectedType && expectedType._type !== 'tuple') {
             throw this.TypeError('Tuple used where ' + expectedType + ' was expected');
         }
-        var expectedElementTypes;
+        let expectedElementTypes;
         if (!expectedType) {
             expectedElementTypes = this.elements.map(() => null); // array of nulls
         } else {
             expectedElementTypes = expectedType.contentsTypeArr;
         }
-        var elemTypes = this.elements.map(e => e.resolveType(ctx));
-        var myType = new Tuple(elemTypes);
+        const elemTypes = this.elements.map(e => e.resolveType(ctx));
+        const myType = new Tuple(elemTypes);
 
         if (expectedType && !myType.equals(expectedType)) {
             throw this.TypeError(myType + ' found where ' + expectedType + ' was expected');

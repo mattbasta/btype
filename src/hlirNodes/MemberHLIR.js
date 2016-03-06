@@ -19,7 +19,7 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         if (this[TYPE_CACHE]) {
             return this[TYPE_CACHE];
         }
-        var baseType = this.base.resolveType(ctx);
+        const baseType = this.base.resolveType(ctx);
 
         if (baseType instanceof Struct && baseType.privateMembers.has(this.child)) {
             this.checkVisibility(ctx, baseType);
@@ -44,8 +44,8 @@ export default class MemberHLIR extends BaseExpressionHLIR {
         if (this.checkedVisibility) {
             return;
         }
-        var insideObjectScope = false;
-        var tmp = ctx;
+        let insideObjectScope = false;
+        let tmp = ctx;
         while (tmp) {
             if (tmp[symbols.BASE_PROTOTYPE]) {
                 if (tmp[symbols.BASE_PROTOTYPE][symbols.ASSIGNED_NAME] === baseType[symbols.ASSIGNED_NAME]) {

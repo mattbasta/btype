@@ -12,8 +12,8 @@ export default class BinopBitwiseHLIR extends BaseBinopHLIR {
     }
 
     resolveType(ctx) {
-        var leftType = this.left.resolveType(ctx);
-        var rightType = this.right.resolveType(ctx);
+        const leftType = this.left.resolveType(ctx);
+        const rightType = this.right.resolveType(ctx);
         if (!leftType.equals(rightType)) {
             throw new TypeError('Cannot convert ' + leftType.toString() + ' to ' + rightType.toString() + ' for "' + this.operator + '"');
         }

@@ -15,7 +15,7 @@ export default class LoopHLIR extends BaseBlockHLIR {
     }
 
     settleTypes(ctx) {
-        var conditionType = this.condition.resolveType(ctx);
+        const conditionType = this.condition.resolveType(ctx);
         if (!conditionType.equals(publicTypes.bool)) {
             throw new TypeError('Cannot use ' + conditionType.toString() + ' as loop condition');
         }

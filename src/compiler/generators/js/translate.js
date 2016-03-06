@@ -340,9 +340,8 @@ NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.RaiseHLIR, function(env, ctx, tctx) {
-    tctx.write(
-        `throw new Error(${_node(this.value, env, ctx, tctx)});`
-    );
+    // The `raise`'s expression is converted to a NewHLIR during FMAKEHLIR
+    tctx.write(`throw ${_node(this.value, env, ctx, tctx)};`);
 });
 
 NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {

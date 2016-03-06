@@ -42,7 +42,7 @@ export default class BaseHLIR extends NodeBase {
     }
 
     hasMatchingNode(test) {
-        var found = false;
+        let found = false;
         this.traverse(node => {
             if (found) return;
             if (test(node) || node.hasMatchingNode(test)) {
@@ -54,7 +54,7 @@ export default class BaseHLIR extends NodeBase {
 
     iterate(cb, afterCB) {
         this.traverse((node, member) => {
-            var ret = cb(node, member);
+            const ret = cb(node, member);
             if (ret === false) return;
             node.iterate(cb, afterCB);
             if (afterCB) afterCB(node, member);
@@ -63,7 +63,7 @@ export default class BaseHLIR extends NodeBase {
     iterateBodies(cb, afterCB, filter) {
         if (this.traverseBodies && (!filter || filter(this) !== false)) {
             this.traverseBodies((body, member) => {
-                var ret = cb(body, member);
+                const ret = cb(body, member);
                 if (ret === false) return;
                 if (afterCB) afterCB(body, member);
             });
@@ -87,7 +87,7 @@ export default class BaseHLIR extends NodeBase {
             if (preTraverse) {
                 node.findAndReplace(filter, preTraverse, beforeCB, afterCB);
             }
-            var replacer;
+            let replacer;
             if (filter && (replacer = filter(node, member))) {
                 this.substitute((sNode, member) => {
                     if (node !== sNode) return sNode;
@@ -106,7 +106,7 @@ export default class BaseHLIR extends NodeBase {
     substitute(cb) {
         Object.keys(this).forEach(k => {
             if (k === 'start' || k === 'end') return;
-            var val = this[k];
+            const val = this[k];
             if (Array.isArray(val) && val.some(x => typeof x === 'object')) {
                 this[k] = val.map(e => cb(e, k)).filter(e => e);
             } else if (typeof val !== 'object') {
@@ -118,7 +118,7 @@ export default class BaseHLIR extends NodeBase {
     }
 
     toString() {
-        var out = '';
+        let out = '';
         Object.keys(this).forEach(key => {
             if (key === 'start' || key === 'end') return;
             if (!this[key] || typeof this[key] !== 'object') return;

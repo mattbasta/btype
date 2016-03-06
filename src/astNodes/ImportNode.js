@@ -27,20 +27,17 @@ export default class ImportNode extends BaseStatementNode {
     traverse() {}
 
     toString() {
-        return 'import ' + this.base +
-            (this.member ? '.' + this.member : '') +
-            (this.alias ? ' as ' + this.alias : '') +
-            ';\n';
+        const member = this.member ? `.${this.member}` : '';
+        const alias = this.alias ? `.${this.alias}` : '';
+        return `import ${this.base}${member}${alias};\n`;
     }
 
 
     [symbols.FMAKEHLIR](builder) {
-        var node = new ImportHLIR(this.base, this.member, this.alias, this.start, this.end);
+        const node = new ImportHLIR(this.base, this.member, this.alias, this.start, this.end);
 
-        var imp = builder.env.doImport(node, builder.peekCtx());
-        var impName = this.base;
-        if (this.member) impName = this.member;
-        if (this.alias) impName = this.alias;
+        const imp = builder.env.doImport(node, builder.peekCtx());
+        const impName = this.alias || this.member || this.base;
 
         builder.peekCtx().addVar(impName, imp);
 

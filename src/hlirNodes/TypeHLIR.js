@@ -76,7 +76,7 @@ export default class TypeHLIR extends BaseHLIR {
 };
 
 TypeHLIR.from = function from(type, start = 0, end = 0) {
-    var t = new TypeHLIR(
+    const t = new TypeHLIR(
         type.typeName || type._type,
         [],
         start,

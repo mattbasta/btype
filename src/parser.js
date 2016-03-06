@@ -131,8 +131,11 @@ function parseFunctionExpression(lex, func) {
 function parseStatementsWithCatchesAndFinally(lex, stmts) {
     stmts = Array.isArray(stmts) ? stmts : [stmts];
 
-    var body = parseStatements(lex, stmts.concat(['catch', 'finally']));
-    body = body.concat(parseCatches(lex));
+    const body = parseStatements(
+        lex,
+        stmts.concat(['catch', 'finally'])
+    ).concat(parseCatches(lex));
+
     if (lex.peek().type === 'finally') {
         body.push(parseFinally(lex));
     }
@@ -201,10 +204,10 @@ function parseReturn(lex) {
     return new nodes.ReturnNode(value, head.start, end.end);
 }
 function parseRaise(lex) {
-    var head = lex.accept('raise');
+    const head = lex.accept('raise');
     if (!head) return;
-    var value = parseExpression(lex);
-    var end = lex.assert(';');
+    const value = parseExpression(lex);
+    const end = lex.assert(';');
     return new nodes.RaiseNode(value, head.start, end.end);
 }
 function parseExport(lex) {
@@ -793,13 +796,8 @@ function parseOperatorStatement(lex) {
     const returnType = parseType(lex);
 
     lex.assert('{');
-<<<<<<< 9660f2cf88a6d3d47708c9aaaced5c03c92f806c
-    var body = parseStatementsWithCatchesAndFinally(lex, '}');
-    var endBrace = lex.assert('}');
-=======
-    const body = parseStatements(lex, '}');
+    const body = parseStatementsWithCatchesAndFinally(lex, '}');
     const endBrace = lex.assert('}');
->>>>>>> Cleanup, const-ification
 
     return new nodes.OperatorStatementNode(
         returnType,

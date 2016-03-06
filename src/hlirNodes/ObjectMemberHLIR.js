@@ -14,9 +14,9 @@ export default class ObjectMemberHLIR extends BaseHLIR {
     }
 
     resolveType(ctx) {
-        var baseType = this.type.resolveType(ctx);
+        const baseType = this.type.resolveType(ctx);
         if (this.value) {
-            var valueType = this.value.resolveType(ctx, baseType);
+            const valueType = this.value.resolveType(ctx, baseType);
             if (baseType !== valueType) {
                 throw this.TypeError('Member declared as ' + baseType + ' but initialized with ' + valueType);
             }

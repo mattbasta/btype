@@ -2,13 +2,15 @@ import * as symbols from './symbols';
 
 
 export default class ContextBuilder {
-    constructor(env, privileged) {
+    constructor(env, privileged, errorFormatter) {
         this.env = env;
         this.privileged = privileged;
 
         this.contextStack = [];
         this.functionStack = [];
         this.opOverloads = new Set();
+
+        this.errorFormatter = errorFormatter;
     }
 
     pushCtx(ctx) {

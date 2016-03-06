@@ -30,10 +30,10 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
             return this[TYPE_CACHE];
         }
 
-        var result = this[TYPE_CACHE] = new Func(
+        const result = this[TYPE_CACHE] = new Func(
             this.returnType ? this.returnType.resolveType(ctx) : null,
             this.params.map((p, i) => {
-                var type = p.resolveType(ctx).clone();
+                const type = p.resolveType(ctx).clone();
                 if (i === 0 && this[symbols.IS_METHOD]) {
                     type[symbols.IS_SELF_PARAM] = true;
                 }
@@ -55,17 +55,12 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
             return;
         }
 
-        var expectsReturn = !!this.returnType;
-        var expectedReturnType;
-        if (expectsReturn) {
-            expectedReturnType = this.returnType.resolveType(ctx);
-        }
+        const expectsReturn = !!this.returnType;
+        const expectedReturnType = expectsReturn ? this.returnType.resolveType(ctx) : null;
 
-        var returnsSeen = 0;
-
+        let returnsSeen = 0;
         this.iterateBodies(body => {
-            for (var i = 0; i < body.length; i++) {
-                let node = body[i];
+            for (let node of body) {
                 if (!(node instanceof ReturnHLIR)) continue;
 
                 returnsSeen += 1;
@@ -106,13 +101,13 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
     }
 
     settleTypes() {
-        var ctx = this[symbols.CONTEXT];
+        const ctx = this[symbols.CONTEXT];
         // this.params.forEach(p => p.resolveType(ctx));
         BaseBlockHLIR.prototype.settleTypesForArr.call(this, ctx, this.body);
     }
 
     asString() {
-        var output = `FunctionHLIR(${this.name}:${this[symbols.ASSIGNED_NAME]})`;
+        let output = `FunctionHLIR(${this.name}:${this[symbols.ASSIGNED_NAME]})`;
 
         if (this[symbols.IS_FIRSTCLASS]) {
             output += '[firstclass]';
@@ -122,7 +117,7 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
     }
 
     hasMatchingNodeExceptLastReturn(test) {
-        var body = this.body;
+        let body = this.body;
         if (body[body.length - 1] instanceof ReturnHLIR) {
             body = body.slice(0, body.length - 1);
         }

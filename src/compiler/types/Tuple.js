@@ -11,7 +11,7 @@ export default class Tuple extends Type {
     }
 
     getLayout() {
-        var keys = this.contentsTypeArr.map(function(_, i) {return i;});
+        const keys = this.contentsTypeArr.map(function(_, i) {return i;});
         keys.sort(function(a, b) {
             return memberSize(a) < memberSize(b);
         });
@@ -20,8 +20,8 @@ export default class Tuple extends Type {
 
     getLayoutIndex(index) {
         index = index | 0;
-        var sum = 0;
-        for (var i = 0; i < this.contentsTypeArr.length; i++) {
+        let sum = 0;
+        for (let i = 0; i < this.contentsTypeArr.length; i++) {
             if (i === index) {
                 return sum;
             }
@@ -42,8 +42,8 @@ export default class Tuple extends Type {
     }
 
     getSize() {
-        var sum = 0;
-        for (var i = 0; i < this.contentsTypeArr.length; i++) {
+        let sum = 0;
+        for (let i = 0; i < this.contentsTypeArr.length; i++) {
             sum += memberSize(this.contentsTypeArr[i]);
         }
         return sum;

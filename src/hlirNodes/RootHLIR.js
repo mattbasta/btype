@@ -13,7 +13,7 @@ export default class RootHLIR extends BaseBlockHLIR {
     }
 
     settleTypes() {
-        var ctx = this[symbols.CONTEXT];
+        const ctx = this[symbols.CONTEXT];
         this.settleTypesForArr(ctx, this.body);
     }
 

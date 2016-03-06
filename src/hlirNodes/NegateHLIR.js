@@ -10,7 +10,7 @@ export default class NegateHLIR extends BaseExpressionHLIR {
     }
 
     resolveType(ctx) {
-        var baseType = this.base.resolveType(ctx);
+        const baseType = this.base.resolveType(ctx);
         if (baseType._type !== 'primitive' &&
             baseType.litType !== 'bool') {
             throw this.TypeError('Cannot negate non-bool type');

@@ -2,8 +2,8 @@ import Environment from './environment';
 
 
 export function buildEnv(options) {
-    var env = new Environment(options.filename, options.config);
-    var ctx = env.loadFile(
+    const env = new Environment(options.filename, options.config);
+    const ctx = env.loadFile(
         options.filename,
         options.tree || null,
         options.privileged || false,
@@ -19,6 +19,6 @@ export function buildEnv(options) {
 }
 
 export default function compiler(options) {
-    var env = buildEnv(options);
+    const env = buildEnv(options);
     return env.make(options.format || 'asmjs');
 };

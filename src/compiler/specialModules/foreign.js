@@ -6,7 +6,7 @@ import * as symbols from '../../symbols';
 import * as types from '../types';
 
 
-var MathRaw = `
+const MathRaw = `
     func int:abs(int:i) {}
     export abs;
     func float:acos(float:i) {}
@@ -80,9 +80,9 @@ class StdlibType extends BaseForeignType {
     constructor(env, name, raw) {
         super(env);
         this.name = name;
-        var parsed = parser(lexer(raw));
+        const parsed = parser(lexer(raw));
         parsed[symbols.IGNORE_ERRORS] = true;
-        var hlir = parsed[symbols.FMAKEHLIR](env, true);
+        const hlir = parsed[symbols.FMAKEHLIR](env, true);
         this[RAW] = hlir[symbols.CONTEXT];
 
         this._type = '_stdlib';
@@ -132,10 +132,7 @@ class CurriedForeignType extends BaseForeignType {
                 return new CurriedForeignType(this.env, this.funcName, this.typeChain.concat([name]));
         }
 
-        var returnType = null;
-        if (this.typeChain[0] !== '_null') {
-            returnType = types.resolve(this.typeChain[0]);
-        }
+        let returnType = this.typeChain[0] !== '_null' ? types.resolve(this.typeChain[0]) : null;
         return new Func(returnType, this.typeChain.slice(1).map(types.resolve));
     }
 
@@ -152,9 +149,9 @@ class CurriedForeignType extends BaseForeignType {
 
 
 export function get(env) {
-    var fakeRoot = new RootNode([], 0, 0);
-    var hlir = fakeRoot[symbols.FMAKEHLIR](env, true);
-    var ctx = hlir[symbols.CONTEXT];
+    const fakeRoot = new RootNode([], 0, 0);
+    const hlir = fakeRoot[symbols.FMAKEHLIR](env, true);
+    const ctx = hlir[symbols.CONTEXT];
 
     ctx.exports.set('Math', ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw)));
     ctx.exports.set('external', ctx.addVar('external', new ForeignType(env)));

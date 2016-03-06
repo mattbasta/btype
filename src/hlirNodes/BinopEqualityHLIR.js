@@ -13,8 +13,8 @@ export default class BinopEqualityHLIR extends BaseBinopHLIR {
     }
 
     resolveType(ctx) {
-        var leftType = this.left.resolveType(ctx);
-        var rightType = this.right.resolveType(ctx);
+        const leftType = this.left.resolveType(ctx);
+        const rightType = this.right.resolveType(ctx);
 
         if (!leftType && !rightType) {
             throw new TypeError('Cannot compare null to null');

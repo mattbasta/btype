@@ -39,7 +39,7 @@ export default class Module extends Type {
     }
 
     getStaticMethodType(name) {
-        var assignedName = this.getStaticMethod(name);
+        const assignedName = this.getStaticMethod(name);
         return this.mod.typeMap.get(assignedName);
     }
 

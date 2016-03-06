@@ -9,6 +9,7 @@ export default class RootNode extends BaseBlockNode {
     constructor(body, start, end) {
         super(start, end);
         this.body = body;
+        this.name = '<root>';
     }
 
     get id() {
@@ -30,10 +31,10 @@ export default class RootNode extends BaseBlockNode {
         return this.body.map(e => e.toString()).join('');
     }
 
-    [symbols.FMAKEHLIR](env, privileged) {
-        var builder = new ContextBuilder(env, privileged);
-        var rootHLIR = new RootHLIR(this.start, this.end);
-        var rootCtx = new RootContext(env, rootHLIR, privileged);
+    [symbols.FMAKEHLIR](env, privileged, errorFormatter) {
+        const builder = new ContextBuilder(env, privileged, errorFormatter);
+        const rootHLIR = new RootHLIR(this.start, this.end);
+        const rootCtx = new RootContext(env, rootHLIR, privileged);
 
         builder.pushCtx(rootCtx);
         rootHLIR.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));

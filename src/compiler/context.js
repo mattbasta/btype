@@ -35,8 +35,6 @@ class BaseContext {
 
         // Map of type aliases to their types
         this.typeDefs = new Map();
-
-        setupContext(this);
     }
 
     /**
@@ -93,6 +91,8 @@ export class RootContext extends BaseContext {
         // `null` or a reference to a Function node that is necessary to be run on
         // initialization.
         this.initializer = null;
+
+        setupContext(this);
     }
 
     getRoot() {
@@ -168,20 +168,20 @@ export class RootContext extends BaseContext {
     }
 
     resolvePrototype(typeName, attributes) {
-        var serName = this.serializePrototypeName(typeName, attributes);
+        const serName = this.serializePrototypeName(typeName, attributes);
         // If we've already seen the constructed version of this prototype,
         // return it directly.
         if (this.constructedPrototypes.has(serName)) {
             return this.constructedPrototypeTypes.get(serName);
         }
 
-        var typeMap = new Map();
-        var type = new Struct(typeName, typeMap, attributes);
+        const typeMap = new Map();
+        const type = new Struct(typeName, typeMap, attributes);
 
-        var astNode = this.prototypes.get(typeName);
-        var hlirNode = astNode[symbols.FCONSTRUCT](this, attributes);
+        const astNode = this.prototypes.get(typeName);
+        const hlirNode = astNode[symbols.FCONSTRUCT](this, attributes);
 
-        var assignedName = hlirNode[symbols.ASSIGNED_NAME];
+        const assignedName = hlirNode[symbols.ASSIGNED_NAME];
         type[symbols.ASSIGNED_NAME] = assignedName;
 
         // Register the incomplete type immediately.
@@ -206,7 +206,7 @@ export class RootContext extends BaseContext {
         const constructionTasks = astNode.bindContents(hlirNode);
 
         if (hlirNode.objConstructor) {
-            let constructorAN = hlirNode.objConstructor[symbols.ASSIGNED_NAME];
+            const constructorAN = hlirNode.objConstructor[symbols.ASSIGNED_NAME];
             this.functionDeclarations.set(constructorAN, hlirNode.objConstructor);
             this.isFuncSet.add(constructorAN);
 
@@ -219,7 +219,7 @@ export class RootContext extends BaseContext {
         }
 
         hlirNode.methods.forEach(m => {
-            var assignedName = m[symbols.ASSIGNED_NAME];
+            const assignedName = m[symbols.ASSIGNED_NAME];
             this.functionDeclarations.set(assignedName, m);
             this.isFuncSet.add(assignedName);
 
@@ -231,7 +231,7 @@ export class RootContext extends BaseContext {
         });
 
         hlirNode.operatorStatements.forEach(m => {
-            var assignedName = m[symbols.ASSIGNED_NAME];
+            const assignedName = m[symbols.ASSIGNED_NAME];
             this.functionDeclarations.set(assignedName, m);
             this.isFuncSet.add(assignedName);
             m[symbols.CONTEXT][symbols.BASE_PROTOTYPE] = hlirNode;
@@ -318,10 +318,10 @@ export class Context extends BaseContext {
         this.parent.registerType(...args);
     }
 
-    resolveType(typeName, attributes) {
+    resolveType(typeName, attributes = []) {
         if (this.typeDefs.has(typeName)) {
             if (attributes.length) {
-                var err = new TypeError('Cannot apply attributes to aliased types');
+                const err = new TypeError('Cannot apply attributes to aliased types');
                 // err[symbols.ERR_MSG] = err.message;
                 throw err;
             }

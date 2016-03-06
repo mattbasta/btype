@@ -20,8 +20,8 @@ export default class TypeCastHLIR extends BaseExpressionHLIR {
     }
 
     resolveType(ctx, expectedType) {
-        var baseType = this.base.resolveType(ctx);
-        var targetType = this.target.resolveType(ctx);
+        const baseType = this.base.resolveType(ctx);
+        const targetType = this.target.resolveType(ctx);
         if (expectedType && !expectedType.equals(targetType)) {
             throw this.TypeError(`${baseType} was found where ${expectedType} was expected`);
         }

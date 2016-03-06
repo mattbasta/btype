@@ -13,7 +13,6 @@ import lexer from '../lexer';
 import Module from './types/Module';
 import NamerFactory from './namer';
 import parser from '../parser';
-import RootContext from './context';
 import {setupEnvironment} from './universalScope';
 import * as specialModules from './specialModules/__directory';
 import * as symbols from '../symbols';
@@ -92,7 +91,7 @@ export default class Environment {
             return this.moduleCache.get(filename);
         }
 
-        var errorFormatter;
+        let errorFormatter;
 
         if (!tree) {
             if (!sourceCode) {
@@ -105,7 +104,7 @@ export default class Environment {
             }
 
             errorFormatter = new ErrorFormatter(sourceCode.split(/\n/g));
-            let lex = lexer(sourceCode);
+            const lex = lexer(sourceCode);
             try {
                 tree = parser(lexer(sourceCode));
             } catch (e) {
@@ -116,9 +115,10 @@ export default class Environment {
             errorFormatter = new ErrorFormatter(sourceCode.split(/\n/g));
         }
 
+        let ctx;
         try {
-            var rootNode = tree[symbols.FMAKEHLIR](this, privileged);
-            var ctx = rootNode[symbols.CONTEXT];
+            const rootNode = tree[symbols.FMAKEHLIR](this, privileged, errorFormatter);
+            ctx = rootNode[symbols.CONTEXT];
             rootNode.settleTypes(ctx);
             // console.log('or', ctx.scope.toString());
 
@@ -156,7 +156,7 @@ export default class Environment {
             e[symbols.ERR_COL] = errorFormatter.getColumn(e[symbols.ERR_START]);
         }
 
-        var snippet = errorFormatter.getVerboseError(
+        const snippet = errorFormatter.getVerboseError(
             e[symbols.ERR_LINE],
             e[symbols.ERR_COL]
         );
@@ -164,17 +164,17 @@ export default class Environment {
     }
 
     doImport(importNode, requestingContext) {
-        var target;
+        let target;
 
         // TODO: Make this handle multiple levels of nesting.
-        var baseDir = path.dirname(requestingContext.filename);
+        const baseDir = path.dirname(requestingContext.filename);
         target = path.resolve(baseDir, importNode.base);
         if (importNode.member) {
             target = path.resolve(target, importNode.member);
         }
         target += '.bt';
 
-        var isStdlib = false;
+        let isStdlib = false;
 
         // Test to see whether the file exists in the project
         if (!fs.existsSync(target)) {
@@ -194,8 +194,8 @@ export default class Environment {
                 throw new Error('Could not find imported module: ' + target);
             }
             // Handle the case of special modules
-            let mod = specialModules.getConstructor(importNode.base).get(this);
-            let modType = new Module(mod);
+            const mod = specialModules.getConstructor(importNode.base).get(this);
+            const modType = new Module(mod);
             this.moduleTypeMap.set(target, modType);
             return modType;
         }
@@ -204,8 +204,8 @@ export default class Environment {
             return this.moduleTypeMap.get(target);
         }
 
-        var importedContext = this.loadFile(target, null, isStdlib);
-        var mod = new Module(importedContext);
+        const importedContext = this.loadFile(target, null, isStdlib);
+        const mod = new Module(importedContext);
         this.moduleTypeMap.set(target, mod);
         return mod;
     }
@@ -230,7 +230,7 @@ export default class Environment {
     }
 
     getFuncListName(funcType, noAdd) {
-        var fts = funcType.flatTypeName(true);
+        const fts = funcType.flatTypeName(true);
         if (!this.funcListTypeMap.has(fts) && !noAdd) {
             let name = this.namer();
             this.funcListTypeMap.set(fts, name);
@@ -247,8 +247,8 @@ export default class Environment {
         }
 
         // Get the function's type and use that to determine the table.
-        var ft = funcNode.resolveType(funcNode[symbols.CONTEXT]);
-        var funcList = this.getFuncListName(ft);
+        const ft = funcNode.resolveType(funcNode[symbols.CONTEXT]);
+        const funcList = this.getFuncListName(ft);
         // Add the function's assigned name to the table.
         this.funcList.get(funcList).push(funcNode[symbols.ASSIGNED_NAME]);
 
@@ -270,9 +270,9 @@ export default class Environment {
     }
 
     findFunctionByAssignedName(assignedName) {
-        var temp;
-        for (var i of this.included) {
-            if (temp = i.lookupFunctionByName(assignedName)) {
+        for (let i of this.included) {
+            let temp = i.lookupFunctionByName(assignedName);
+            if (temp) {
                 return temp;
             }
         }
@@ -283,7 +283,7 @@ export default class Environment {
         if (this.registeredStringLiterals.has(text)) {
             return this.registeredStringLiterals.get(text);
         }
-        var name = this.namer();
+        const name = this.namer();
         this.registeredStringLiterals.set(text, name);
         return name;
     }
@@ -292,11 +292,11 @@ export default class Environment {
         if (typeof leftType === 'string') {
             throw new Error();
         }
-        var leftTypeName = leftType.flatTypeName();
+        const leftTypeName = leftType.flatTypeName();
         if (!this.registeredOperators.has(leftTypeName)) {
             return null;
         }
-        var rightTypeName = rightType.flatTypeName();
+        const rightTypeName = rightType.flatTypeName();
         if (!this.registeredOperators.get(leftTypeName).has(rightTypeName)) {
             return null;
         }
@@ -309,20 +309,18 @@ export default class Environment {
     }
 
     getOverloadReturnType(leftType, rightType, operator) {
-        var funcName = this.getOverloadAssignedName(leftType, rightType, operator);
+        const funcName = this.getOverloadAssignedName(leftType, rightType, operator);
         return this.registeredOperatorReturns.get(funcName);
     }
 
     setOverload(leftType, rightType, operator, assignedName, returnType, node) {
-        var temp;
-
-        var leftTypeName = leftType.flatTypeName();
+        const leftTypeName = leftType.flatTypeName();
         if (!this.registeredOperators.has(leftTypeName)) {
             this.registeredOperators.set(leftTypeName, new Map());
         }
-        temp = this.registeredOperators.get(leftTypeName);
+        let temp = this.registeredOperators.get(leftTypeName);
 
-        var rightTypeName = rightType.flatTypeName();
+        const rightTypeName = rightType.flatTypeName();
         if (!temp.has(rightTypeName)) {
             temp.set(rightTypeName, new Map());
         }

@@ -13,7 +13,7 @@ export default class AssignmentHLIR extends BaseHLIR {
     }
 
     settleTypes(ctx) {
-        var baseType = this.base.resolveType(ctx);
+        const baseType = this.base.resolveType(ctx);
 
         if (baseType[symbols.IS_METHOD]) {
             throw this.TypeError(
@@ -25,7 +25,7 @@ export default class AssignmentHLIR extends BaseHLIR {
             this.checkFinality(ctx, baseType);
         }
 
-        var valueType = this.value.resolveType(ctx, baseType);
+        const valueType = this.value.resolveType(ctx, baseType);
         if (!baseType.equals(valueType)) {
             throw this.TypeError(
                 `Attempted to assign ${valueType} to variable declared as ${baseType}`
@@ -35,15 +35,15 @@ export default class AssignmentHLIR extends BaseHLIR {
     }
 
     checkFinality(ctx, baseType) {
-        var member = this.base;
-        var memberBaseType = member.base.resolveType(ctx);
+        const member = this.base;
+        const memberBaseType = member.base.resolveType(ctx);
 
         if (!(memberBaseType instanceof Struct) ||
             !memberBaseType.finalMembers.has(member.child)) {
             return;
         }
 
-        var tmp = ctx;
+        let tmp = ctx;
         while (tmp) {
             // Did we find the constructor in the function stack?
             if (tmp.scope[symbols.ASSIGNED_NAME] === memberBaseType.objConstructor) {

@@ -11,7 +11,7 @@ export default class CallHLIR extends BaseExpressionHLIR {
     }
 
     resolveType(ctx, expectedReturn) {
-        var baseType = this.callee.resolveType(ctx);
+        const baseType = this.callee.resolveType(ctx);
         if (baseType._type !== 'func' &&
             baseType._type !== '_foreign_curry') {
             throw this.TypeError('Cannot call non-func type: ' + baseType);
@@ -21,12 +21,12 @@ export default class CallHLIR extends BaseExpressionHLIR {
             return baseType.getReturnType();
         }
 
-        var expectedParamCount = baseType.args.length;
+        let expectedParamCount = baseType.args.length;
 
-        var receivedParams = this.params.slice(0);
-        var receivedParamCount = receivedParams.length;
+        let receivedParams = this.params.slice(0);
+        let receivedParamCount = receivedParams.length;
 
-        var isMethod = baseType[symbols.IS_METHOD];
+        const isMethod = baseType[symbols.IS_METHOD];
         if (isMethod) {
             expectedParamCount--;
         }
@@ -40,8 +40,8 @@ export default class CallHLIR extends BaseExpressionHLIR {
         }
 
         receivedParams.forEach((p, i) => {
-            var pType = p.resolveType(ctx, baseType.args[i]);
-            var paramIdx = i;
+            const pType = p.resolveType(ctx, baseType.args[i]);
+            let paramIdx = i;
 
             if (isMethod) {
                 // If this is a method call, the first param is the self

@@ -36,17 +36,17 @@ export default class CatchNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var catchNode = new CatchHLIR(
+        const catchNode = new CatchHLIR(
             this.ident ? this.ident[symbols.FMAKEHLIR](builder) : null,
             this.start,
             this.end
         );
 
-        var ctx = builder.peekCtx();
-        var newCtx = new Context(builder.env, catchNode, ctx, builder.privileged);
+        const ctx = builder.peekCtx();
+        const newCtx = new Context(builder.env, catchNode, ctx, builder.privileged);
         if (this.ident) {
-            // FIXME: This needs a type.
-            catchNode.ident[symbols.ASSIGNED_NAME] = newCtx.addVar(this.ident.name, null);
+            const errorType = builder.rootCtx().resolveType('error');
+            catchNode.ident[symbols.ASSIGNED_NAME] = newCtx.addVar(this.ident.name, errorType);
         }
 
         catchNode[symbols.CONTEXT] = newCtx;
