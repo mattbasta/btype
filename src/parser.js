@@ -156,7 +156,7 @@ function parseCatches(lex) {
         const catchEnd = lex.assert('}');
         result.push(
             new nodes.CatchNode(
-                ident,
+                new nodes.SymbolNode(ident.text, ident.start, ident.end),
                 body,
                 catchStart.start,
                 catchEnd.end

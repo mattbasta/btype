@@ -34,7 +34,12 @@ export default function(argv, help) {
 
 export function processData(data, argv, pipe = null) {
     if (!pipe) {
-        pipe = console.log.bind(console);
+        pipe = out => {
+            if (typeof out === 'undefined') {
+                return;
+            }
+            console.log(out);
+        };
     }
 
     var runtimeEntry = argv['runtime-entry'];

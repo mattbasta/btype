@@ -1,13 +1,18 @@
 import BaseBlockHLIR from './BaseBlockHLIR';
 import {publicTypes} from '../compiler/types';
+import * as symbols from '../symbols';
 
 
 export default class CatchHLIR extends BaseBlockHLIR {
 
-    constructor(ident, start, end) {
+    constructor(start, end) {
         super(start, end);
-        this.ident = ident;
+        this.errorIdent = null;
         this.body = null;
+    }
+
+    setErrorIdent(errorIdent) {
+        this.errorIdent = errorIdent;
     }
 
     setBody(body) {
@@ -15,8 +20,7 @@ export default class CatchHLIR extends BaseBlockHLIR {
     }
 
     settleTypes(ctx) {
-        this.ident.resolveType(ctx);
-        this.settleTypesForArr(ctx, this.body);
+        this.settleTypesForArr(this[symbols.CONTEXT], this.body);
     }
 
 };

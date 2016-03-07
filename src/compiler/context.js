@@ -155,7 +155,7 @@ export class RootContext extends BaseContext {
         this.env.registerType(assignedName, type, this);
     }
 
-    resolveType(typeName, attributes) {
+    resolveType(typeName, attributes = []) {
         if (this.prototypes.has(typeName)) {
             return this.resolvePrototype(typeName, attributes);
         }
@@ -185,6 +185,7 @@ export class RootContext extends BaseContext {
         const astNode = env.prototypes.get(nodeAssignedName);
         const astNodeContext = astNode[symbols.CONTEXT];
         const hlirNode = astNode[symbols.FCONSTRUCT](astNodeContext, attributes);
+        type[symbols.CONTEXT] = astNodeContext;
 
         const assignedName = hlirNode[symbols.ASSIGNED_NAME];
         type[symbols.ASSIGNED_NAME] = assignedName;

@@ -10,16 +10,16 @@ const HAS_IMUL = Symbol();
 
 
 function _binop(env, ctx, tctx) {
-    var out;
-    var left = _node(this.left, env, ctx, tctx);
-    var right = _node(this.right, env, ctx, tctx);
+    let out;
+    const left = _node(this.left, env, ctx, tctx);
+    const right = _node(this.right, env, ctx, tctx);
 
-    var leftTypeRaw = this.left.resolveType(ctx);
-    var rightTypeRaw = this.right.resolveType(ctx);
+    const leftTypeRaw = this.left.resolveType(ctx);
+    const rightTypeRaw = this.right.resolveType(ctx);
 
 
     if (leftTypeRaw && rightTypeRaw) {
-        let opFunc = ctx.env.getOverloadAssignedName(leftTypeRaw, rightTypeRaw, this.operator);
+        const opFunc = ctx.env.getOverloadAssignedName(leftTypeRaw, rightTypeRaw, this.operator);
         if (opFunc) {
             return `${opFunc}(${left}, ${right})`;
         }
@@ -105,9 +105,9 @@ NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
-    var params = () => this.params.map(p => _node(p, env, ctx, tctx)).join(',');
+    const params = () => this.params.map(p => _node(p, env, ctx, tctx)).join(',');
 
-    var temp;
+    let temp;
     if (this.callee instanceof hlirNodes.MemberHLIR &&
         (temp = this.callee.base.resolveType(ctx)).hasMethod &&
         temp.hasMethod(this.callee.child)) {
@@ -120,12 +120,13 @@ NODES.set(hlirNodes.CallHLIR, function(env, ctx, tctx) {
             ')';
     }
 
-    var callee = _node(this.callee, env, ctx, tctx);
+    const callee = _node(this.callee, env, ctx, tctx);
     return `${callee}(${params()})`;
 });
 
 NODES.set(hlirNodes.CatchHLIR, function(env, ctx, tctx) {
-    tctx.write(`var ${_node(this.ident, env, ctx, tctx)} = e;`);
+    tctx.write(`var ${this.errorIdent} = null;`);
+    tctx.write(`${this.errorIdent} = e;`);
     this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
 });
 
@@ -134,8 +135,8 @@ NODES.set(hlirNodes.ContinueHLIR, function() {
 });
 
 NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
-    var type = this.value.resolveType(ctx);
-    var output = 'var ' + this[symbols.ASSIGNED_NAME] + ' = ';
+    const type = this.value.resolveType(ctx);
+    let output = 'var ' + this[symbols.ASSIGNED_NAME] + ' = ';
 
     if (this.value instanceof hlirNodes.LiteralHLIR) {
         output += _node(this.value, env, ctx, tctx) + ';';
@@ -143,7 +144,7 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx) {
         return;
     }
 
-    var def;
+    let def;
     if (type && type._type === 'primitive') {
         def = type && (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
     } else if (type) {
@@ -188,7 +189,7 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     tctx.pop();
 
     tctx.write('}');
-
+3
     // If the function deals with panics, we uplift the main body to another
     // function. This is because most JS engines don't optimize functions with
     // a try block.
@@ -201,14 +202,19 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
                 var finishedCatch = ${this.catches.length ? 'false' : 'true'};
                 try {
                     return ${this[symbols.ASSIGNED_NAME]}$inner(${collapsedParams});
-                } catch (e) {
-                    ${this.catches.length ?
-                        _node(this.catches[0], env, ctx, tctx) + '\nfinishedCatch = true;\n' :
-                        'throw e;'}
-                }
-                ${this.finally ? _node(this.finally, env, context, tctx) : ''}
-            }`
+                } catch (e) {`
         );
+        if (this.catches.length) {
+            _node(this.catches[0], env, ctx, tctx);
+            tctx.write('finishedCatch = true;');
+        } else {
+            tctx.write('throw e;');
+        }
+        tctx.write('}');
+        if (this.finally) {
+            _node(this.finally, env, context, tctx);
+        }
+        tctx.write('}');
     }
 });
 
@@ -330,9 +336,8 @@ NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
     // Ignore the unconstructed prototypes
     if (!this[symbols.IS_CONSTRUCTED]) return;
 
-    if (this.objConstructor) {
-        _node(this.objConstructor, env, ctx, tctx);
-    }
+    // We don't output the constructor here. It gets merged with the type
+    // definition in the `generate` module.
 
     this.methods.forEach(method => _node(method, env, ctx, tctx));
 

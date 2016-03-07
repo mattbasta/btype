@@ -33,7 +33,7 @@ export default class ExportNode extends BaseStatementNode {
             if (!thisCtx.prototypes.has(this.value)) {
                 throw new ReferenceError(`Undefined function or type "${this.value}" being exported`);
             }
-            const refName = thisCtx.typeNameMap.get(this.value);
+            const refName = thisCtx.prototypes.get(this.value);
             node[symbols.ASSIGNED_NAME] = refName;
             thisCtx.exportPrototypes.set(this.value, refName);
             return node;

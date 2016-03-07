@@ -9,6 +9,6 @@ require('../src/cli/main').default(argv, help);
 function help() {
     console.log([
         'Usage:',
-        '  bt-run <bt file path> --runtime-entry=<runtime entry func>'
+        '  runbt <bt file path> --runtime-entry=<runtime entry func>'
     ].join('\n'));
 }

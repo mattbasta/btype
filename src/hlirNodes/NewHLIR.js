@@ -21,7 +21,8 @@ export default class NewHLIR extends BaseExpressionHLIR {
             }
 
             if (baseType.objConstructor) {
-                let func = ctx.lookupFunctionByName(baseType.objConstructor);
+                const typeContext = baseType[symbols.CONTEXT].getRoot();
+                const func = typeContext.lookupFunctionByName(baseType.objConstructor);
                 if (this.args.length !== func.params.length - 1) {
                     throw this.TypeError('Number of parameters passed to constructor does not match object constructor signature');
                 }

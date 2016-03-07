@@ -408,7 +408,10 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, parent) {
 
     if (baseType._type === '_foreign_curry') {
         if (parent !== 'call') throw new Error('Cannot generate references to foreign functions');
-        return typeAnnotation(_node(this.base, env, ctx, tctx), this.resolveType(ctx));
+        return typeAnnotation(
+            _node(this.base, env, ctx, tctx, parent),
+            this.resolveType(ctx)
+        );
     }
 
     var base = '(' + typeAnnotation(_node(this.base, env, ctx, tctx), this.base.resolveType(ctx)) + ')';

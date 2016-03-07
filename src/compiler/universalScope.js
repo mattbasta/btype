@@ -40,5 +40,7 @@ export function setupContext(ctx) {
         // This means that we're loading the file in the function above!
         return;
     }
-    ctx.typeNameMap.set('error', commonCtx.exportPrototypes.get('error'));
+    for (let [key, val] of commonCtx.prototypes.entries()) {
+        ctx.prototypes.set(key, val);
+    }
 };

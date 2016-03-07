@@ -1,16 +1,16 @@
-var esprima = require('esprima');
-var escodegen = require('escodegen');
+import esprima from 'esprima';
+import escodegen from 'escodegen';
 
 
 function traverse(node, cb, after, parent, member) {
-    var res = cb(node, parent, member);
+    const res = cb(node, parent, member);
     if (res === false) return;
-    for (var key in node) {
+    for (let key in node) {
         if (!node.hasOwnProperty(key)) continue;
-        var child = node[key];
+        const child = node[key];
         if (typeof child === 'object' && child !== null) {
             if (Array.isArray(child)) {
-                for (var i = 0; i < child.length; i++) {
+                for (let i = 0; i < child.length; i++) {
                     traverse(child[i], cb, after, node, key);
                 }
             } else {
@@ -23,8 +23,8 @@ function traverse(node, cb, after, parent, member) {
 
 
 function upliftDeclarations(body) {
-    var stack = [];
-    traverse(body, function(node, parent, member) {
+    const stack = [];
+    traverse(body, (node, parent, member) => {
         if (node.type === 'FunctionDeclaration') {
             stack.unshift(node);
             return;
@@ -50,7 +50,7 @@ function upliftDeclarations(body) {
         }
 
 
-    }, function(node) {
+    }, node => {
         if (node.type === 'FunctionDeclaration') {
             stack.shift();
         }
@@ -58,8 +58,8 @@ function upliftDeclarations(body) {
 }
 
 function trimBody(body) {
-    var accessorToAccessed = {};
-    var accessedToAccessor = {};
+    const accessorToAccessed = {};
+    const accessedToAccessor = {};
 
     function mark(accessor, accessed) {
         if (!(accessor in accessorToAccessed)) accessorToAccessed[accessor] = [];
@@ -68,10 +68,10 @@ function trimBody(body) {
         accessedToAccessor[accessed].push(accessor);
     }
 
-    var stack = [];
+    const stack = [];
 
     function getAccessorName() {
-        for (var i = stack.length - 1; i >= 0; i--) {
+        for (let i = stack.length - 1; i >= 0; i--) {
             if (stack[i].type === 'FunctionDeclaration') return stack[i].id.name;
             if (stack[i].type === 'VariableDeclarator') return stack[i].id.name;
             if (stack[i].type === 'AssignmentExpression') return stack[i].left.name;
@@ -80,11 +80,9 @@ function trimBody(body) {
         throw new Error('Unknown accessor name');
     }
 
-    traverse(body, function(node) {
+    traverse(body, node => {
         if (stack.length === 1 && node.type === 'ReturnStatement') {
-            node.argument.properties.forEach(function(prop) {
-                mark('root', prop.value.name);
-            });
+            node.argument.properties.forEach(prop => mark('root', prop.value.name));
             return false;
         }
         stack.unshift(node);
@@ -96,33 +94,27 @@ function trimBody(body) {
         // Ignore the name of declarations
         if (stack[1].type === 'VariableDeclarator' && node === stack[1].id) return;
 
-        var accessor = getAccessorName();
+        const accessor = getAccessorName();
         if (stack.length === 3 && node.type === 'ArrayExpression') {
-            node.elements.forEach(function(elem) {
-                mark(accessor, elem.name);
-            });
+            node.elements.forEach(elem => mark(accessor, elem.name));
             return false;
         } else if (node.type === 'Identifier') {
             mark(accessor, node.name);
         }
 
 
-    }, function() {
-        stack.shift();
-    });
+    }, () => stack.shift());
 
-    var unexploredNames = accessorToAccessed['root'];
-    var exploredNames = [];
-    var encounteredIdentifiers = {};
+    const unexploredNames = accessorToAccessed['root'];
+    const exploredNames = [];
+    const encounteredIdentifiers = {};
 
-    var current;
-    var currentBody;
     while (unexploredNames.length) {
-        current = unexploredNames.pop();
+        const current = unexploredNames.pop();
 
-        currentBody = accessorToAccessed[current];
+        const currentBody = accessorToAccessed[current];
         if (currentBody) {
-            currentBody.forEach(function(name) {
+            currentBody.forEach(name => {
                 if (exploredNames.indexOf(name) !== -1) return;
                 if (unexploredNames.indexOf(name) !== -1) return;
                 unexploredNames.push(name);
@@ -133,16 +125,14 @@ function trimBody(body) {
         exploredNames.push(current);
     }
 
-    var anyRemoved = false;
-    body.body = body.body.filter(function(node) {
-        var kept = true;
+    let anyRemoved = false;
+    body.body = body.body.filter(node => {
+        let kept = true;
         if (node.type === 'FunctionDeclaration') {
             kept = node.id.name in encounteredIdentifiers;
             anyRemoved = anyRemoved || !kept;
         } else if (node.type === 'VariableDeclaration') {
-            node.declarations = node.declarations.filter(function(decl) {
-                return decl.id.name in encounteredIdentifiers;
-            });
+            node.declarations = node.declarations.filter(decl => decl.id.name in encounteredIdentifiers);
             kept = !!node.declarations.length;
             anyRemoved = anyRemoved || !kept;
         }
@@ -153,8 +143,8 @@ function trimBody(body) {
 }
 
 function orderCode(body) {
-    var parts = new Array(5); // max type (4) + 1
-    body.body.forEach((node) => {
+    const parts = new Array(5); // max type (4) + 1
+    body.body.forEach(node => {
         var type = getType(node);
         if (!parts[type]) {
             parts[type] = [];
@@ -164,7 +154,7 @@ function orderCode(body) {
 
     function getType(node) {
         if (node.type === 'VariableDeclaration') {
-            var decl = node.declarations[0];
+            const decl = node.declarations[0];
             // stdlib lookups
             if (decl.init.type === 'MemberExpression') {
                 return 0;
@@ -197,7 +187,7 @@ function orderCode(body) {
     body.body = parts.reduce((a, b) => a.concat(b), []);
 
     // Sort function bodies
-    traverse(body, function(node) {
+    traverse(body, node => {
         if (node.type !== 'FunctionDeclaration') return;
 
         var params = node.params.map(p => p.name);
@@ -226,7 +216,7 @@ function orderCode(body) {
 
         function getInnerType(node) {
             // Identify param type annotations
-            var paramIdx;
+            let paramIdx;
             if (node.type === 'ExpressionStatement' &&
                 node.expression.type === 'AssignmentExpression' &&
                 node.expression.left.type === 'Identifier' &&
@@ -247,9 +237,9 @@ function orderCode(body) {
             if (node.type === 'VariableDeclaration') return params.length;
             return params.length + 1;
         }
-        var origBody = node.body.body;
-        var bodyPrefix = [];
-        for (var i = 0; i < origBody.length; i++) {
+        const origBody = node.body.body;
+        const bodyPrefix = [];
+        for (let i = 0; i < origBody.length; i++) {
             if (!isParamAnnotation(origBody[i])) {
                 continue;
             }
@@ -258,10 +248,11 @@ function orderCode(body) {
             i--;
         }
 
-        bodyPrefix = bodyPrefix.concat(origBody.filter(x => x.type === 'VariableDeclaration'));
-        origBody = origBody.filter(x => x.type !== 'VariableDeclaration');
-
-        node.body.body = bodyPrefix.concat(origBody);
+        node.body.body = (
+            bodyPrefix
+                .concat(origBody.filter(x => x.type === 'VariableDeclaration'))
+                .concat(origBody.filter(x => x.type !== 'VariableDeclaration'))
+        );
     });
 }
 
@@ -301,14 +292,14 @@ function cleanUpTypecasting(body) {
 }
 
 export function optimize(body) {
-    var parsed;
+    let parsed;
     try {
         parsed = esprima.parse('(function() {' + body + '})', {raw: true});
     } catch (e) {
         console.error(body);
         throw e;
     }
-    var parsedBody = parsed.body[0].expression.body;
+    const parsedBody = parsed.body[0].expression.body;
 
     upliftDeclarations(parsedBody);
     trimBody(parsedBody);
