@@ -163,21 +163,21 @@ NODES.set(hlirNodes.FinallyHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
-    var context = this[symbols.CONTEXT];
-
-    var hasLandingpad = Boolean(this.catches.length || this.finally);
-
-
-    var funcActualName = this[symbols.ASSIGNED_NAME];
-    if (hasLandingpad) {
-        funcActualName += '$inner';
-    }
+    const context = this[symbols.CONTEXT];
+    const hasLandingpad = Boolean(this.catches.length || this.finally);
 
     tctx.write(
-        `function ${funcActualName}(${
+        `function ${this[symbols.ASSIGNED_NAME]}(${
             this.params.map(param => _node(param, env, context, tctx)).join(',')
         }) {`
     );
+
+    if (hasLandingpad) {
+        tctx.write(`
+            var finishedCatch = ${this.catches.length ? 'false' : 'true'};
+            try {
+        `);
+    }
 
     tctx.push();
     this.body.forEach(stmt => _node(stmt, env, ctx, tctx));
@@ -186,24 +186,8 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         tctx.write('return ' + this.params[0][symbols.ASSIGNED_NAME] + ';');
     }
 
-    tctx.pop();
-
-    tctx.write('}');
-3
-    // If the function deals with panics, we uplift the main body to another
-    // function. This is because most JS engines don't optimize functions with
-    // a try block.
     if (hasLandingpad) {
-        // We use collapsed params because it's faster at runtime than using
-        // the `arguments` object.
-        let collapsedParams = this.params.map((_, i) => `_${i}`).join(',');
-        tctx.write(
-            `function ${this[symbols.ASSIGNED_NAME]}(${collapsedParams}) {
-                var finishedCatch = ${this.catches.length ? 'false' : 'true'};
-                try {
-                    return ${this[symbols.ASSIGNED_NAME]}$inner(${collapsedParams});
-                } catch (e) {`
-        );
+        tctx.write(`} catch (e) {`);
         if (this.catches.length) {
             _node(this.catches[0], env, ctx, tctx);
             tctx.write('finishedCatch = true;');
@@ -214,8 +198,12 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         if (this.finally) {
             _node(this.finally, env, context, tctx);
         }
-        tctx.write('}');
+
     }
+
+    tctx.pop();
+
+    tctx.write('}');
 });
 
 NODES.set(hlirNodes.IfHLIR, function(env, ctx, tctx) {

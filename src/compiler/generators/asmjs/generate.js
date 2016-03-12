@@ -56,8 +56,15 @@ function makeModule(env, ENV_VARS, body) {
         '    }',
         '    return out;',
         '}',
-        'function throwErr(str) {',
-        '    throw new Error(readString(str));',
+        'function BTAsmError(stackPtr, message, line, column, sourceFuncName) {',
+        '    this.stackPtr = stackPtr;',
+        '    this.message = message;',
+        '    this.line = line;',
+        '    this.column = column;',
+        '    this.sourceFuncName = sourceFuncName;',
+        '}',
+        'function throwErr(err, message, line, column, sourceFuncName) {',
+        '    throw new BTAsmError(err, readString(message), line, column, readString(sourceFuncName));',
         '}',
         // Get an instance of the asm module, passing in all of the externally requested items
         'var ret = module(this, {__initString: initString, throwErr: throwErr,' +
