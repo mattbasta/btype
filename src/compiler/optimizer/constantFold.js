@@ -9,11 +9,11 @@ import * as symbols from '../../symbols';
 
 
 export default function constantFold(ctx) {
-    var ctxStack = [ctx];
+    const ctxStack = [ctx];
 
     // We use this to ignore nodes in the AST. There's no clean way to perform
     // a find and replace while ignoring nodes.
-    var blocked = 0;
+    let blocked = 0;
 
     ctx.scope.findAndReplace(
         node => {
@@ -46,10 +46,10 @@ export default function constantFold(ctx) {
 const BINOP_TYPES = new Set([BinopArithmeticHLIR, BinopBitwiseHLIR, BinopEqualityHLIR, BinopLogicalHLIR]);
 
 function foldBinop(node, ctx) {
-    var env = ctx.env;
+    const env = ctx.env;
 
-    var leftType = node.left.resolveType(ctx);
-    var rightType = node.right.resolveType(ctx);
+    const leftType = node.left.resolveType(ctx);
+    const rightType = node.right.resolveType(ctx);
 
     // Don't constant fold if the two aren't the same type.
     if (!leftType.equals(rightType)) return;
@@ -60,10 +60,10 @@ function foldBinop(node, ctx) {
     // Test for operator overloading
     if (env.getOverloadReturnType(leftType, rightType, node.operator) !== null) return;
 
-    var nodeLeftBinop = BINOP_TYPES.has(node.left.constructor);
-    var nodeLeftBinopNotOverloaded = nodeLeftBinop && !node.left.isOverloaded(ctx);
-    var nodeRightBinop = BINOP_TYPES.has(node.right.constructor);
-    var nodeRightBinopNotOverloaded = nodeRightBinop && !node.right.isOverloaded(ctx);
+    const nodeLeftBinop = BINOP_TYPES.has(node.left.constructor);
+    const nodeLeftBinopNotOverloaded = nodeLeftBinop && !node.left.isOverloaded(ctx);
+    const nodeRightBinop = BINOP_TYPES.has(node.right.constructor);
+    const nodeRightBinopNotOverloaded = nodeRightBinop && !node.right.isOverloaded(ctx);
 
     if (node.left instanceof LiteralHLIR) {
 
@@ -199,8 +199,8 @@ function combine(left, right, leftType, operator) {
         return new LiteralHLIR(litType, value, left.start, right.end);
     }
 
-    var leftParsed;
-    var rightParsed;
+    let leftParsed;
+    let rightParsed;
 
     switch (leftType) {
         case 'int':

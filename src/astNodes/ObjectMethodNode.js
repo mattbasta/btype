@@ -50,11 +50,11 @@ export default class ObjectMethodNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var node = FunctionNode.prototype[symbols.FMAKEHLIR].call(this, builder);
+        const node = FunctionNode.prototype[symbols.FMAKEHLIR].call(this, builder);
         node[symbols.IS_METHOD] = true;
         node[symbols.IS_FINAL] = this.isFinal;
         node[symbols.IS_PRIVATE] = this.isPrivate;
-        var type = node.resolveType();
+        const type = node.resolveType();
         type[symbols.IS_METHOD] = true;
         type.args[0][symbols.IS_SELF_PARAM] = true;
         return node;

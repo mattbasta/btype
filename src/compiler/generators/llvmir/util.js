@@ -69,7 +69,7 @@ export function getLLVMType(btType) {
         // to create a "clean" function type name.
         // This code only generates the name of the function _reference_ type,
         // so we filter out any context params.
-        let filteredFunc = new Func(
+        const filteredFunc = new Func(
             // return type
             btType.returnType,
             // The filtered arguments. We conveniently have a flag for ctx objs.
@@ -104,7 +104,7 @@ export function getAlignment(type) {
  * @return {string}
  */
 export function getFunctionSignature(type) {
-    var out = type.returnType ? getLLVMType(type.returnType) : 'void';
+    let out = type.returnType ? getLLVMType(type.returnType) : 'void';
     out += ' (';
 
     if (type.args.length) {

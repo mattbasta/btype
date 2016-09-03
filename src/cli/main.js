@@ -5,7 +5,7 @@ import compiler from '../compiler/compiler';
 
 
 export default function(argv, help) {
-    var incomingStdin = !('isTTY' in process.stdin);
+    const incomingStdin = !('isTTY' in process.stdin);
 
     if (process.argv.length < 3 && !incomingStdin) {
         help();
@@ -32,18 +32,16 @@ export default function(argv, help) {
     }
 };
 
-export function processData(data, argv, pipe = null) {
-    if (!pipe) {
-        pipe = out => {
-            if (typeof out === 'undefined') {
-                return;
-            }
-            console.log(out);
-        };
+const PIPE_DEFAULT = out => {
+    if (typeof out === 'undefined') {
+        return;
     }
+    console.log(out);
+};
 
-    var runtimeEntry = argv['runtime-entry'];
-    var compiled = compiler({
+export function processData(data, argv, pipe = PIPE_DEFAULT) {
+    const runtimeEntry = argv['runtime-entry'];
+    const compiled = compiler({
         filename: argv._[0] || 'stdin',
         format: argv.target,
         sourceCode: data.toString(),

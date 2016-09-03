@@ -30,7 +30,7 @@ export default class TranslationContext {
      * @return {void}
      */
     pop() {
-        var popped = this.outputStack.shift();
+        const popped = this.outputStack.shift();
         this.outputStack[0] += popped;
         this.countStack.shift();
         this.indentation = this.indentation.substr(4);
@@ -52,8 +52,8 @@ export default class TranslationContext {
      * @return {void}
      */
     trimSemicolon() {
-        var stack = this.outputStack[0].trim();
-        var last = stack[stack.length - 1];
+        const stack = this.outputStack[0].trim();
+        const last = stack[stack.length - 1];
         if (last === ';') {
             this.outputStack[0] = stack.substr(0, stack.length - 1);
         }

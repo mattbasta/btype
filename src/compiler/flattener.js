@@ -25,27 +25,21 @@ export default function flatten(rootCtx) {
 };
 
 function upliftExpressionsFromBody(ctx, body) {
-    var i;
-
-    function injectBefore(newNode) {
-        body.splice(i, 0, newNode);
-        i++;
-    }
 
     function getTempDecl(type, value = null) {
-        var name = ctx.env.namer();
+        const name = ctx.env.namer();
 
-        var litType = 'null';
-        var litValue = null;
+        let litType = 'null';
+        let litValue = null;
 
         if (type._type === 'primitive') {
             litType = type.typeName === 'float' ? 'float' : (type.typeName === 'sfloat' ? 'sfloat' : 'int');
             litValue = (type.typeName === 'float' || type.typeName === 'sfloat') ? '0.0' : '0';
         }
 
-        var typeNode = new hlirNodes.TypeHLIR(type.typeName, []);
+        const typeNode = new hlirNodes.TypeHLIR(type.typeName, []);
         typeNode.forceType(type);
-        var decl = new hlirNodes.DeclarationHLIR(
+        const decl = new hlirNodes.DeclarationHLIR(
             typeNode,
             name,
             value || new hlirNodes.LiteralHLIR(litType, litValue)
@@ -56,16 +50,16 @@ function upliftExpressionsFromBody(ctx, body) {
     }
 
     function getDeclReference(decl, type) {
-        var sym = new hlirNodes.SymbolHLIR(decl.name);
+        const sym = new hlirNodes.SymbolHLIR(decl.name);
         sym[symbols.REFCONTEXT] = ctx;
         sym[symbols.REFTYPE] = type;
         sym[symbols.REFNAME] = decl[symbols.ASSIGNED_NAME];
         return sym;
     }
 
-    for (i = 0; i < body.length; i++) {
-        let current = body[i];
-        let stack = [];
+    for (let i = 0; i < body.length; i++) {
+        const current = body[i];
+        const stack = [];
 
         // Mark which expressions to flatten
         current.iterateWithSelf((node, member) => {
@@ -73,8 +67,6 @@ function upliftExpressionsFromBody(ctx, body) {
 
             stack.unshift(node);
 
-            var i;
-            var temp;
             if (node instanceof hlirNodes.BinopLogicalHLIR) {
 
                 if (stack.length === 1 &&
@@ -83,9 +75,9 @@ function upliftExpressionsFromBody(ctx, body) {
                     return;
                 }
 
-                for (i = 0; i < stack.length; i++) {
-                    let stackItem = stack[i];
-                    let isBinop = (
+                for (let i = 0; i < stack.length; i++) {
+                    const stackItem = stack[i];
+                    const isBinop = (
                         stackItem instanceof hlirNodes.BinopLogicalHLIR ||
                         stackItem instanceof hlirNodes.BinopEqualityHLIR ||
                         stackItem instanceof hlirNodes.BinopBitwiseHLIR ||
@@ -123,17 +115,12 @@ function upliftExpressionsFromBody(ctx, body) {
                 return;
             }
 
-            var type = node.resolveType(ctx);
-            var decl = getTempDecl(type, node);
+            const type = node.resolveType(ctx);
+            const decl = getTempDecl(type, node);
             ctx.addVar(decl.name, type, decl[symbols.ASSIGNED_NAME]);
-            injectBefore(decl);
 
-            // injectBefore(
-            //     new hlirNodes.AssignmentHLIR(
-            //         getDeclReference(decl, type),
-            //         node
-            //     )
-            // );
+            body.splice(i, 0, decl);
+            i++;
 
             return getDeclReference(decl, type);
 
@@ -155,7 +142,7 @@ function traverse(tree, filter, replacer) {
         if (filter(node) === false) return;
         traverse(node, filter, replacer);
 
-        var replacement = replacer(node, member);
+        const replacement = replacer(node, member);
         if (!replacement) return;
 
         tree.substitute(x => x === node ? replacement : x);
@@ -164,25 +151,20 @@ function traverse(tree, filter, replacer) {
 
 
 function convertLogicalBinops(body) {
-    var condition;
-    var conditional;
-
-    for (var i = 0; i < body.length; i++) {
-        let current = body[i];
+    for (let i = 0; i < body.length; i++) {
+        const current = body[i];
         if (!(current instanceof hlirNodes.AssignmentHLIR) ||
             !(current.value instanceof hlirNodes.BinopLogicalHLIR)) {
             continue;
         }
 
         // Put the correct condition in the conditional
-        if (current.value.operator === 'and') {
-            condition = current.base;
-        } else {
-            condition = new hlirNodes.NegateHLIR(current.base, current.base.start, current.base.end);
-        }
+        const condition = current.value.operator === 'and' ?
+            current.base :
+            new hlirNodes.NegateHLIR(current.base, current.base.start, current.base.end);
 
         // Create the correct conditional
-        conditional = new hlirNodes.IfHLIR(
+        const conditional = new hlirNodes.IfHLIR(
             condition,
             [new hlirNodes.AssignmentHLIR(current.base, current.value.right)],
             null,

@@ -8,12 +8,12 @@ import {HEAP_MODIFIERS, heapName, typeAnnotation} from './translate';
 import {optimize as postOptimizer} from '../js/postOptimizer';
 import * as symbols from '../../../symbols';
 
-var argv = require('minimist')(process.argv.slice(2));
+const argv = require('minimist')(process.argv.slice(2));
 
 
 function nextPowerOfTwo(n) {
     // This calculates the next power of two
-    var x = Math.log(n) / Math.LN2;
+    let x = Math.log(n) / Math.LN2;
     x = Math.floor(x);
     x += 1;
     x = Math.pow(2, x);
@@ -69,7 +69,7 @@ function makeModule(env, ENV_VARS, body) {
         // Get an instance of the asm module, passing in all of the externally requested items
         'var ret = module(this, {__initString: initString, throwErr: throwErr,' +
             env.foreigns.map(foreign => {
-                var base = JSON.stringify(foreign) + ':';
+                let base = JSON.stringify(foreign) + ':';
                 if (foreign in externalFuncs) {
                     base += externalFuncs[foreign]();
                 } else {
@@ -110,11 +110,11 @@ function registerAllUsedMethods(env) {
     // because the order in which the methods are accessed does not guarantee
     // the order in which they will be used.
 
-    var knownMethods = new Set();
+    const knownMethods = new Set();
     env.types.forEach(type => {
         if (!type.methods) return;
 
-        for (var i of type.methods.values()) {
+        for (let i of type.methods.values()) {
             knownMethods.add(i);
         }
     });
@@ -125,10 +125,10 @@ function registerAllUsedMethods(env) {
 
             if (!(node instanceof hlirNodes.MemberHLIR)) return;
 
-            var baseType = node.base.resolveType(ctx);
+            const baseType = node.base.resolveType(ctx);
             if (!baseType.hasMethod || !baseType.hasMethod(node.child)) return;
 
-            var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
+            const funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
 
             if (!knownMethods.has(funcNode[symbols.ASSIGNED_NAME])) return;
 
@@ -143,7 +143,7 @@ export default function generate(env, ENV_VARS) {
 
     registerAllUsedMethods(env);
 
-    var body = '';
+    let body = '';
 
     // Include static modules
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/casting.js')).toString();
@@ -151,7 +151,7 @@ export default function generate(env, ENV_VARS) {
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/gc.js')).toString();
     body += fs.readFileSync(path.resolve(__dirname, '../../static/asmjs/heap.js')).toString();
 
-    var asmMemoryMode = argv['asmjs-memory'] || 'chain';
+    let asmMemoryMode = argv['asmjs-memory'] || 'chain';
     switch (asmMemoryMode) {
         case 'buddy':
         case 'chain':
@@ -167,14 +167,14 @@ export default function generate(env, ENV_VARS) {
     });
 
     if (env.inits.length || env.registeredStringLiterals.size) {
-        let registeredStringLiterals = Array.from(env.registeredStringLiterals.keys()).sort();
+        const registeredStringLiterals = Array.from(env.registeredStringLiterals.keys()).sort();
         if (registeredStringLiterals.length) {
             body += 'var initString = foreign.__initString;\n';
             registeredStringLiterals.forEach(str => body += `var ${env.registeredStringLiterals.get(str)} = 0;\n`);
         }
         body += '\nfunction $$init() {\n';
         registeredStringLiterals.forEach(str => {
-            var name = env.registeredStringLiterals.get(str);
+            const name = env.registeredStringLiterals.get(str);
             body += `    ${name} = gcref(malloc(${str.length * 4 + 8})|0)|0;\n    initString(${name}|0);\n`;
         });
         body += env.inits.map(init => `    ${init[symbols.ASSIGNED_NAME]}();\n`).join();
@@ -189,8 +189,8 @@ export default function generate(env, ENV_VARS) {
             var x = 0;
             x = gcref(malloc(${type.getSize() + 8} | 0) | 0);
             ${type.contentsTypeArr.map((x, i) => {
-                var typedArr = heapName(x);
-                var subscript = `x + ${(type.getLayoutIndex(i) + 8) + HEAP_MODIFIERS[typedArr]}`;
+                const typedArr = heapName(x);
+                const subscript = `x + ${(type.getLayoutIndex(i) + 8) + HEAP_MODIFIERS[typedArr]}`;
                 return `${typedArr}[${subscript}] = ${typeAnnotation(`m${i}`, x)};`;
             }).join('\n    ')}
             return x | 0;
@@ -199,7 +199,7 @@ export default function generate(env, ENV_VARS) {
 
     // Compile function lists
     env.funcList.forEach((flist, name) => {
-        var type = env.funcListReverseTypeMap.get(name);
+        let type = env.funcListReverseTypeMap.get(name);
 
         // If this is a function list for functions with a context param and
         // another function list exists for the same signature without a
@@ -217,16 +217,16 @@ export default function generate(env, ENV_VARS) {
             }
         }
 
-        var contextedSignatureType = type.clone();
+        const contextedSignatureType = type.clone();
         contextedSignatureType.args.unshift({
             [symbols.IS_CTX_OBJ]: true,
             flatTypeName: () => 'ptr',
         });
-        var contextedSignatureFlistName = env.getFuncListName(contextedSignatureType);
+        const contextedSignatureFlistName = env.getFuncListName(contextedSignatureType);
 
-        var arglist = type.args.map((_, i) => '_' + i).join(', ');
+        const arglist = type.args.map((_, i) => '_' + i).join(', ');
 
-        var flistSize = nextPowerOfTwo(flist.length) - 1;
+        const flistSize = nextPowerOfTwo(flist.length) - 1;
 
         body += `
         function calldyn${name}(

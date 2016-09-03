@@ -145,7 +145,7 @@ function trimBody(body) {
 function orderCode(body) {
     const parts = new Array(5); // max type (4) + 1
     body.body.forEach(node => {
-        var type = getType(node);
+        const type = getType(node);
         if (!parts[type]) {
             parts[type] = [];
         }
@@ -190,7 +190,7 @@ function orderCode(body) {
     traverse(body, node => {
         if (node.type !== 'FunctionDeclaration') return;
 
-        var params = node.params.map(p => p.name);
+        const params = node.params.map(p => p.name);
 
         function isParamAnnotation(node) {
             if (node.type !== 'ExpressionStatement' ||

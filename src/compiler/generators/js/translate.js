@@ -242,12 +242,12 @@ NODES.set(hlirNodes.LoopHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx) {
-    var baseType = this.base.resolveType(ctx);
+    const baseType = this.base.resolveType(ctx);
     if (baseType._type === 'module') {
         return baseType.memberMapping.get(this.child);
     }
 
-    var base;
+    let base;
     if (baseType._type === '_stdlib') {
         base = 'stdlib.' + baseType.name;
     } else if (baseType._type === '_foreign') {
@@ -283,10 +283,10 @@ NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
-    var baseType = this.resolveType(ctx);
+    const baseType = this.resolveType(ctx);
 
     if (baseType._type === 'array') {
-        let arrLength = _node(this.args[0], env, ctx, tctx);
+        const arrLength = _node(this.args[0], env, ctx, tctx);
         if (baseType.contentsType._type === 'primitive') {
             switch (baseType.contentsType.typeName) {
                 case 'float': return `new Float64Array(${arrLength})`;
@@ -300,7 +300,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     }
 
     if (baseType._type === 'func') {
-        let funcRef = _node(this.args[0], env, ctx, tctx);
+        const funcRef = _node(this.args[0], env, ctx, tctx);
         if (this.args.length === 1 ||
             this.args[1] instanceof hlirNodes.LiteralHLIR && this.args[1].value === null) {
             return funcRef;
@@ -309,7 +309,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
         return `${funcRef}.bind(null, ${this.args.slice(1).map(a => _node(a, env, ctx, tctx)).join(', ')})`;
     }
 
-    var output = 'new ' + baseType.flatTypeName();
+    let output = 'new ' + baseType.flatTypeName();
 
     if (baseType instanceof Struct && baseType.objConstructor) {
         output += '(' + this.args.map(a => _node(a, env, ctx, tctx)).join(', ') + ')';
@@ -350,13 +350,13 @@ NODES.set(hlirNodes.ReturnHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx) {
-    var baseType = this.base.resolveType(ctx);
-    var subscriptType = this.childExpr.resolveType(ctx);
+    const baseType = this.base.resolveType(ctx);
+    const subscriptType = this.childExpr.resolveType(ctx);
 
-    var baseOutput = _node(this.base, env, ctx, tctx);
-    var subscriptOutput = _node(this.childExpr, env, ctx, tctx);
+    const baseOutput = _node(this.base, env, ctx, tctx);
+    const subscriptOutput = _node(this.childExpr, env, ctx, tctx);
 
-    var temp;
+    let temp;
     if ((temp = env.registeredOperators.get(baseType.flatTypeName())) &&
         (temp = temp.get(subscriptType.flatTypeName())) &&
         temp.has('[]')) {
@@ -375,10 +375,10 @@ NODES.set(hlirNodes.SymbolHLIR, function() {
 });
 
 NODES.set(hlirNodes.TypeCastHLIR, function(env, ctx, tctx) {
-    var baseType = this.base.resolveType(ctx);
-    var targetType = this.target.resolveType(ctx);
+    const baseType = this.base.resolveType(ctx);
+    const targetType = this.target.resolveType(ctx);
 
-    var base = _node(this.base, env, ctx, tctx);
+    const base = _node(this.base, env, ctx, tctx);
 
     if (targetType.equals(types.publicTypes.str) &&
         baseType instanceof types.Array &&
@@ -450,7 +450,7 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
 
 
 export default function translateJS(ctx) {
-    var tctx = new TranslationContext(ctx.env, ctx);
+    const tctx = new TranslationContext(ctx.env, ctx);
     _node(ctx.scope, ctx.env, ctx, tctx);
     return tctx.toString();
 };

@@ -17,7 +17,7 @@ function makeModule(env, ENV_VARS, body) {
         return f32[0] = x, f32[0];
     };
     var ret = module(this, {${env.foreigns.map(foreign => {
-            var base = JSON.stringify(foreign) + ':';
+            let base = JSON.stringify(foreign) + ':';
             base += foreign in externalFuncs ? externalFuncs[foreign]() : 'function() {}';
             return base;
         }).join(',')}${env.foreigns.length ? ',' : ''}});
@@ -34,17 +34,6 @@ function makeModule(env, ENV_VARS, body) {
 }).call(typeof global !== "undefined" ? global : this, function app(stdlib, foreign) {
 ${body}
 })`;
-}
-
-function extend(base, members) {
-    var obj = {};
-    for (var i in base) {
-        obj[i] = base[i];
-    }
-    for (var i in members) {
-        obj[i] = members[i];
-    }
-    return obj;
 }
 
 function typeTranslate(type, context) {
@@ -74,29 +63,28 @@ function typeTranslate(type, context) {
 
             // Add all of the zeroed members
             output += Array.from(type.contentsTypeMap.keys()).map(memberName => {
-                var val = 'null';
-                var member = type.contentsTypeMap.get(memberName);
-                if (member._type === 'primitive') {
-                    switch (member.typeName) {
-                        case 'bool':
-                            val = 'false';
-                            break
-                        case 'float':
-                        case 'sfloat':
-                            val = '0.0';
-                            break;
-                        default:
-                            val = '0';
-                    }
+                const member = type.contentsTypeMap.get(memberName);
+                if (member._type !== 'primitive') {
+                    return `this.${memberName} = null;`;
                 }
-                return `this.${memberName} = ${val};`;
+                switch (member.typeName) {
+                    case 'bool':
+                        return `this.${memberName} = false;`;
+                    case 'float':
+                    case 'sfloat':
+                        return `this.${memberName} = 0.0;`;
+                    default:
+                        return `this.${memberName} = 0;`;
+                }
+
+                throw new Error(`Unexpected type: ${member._type}`);
             }).join('\n');
 
             // Add the constructor if there is one
             if (type.objConstructor) {
                 output += `var ${selfName} = this;\n`;
                 constructorFunc.body.forEach(bodyItem => {
-                    output += jsTranslate(extend(context, {scope: bodyItem, env: this}));
+                    output += jsTranslate(Object.assign({}, context, {scope: bodyItem, env: this}));
                 });
             }
             output += '}';
@@ -113,8 +101,7 @@ function typeTranslate(type, context) {
 }
 
 export default function generate(env, ENV_VARS) {
-
-    var body = '';
+    let body = '';
 
     body += fs.readFileSync(path.resolve(__dirname, '..', '..', 'static', 'asmjs', 'casting.js')).toString();
 
@@ -137,10 +124,9 @@ export default function generate(env, ENV_VARS) {
 
     if (env.inits.length) {
         body += `
-function $$init() {
-    ${env.inits.map(init => init[symbols.ASSIGNED_NAME] + '();').join('\n    ')}
-}
-`;
+        function $$init() {
+            ${env.inits.map(init => init[symbols.ASSIGNED_NAME] + '();').join('\n    ')}
+        }`;
         env.requested.exports.set('$$init', '$$init');
     }
 

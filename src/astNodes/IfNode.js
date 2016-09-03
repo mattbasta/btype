@@ -44,12 +44,9 @@ export default class IfNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
-        var consequentBlock = this[symbols.FMAKEHLIRBLOCK](builder, this.consequent);
-        var alternateBlock = null;
-        if (this.alternate) {
-            alternateBlock = this[symbols.FMAKEHLIRBLOCK](builder, this.alternate);
-        }
+        const conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+        const consequentBlock = this[symbols.FMAKEHLIRBLOCK](builder, this.consequent);
+        const alternateBlock = this.alternate ? this[symbols.FMAKEHLIRBLOCK](builder, this.alternate) : null;
 
         return new IfHLIR(conditionNode, consequentBlock, alternateBlock);
     }

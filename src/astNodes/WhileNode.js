@@ -31,8 +31,8 @@ export default class WhileNode extends BaseLoopNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var conditionNode = this.condition[symbols.FMAKEHLIR](builder);
-        var node = new LoopHLIR(conditionNode, this.start, this.end);
+        const conditionNode = this.condition[symbols.FMAKEHLIR](builder);
+        const node = new LoopHLIR(conditionNode, this.start, this.end);
         node.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));
 
         return node;

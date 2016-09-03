@@ -47,14 +47,14 @@ export default class OperatorStatementNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var returnTypeNode = this.returnType[symbols.FMAKEHLIR](builder);
-        var paramNodes = [
+        const returnTypeNode = this.returnType[symbols.FMAKEHLIR](builder);
+        const paramNodes = [
             this.left[symbols.FMAKEHLIR](builder),
             this.right[symbols.FMAKEHLIR](builder),
         ];
 
-        var assignedName = builder.env.namer();
-        var node = new FunctionHLIR(
+        const assignedName = builder.env.namer();
+        const node = new FunctionHLIR(
             returnTypeNode,
             assignedName,
             paramNodes,
@@ -62,7 +62,7 @@ export default class OperatorStatementNode extends BaseBlockNode {
             this.end
         );
         node[symbols.ASSIGNED_NAME] = assignedName;
-        var ctx = builder.peekCtx();
+        const ctx = builder.peekCtx();
         ctx.functions.add(node);
         ctx.addVar(node.name, node.resolveType(ctx), assignedName);
         ctx.functionDeclarations.set(assignedName, node);
@@ -71,7 +71,7 @@ export default class OperatorStatementNode extends BaseBlockNode {
         node[symbols.IS_FIRSTCLASS] = false;
         node[symbols.ORIG_OPERATOR] = this.operator;
 
-        var newCtx = new Context(builder.env, node, ctx, builder.privileged);
+        const newCtx = new Context(builder.env, node, ctx, builder.privileged);
         paramNodes.forEach(pn => {
             pn[symbols.ASSIGNED_NAME] = newCtx.addVar(pn.name, pn.resolveType(newCtx));
         });

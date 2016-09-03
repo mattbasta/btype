@@ -101,9 +101,11 @@ describe('Parity tests', () => {
                     run(read, 'js', readExpectation);
                 });
 
-                it('in asm.js', () => {
-                    run(read, 'asmjs', readExpectation);
-                });
+                if (read.indexOf('# skip target=asmjs') === -1) {
+                    it('in asm.js', () => {
+                        run(read, 'asmjs', readExpectation);
+                    });
+                }
 
                 it('in LLVM IR', function llvmirFunctionalTestBody(done) {
                     this.timeout(5000);

@@ -9,14 +9,14 @@ import {getLLVMType, makeName} from './util';
 
 
 function translateArrayTypes(env) {
-    var out = '';
+    let out = '';
     env[llvmTranslate.ARRAY_TYPES].forEach(type => {
-        var typeName = getLLVMType(type);
-        typeName = typeName.substr(0, typeName.length - 1)
-        var innerTypeName = getLLVMType(type.contentsType);
-        var typeSize = type.contentsType.getSize() || 4
+        const llvmType = getLLVMType(type);
+        const typeName = llvmType.substr(0, llvmType.length - 1)
+        const innerTypeName = getLLVMType(type.contentsType);
+        const typeSize = type.contentsType.getSize() || 4
 
-        var innerOut = [
+        const innerOut = [
             typeName + ' = type { i32, ' + innerTypeName + '* }',
 
             'define ' + typeName + '* @btmake_' + typeName.substr(1) + '(i32 %param_length) nounwind {',
@@ -41,14 +41,12 @@ function translateArrayTypes(env) {
 }
 
 function translateTupleTypes(env) {
-    var out = '';
-    env[llvmTranslate.TUPLE_TYPES].forEach(type => {
-        var typeName = getLLVMType(type);
-        typeName = typeName.substr(0, typeName.length - 1)
+    return Array.from(env[llvmTranslate.TUPLE_TYPES].values()).map(type => {
+        const llvmType = getLLVMType(type);
+        const typeName = llvmType.substr(0, llvmType.length - 1)
 
-        out += `${typeName} = type { ${type.contentsTypeArr.map(getLLVMType).join(', ')} }`;
-    });
-    return out;
+        return `${typeName} = type { ${type.contentsTypeArr.map(getLLVMType).join(', ')} }`;
+    }).join('\n');
 }
 
 function getRuntime(env) {
@@ -56,16 +54,16 @@ function getRuntime(env) {
         return '';
     }
 
-    var runtimeExtension = '';
+    let runtimeExtension = '';
 
-    var entry = env.getConfig('runtimeEntry');
+    const entry = env.getConfig('runtimeEntry');
     if (entry) {
         if (!env.requested.exports.has(entry)) {
             throw new TypeError('Cannot find requested runtime entry point in exported functions: ' + entry);
         }
 
-        let funcName = env.requested.exports.get(entry);
-        let func = env.requested.typeMap.get(funcName);
+        const funcName = env.requested.exports.get(entry);
+        const func = env.requested.typeMap.get(funcName);
 
         if (func.returnType === types.publicTypes.int && !func.args.length) {
             return [
@@ -101,6 +99,7 @@ function makeModule(env, ENV_VARS, body) {
 
     return [
         fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/memory.ll')).toString(),
+        fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/exceptions.ll')).toString(),
 
         translateArrayTypes(env),
         translateTupleTypes(env),
@@ -124,11 +123,11 @@ function registerAllUsedMethods(env) {
     // because the order in which the methods are accessed does not guarantee
     // the order in which they will be used.
 
-    var knownMethods = new Set();
+    const knownMethods = new Set();
     env.types.forEach(type => {
         if (!type.methods) return;
 
-        for (var i of type.methods.values()) {
+        for (let i of type.methods.values()) {
             knownMethods.add(i);
         }
     });
@@ -139,10 +138,10 @@ function registerAllUsedMethods(env) {
 
             if (!(node instanceof hlirNodes.MemberHLIR)) return;
 
-            var baseType = node.base.resolveType(ctx);
+            const baseType = node.base.resolveType(ctx);
             if (!baseType.hasMethod || !baseType.hasMethod(node.child)) return;
 
-            var funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
+            const funcNode = env.findFunctionByAssignedName(baseType.getMethod(node.child));
 
             if (!knownMethods.has(funcNode[symbols.ASSIGNED_NAME])) return;
 
@@ -155,16 +154,16 @@ function registerAllUsedMethods(env) {
 function typeTranslate(type) {
     if (type._type !== 'struct') return '';
 
-    var typeName = makeName(type.flatTypeName());
-    var typeNameCat = '%' + typeName;
-    var typeNamePtr = typeNameCat + '*';
+    const typeName = makeName(type.flatTypeName());
+    const typeNameCat = '%' + typeName;
+    const typeNamePtr = typeNameCat + '*';
 
-    var output = typeNameCat + ' = type {\n    ';
+    let output = typeNameCat + ' = type {\n    ';
 
     // Add all of the zeroed members
-    var layout = type.getOrderedLayout();
-    output += layout.map(function(member, i) {
-        var out = getLLVMType(member);
+    const layout = type.getOrderedLayout();
+    output += layout.map((member, i) => {
+        let out = getLLVMType(member);
         if (i !== layout.length - 1) {
             out += ',';
         }
@@ -178,9 +177,9 @@ function typeTranslate(type) {
     output += 'define private void @btinit_' + typeName + '(' + typeNamePtr + ' %inst) nounwind ssp uwtable {\n';
     output += 'entry:\n';
 
-    output += layout.map(function(member, i) {
-        var output = '  %ptr' + i + ' = getelementptr inbounds ' + typeNamePtr + ' %inst, i32 0, i32 ' + i + '\n';
-        var memberType = getLLVMType(member);
+    output += layout.map((member, i) => {
+        let output = '  %ptr' + i + ' = getelementptr inbounds ' + typeNamePtr + ' %inst, i32 0, i32 ' + i + '\n';
+        const memberType = getLLVMType(member);
         if (member._type === 'primitive') {
             switch (member.typeName) {
                 case 'float':
@@ -198,7 +197,7 @@ function typeTranslate(type) {
             output += '  store ' + memberType + ' null, ' + memberType + '* %ptr' + i;
         }
         return output;
-    }).filter(function(x) {return x;}).join('\n') + '\n';
+    }).filter(x => x).join('\n') + '\n';
 
 
     output += '  ret void\n';
@@ -212,7 +211,7 @@ export default function generate(env, ENV_VARS) {
 
     registerAllUsedMethods(env);
 
-    var body = '';
+    let body = '';
 
     // Include static files
     body += fs.readFileSync(path.resolve(__dirname, '../../static/llvmir/funcref.ll')).toString();
@@ -223,7 +222,6 @@ export default function generate(env, ENV_VARS) {
         body += typeTranslate(type) + '\n\n';
     });
 
-    var generatedContent = '';
     env.included.forEach(inc => {
         body += llvmTranslate.default(inc) + '\n\n';
     });
@@ -236,10 +234,6 @@ export default function generate(env, ENV_VARS) {
             'i16 0], align 2\n';
     });
 
-    // Translate and output each included context
-    body += generatedContent;
-
-
     if (env.inits.length) {
         body += '\ndefine void @modInit() nounwind {\n' +
             'entry:\n' +
@@ -249,12 +243,6 @@ export default function generate(env, ENV_VARS) {
             '    ret void\n' +
             '}\n';
     }
-
-
-    // Replace environment variables
-    Object.keys(ENV_VARS).forEach(function(var_) {
-        body = body.replace(new RegExp(var_, 'g'), ENV_VARS[var_].toString());
-    });
 
     return makeModule(env, ENV_VARS, body);
 };

@@ -30,10 +30,10 @@ export default class Struct extends Type {
 
     getLayout() {
         if (this[LAYOUT_CACHE]) return this[LAYOUT_CACHE];
-        var offsets = {}; // TODO: make this a map?
-        var i = 0;
+        const offsets = {}; // TODO: make this a map?
+        let i = 0;
         this.contentsTypeMap.forEach((value, key) => {
-            var size = memberSize(value);
+            const size = memberSize(value);
             offsets[key] = i;
             i += size;
         });
@@ -41,7 +41,7 @@ export default class Struct extends Type {
     }
 
     getSortedMemberNames() {
-        var keys = Array.from(this.contentsTypeMap.keys());
+        const keys = Array.from(this.contentsTypeMap.keys());
         keys.sort((a, b) => {
             return memberSize(this.contentsTypeMap.get(a)) < memberSize(this.contentsTypeMap.get(b));
         });
@@ -50,23 +50,21 @@ export default class Struct extends Type {
 
     getOrderedLayout() {
         if (this[ORDERED_LAYOUT_CACHE]) return this[ORDERED_LAYOUT_CACHE];
-        var keys = this.getSortedMemberNames();
-        var order = keys.map(m => this.contentsTypeMap.get(m));
+        const keys = this.getSortedMemberNames();
+        const order = keys.map(m => this.contentsTypeMap.get(m));
         return this[ORDERED_LAYOUT_CACHE] = order;
     }
 
     getLayoutIndex(name) {
         if (this[LAYOUT_INDICES_CACHE]) return this[LAYOUT_INDICES_CACHE].get(name);
-        var keys = this.getSortedMemberNames();
-        var indices = this[LAYOUT_INDICES_CACHE] = new Map();
+        const keys = this.getSortedMemberNames();
+        const indices = this[LAYOUT_INDICES_CACHE] = new Map();
         keys.forEach((key, i) => indices.set(key, i));
         return indices.get(name);
     }
 
     getSize() {
-        var sum = 0;
-        this.contentsTypeMap.forEach(v => sum += memberSize(v));
-        return sum;
+        return Array.from(this.contentsTypeMap.values()).reduce((a, b) => a + memberSize(b), 0);
     }
 
     equals(x) {
@@ -81,7 +79,7 @@ export default class Struct extends Type {
         // If the number of members is not the same, fail.
         if (this.contentsTypeMap.size !== x.contentsTypeMap.size) return false;
         // Test each member for equality.
-        for (var key of this.contentsTypeMap.keys()) {
+        for (let key of this.contentsTypeMap.keys()) {
             // If the member is not in the other struct, fail.
             if (!x.contentsTypeMap.has(key)) return false;
             // If the member is the same type, fail.
@@ -98,7 +96,7 @@ export default class Struct extends Type {
                 return `${this.typeName}<${this.attributeTypes.map(x => x.toString()).join(',')}>`;
             }
         }
-        var out = this.typeName;
+        let out = this.typeName;
         this.contentsTypeMap.forEach((k, v) => {
             out += `\n  ${k}: ${v.toString(true)}`;
         });
@@ -124,8 +122,8 @@ export default class Struct extends Type {
     }
 
     getMethodType(name, ctx) {
-        var method = this.getMethod(name);
-        var temp = ctx.lookupFunctionByName(method).resolveType(ctx);
+        const method = this.getMethod(name);
+        const temp = ctx.lookupFunctionByName(method).resolveType(ctx);
         temp[symbols.IS_METHOD] = true;
         return temp;
     }

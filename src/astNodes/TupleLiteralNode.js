@@ -30,7 +30,7 @@ export default class TupleLiteralNode extends BaseExpressionNode {
     }
 
     [symbols.FMAKEHLIR](builder, expectedType) {
-        var assumedTypes = [];
+        const assumedTypes = [];
         if (expectedType) {
             if (expectedType._type !== 'tuple') {
                 throw new TypeError('Tuple used where another type was expected: ' + expectedType.toString());
@@ -42,7 +42,7 @@ export default class TupleLiteralNode extends BaseExpressionNode {
                     expectedType.contentsTypeArr.length
                 );
             }
-            assumedTypes = expectedType.contentsTypeArr;
+            assumedTypes.splice(0, assumedTypes.length, ...expectedType.contentsTypeArr);
         }
         return new TupleLiteralHLIR(
             this.elements.map((e, i) => e[symbols.FMAKEHLIR](builder, assumedTypes[i])),

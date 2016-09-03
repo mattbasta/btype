@@ -38,7 +38,7 @@ export default class TranslationContext {
      * @return {void}
      */
     pop() {
-        var popped = this.outputStack.shift();
+        const popped = this.outputStack.shift();
         this.outputStack[0] += popped;
         this.countStack.shift();
         this.indentation = this.indentation.substr(4);
@@ -60,6 +60,9 @@ export default class TranslationContext {
      * @return {void}
      */
     write(data, noIndent) {
+        if (!data) {
+            return;
+        }
         if (this.termToName !== null) {
             if (!noIndent) {
                 this.outputStack[0] += this.termToName + '\n';

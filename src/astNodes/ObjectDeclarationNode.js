@@ -75,17 +75,17 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
             );
         }
 
-        var mappedAttributes = new Map();
+        const mappedAttributes = new Map();
         this.attributes.forEach((a, i) => {
             mappedAttributes.set(a.name, attributes[i]);
         });
 
-        var node = new ObjectDeclarationHLIR(this.name, mappedAttributes);
+        const node = new ObjectDeclarationHLIR(this.name, mappedAttributes);
 
-        var builder = new ContextBuilder(rootCtx.env, rootCtx.privileged);
+        const builder = new ContextBuilder(rootCtx.env, rootCtx.privileged);
         builder.pushCtx(rootCtx);
 
-        var ctx = new Context(rootCtx.env, node, rootCtx, rootCtx.privileged);
+        const ctx = new Context(rootCtx.env, node, rootCtx, rootCtx.privileged);
         builder.pushCtx(ctx);
 
         mappedAttributes.forEach((type, name) => {
@@ -108,7 +108,7 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         if (!(node instanceof ObjectDeclarationHLIR)) {
             throw new Error('Attempting to bind to invalid HLIR node');
         }
-        var builder = node[BUILDER];
+        const builder = node[BUILDER];
         if (!(builder instanceof ContextBuilder)) {
             throw new Error('Attempting to bind object declaration methods with invalid context builder');
         }
@@ -118,20 +118,20 @@ export default class ObjectDeclarationNode extends BaseBlockNode {
         const constructionTasks = new Set();
 
         if (this.objConstructor) {
-            let hlir = this.objConstructor[symbols.FMAKEHLIR](builder);
+            const hlir = this.objConstructor[symbols.FMAKEHLIR](builder);
             node.setConstructor(hlir);
             constructionTasks.add(() => this.objConstructor[symbols.FCONSTRUCT](builder, hlir));
         }
         node.setMethods(
             this.methods.map(m => {
-                var hlir = m[symbols.FMAKEHLIR](builder);
+                const hlir = m[symbols.FMAKEHLIR](builder);
                 constructionTasks.add(() => m[symbols.FCONSTRUCT](builder, hlir));
                 return hlir;
             })
         );
         node.setOperatorStatements(
             this.operators.map(o => {
-                var hlir = o[symbols.FMAKEHLIR](builder);
+                const hlir = o[symbols.FMAKEHLIR](builder);
                 constructionTasks.add(() => o[symbols.FCONSTRUCT](builder, hlir));
                 return hlir;
             })

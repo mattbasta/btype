@@ -31,8 +31,8 @@ export default class SubscriptNode extends BaseExpressionNode {
     }
 
     [symbols.FMAKEHLIR](builder) {
-        var baseNode = this.base[symbols.FMAKEHLIR](builder);
-        var childExprNode = this.childExpr[symbols.FMAKEHLIR](builder);
+        const baseNode = this.base[symbols.FMAKEHLIR](builder);
+        const childExprNode = this.childExpr[symbols.FMAKEHLIR](builder);
 
         return new SubscriptHLIR(baseNode, childExprNode, this.start, this.end);
     }

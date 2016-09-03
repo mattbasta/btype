@@ -10,15 +10,15 @@ initialization.
 
 
 export default function globalInit(ctx, env) {
-    var body = ctx.scope.body;
+    const body = ctx.scope.body;
 
-    var prefixes = [];
-    var initables = [];
+    const prefixes = [];
+    const initables = [];
 
     // First uplift all of the declarations to the top level.
     ctx.scope.iterateBodies(body => {
-        for (var i = 0; i < body.length; i++) {
-            let current = body[i];
+        for (let i = 0; i < body.length; i++) {
+            const current = body[i];
 
             if (current.type !== 'Declaration') {
                 continue;
@@ -27,14 +27,14 @@ export default function globalInit(ctx, env) {
             if (current.value instanceof hlirNodes.LiteralHLIR ||
                 current.value.litType === 'str') {
 
-                var value = current.value;
+                const value = current.value;
                 current.value = new hlirNodes.LiteralHLIR('null', null);
 
-                var sym = new hlirNodes.SymbolHLIR(current.name);
+                const sym = new hlirNodes.SymbolHLIR(current.name);
                 sym[symbols.REFCONTEXT] = ctx;
                 sym[symbols.REFTYPE] = current.resolveType(ctx);
                 sym[symbols.REFNAME] = current[symbols.ASSIGNED_NAME];
-                var newNode = new hlirNodes.AssignmentHLIR(sym, value);
+                const newNode = new hlirNodes.AssignmentHLIR(sym, value);
                 body.splice(i, 1, newNode);
                 prefixes.push(current);
 
@@ -53,7 +53,7 @@ export default function globalInit(ctx, env) {
 
     // Next, move all of the top-level statements that are not declarations
     // into the initables array.
-    for (var i = 0; i < ctx.scope.body.length; i++) {
+    for (let i = 0; i < ctx.scope.body.length; i++) {
         let current = ctx.scope.body[i];
 
         if (current instanceof hlirNodes.AssignmentHLIR ||
@@ -72,18 +72,18 @@ export default function globalInit(ctx, env) {
     }
 
     if (initables.length) {
-        var initFunc = new hlirNodes.FunctionHLIR(null, '$init', [], 0, 0);
+        const initFunc = new hlirNodes.FunctionHLIR(null, '$init', [], 0, 0);
         initFunc.setBody(initables);
         ctx.scope.body.push(initFunc);
 
         ctx.functions.add(initFunc);
-        var assignedName = ctx.addVar(initFunc.name, initFunc.resolveType(ctx));
+        const assignedName = ctx.addVar(initFunc.name, initFunc.resolveType(ctx));
         initFunc[symbols.ASSIGNED_NAME] = assignedName;
         ctx.functionDeclarations.set(assignedName, initFunc);
         ctx.isFuncSet.add(assignedName);
         initFunc[symbols.IS_FIRSTCLASS] = false;
 
-        var newCtx = new Context(ctx.env, initFunc, ctx, ctx.isPrivileged);
+        const newCtx = new Context(ctx.env, initFunc, ctx, ctx.isPrivileged);
         // newCtx should automatically bind itself to the node
 
         env.addInit(initFunc);

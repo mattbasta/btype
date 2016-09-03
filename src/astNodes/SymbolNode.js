@@ -26,14 +26,14 @@ export default class SymbolNode extends BaseExpressionNode {
 
 
     [symbols.FMAKEHLIR](builder) {
-        var node = new SymbolHLIR(this.name, this.start, this.end);
+        const node = new SymbolHLIR(this.name, this.start, this.end);
 
-        var ctx = builder.peekCtx().lookupVar(this.name);
+        const ctx = builder.peekCtx().lookupVar(this.name);
         node[symbols.REFCONTEXT] = ctx;
-        var refName = ctx.nameMap.get(this.name);
+        const refName = ctx.nameMap.get(this.name);
         node[symbols.REFNAME] = refName;
         node[symbols.REFTYPE] = ctx.typeMap.get(refName);
-        var isFunc = ctx.isFuncSet.has(refName);
+        const isFunc = ctx.isFuncSet.has(refName);
         node[symbols.IS_FUNC] = isFunc;
 
         if (ctx === builder.rootCtx() && builder.contextStack.length > 1) {
@@ -48,7 +48,7 @@ export default class SymbolNode extends BaseExpressionNode {
             }
 
             // Otherwise the lookup is lexical and needs to be marked as such.
-            for (var i = builder.contextStack.length - 1; i && builder.contextStack[i] !== ctx; i--) {
+            for (let i = builder.contextStack.length - 1; i && builder.contextStack[i] !== ctx; i--) {
                 builder.contextStack[i].accessesLexicalScope = true;
                 builder.contextStack[i].lexicalLookups.set(refName, ctx);
             }

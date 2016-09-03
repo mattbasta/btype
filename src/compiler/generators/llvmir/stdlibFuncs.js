@@ -13,11 +13,10 @@ function include(env, func) {
     }
 
     env[STDLIB_REQUESTED].add(func);
-    var val = exports[func](env);
-    env[GLOBAL_PREFIX] += val;
+    env[GLOBAL_PREFIX] += exports[func](env);
 }
 
-exports.registerFunc = function registerFunc(env, funcName) {
+export function registerFunc(env, funcName) {
     include(env, funcName);
 };
 
@@ -148,8 +147,8 @@ exports['stdlib.Math.atan2'] = getUndefinedStdlibFunc('atan2', 2);
 
 function getUndefinedStdlibFunc(name, paramCount) {
     return function() {
-        var params = [];
-        for (var i = 0; i < paramCount; i++) {
+        const params = [];
+        for (let i = 0; i < paramCount; i++) {
             params.push('double %p' + i);
         }
 

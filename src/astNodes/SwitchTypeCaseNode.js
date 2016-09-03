@@ -31,7 +31,7 @@ export default class SwitchTypeCaseNode extends BaseBlockNode {
     }
 
     [symbols.FMAKEHLIR](builder, expectedType) {
-        var type = this.type[symbols.FMAKEHLIR](builder).resolveType(builder.peekCtx());
+        const type = this.type[symbols.FMAKEHLIR](builder).resolveType(builder.peekCtx());
         if (!type.equals(expectedType)) {
             return [];
         }

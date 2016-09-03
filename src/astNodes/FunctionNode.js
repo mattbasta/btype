@@ -85,12 +85,12 @@ export default class FunctionNode extends BaseBlockNode {
         const ctx = hlir[symbols.CONTEXT];
         builder.pushCtx(ctx);
 
-        var exceptBlockFreeBody = this.body.filter(
+        const exceptBlockFreeBody = this.body.filter(
             x => !(x instanceof CatchNode || x instanceof FinallyNode)
         );
-        var exceptBlocks = this.body.slice(exceptBlockFreeBody.length);
-        var catches = exceptBlocks.filter(x => x instanceof CatchNode);
-        var finally_ = (exceptBlocks.length &&
+        const exceptBlocks = this.body.slice(exceptBlockFreeBody.length);
+        const catches = exceptBlocks.filter(x => x instanceof CatchNode);
+        const finally_ = (exceptBlocks.length &&
                         exceptBlocks[exceptBlocks.length - 1] instanceof FinallyNode) ?
                             exceptBlocks[exceptBlocks.length - 1] :
                             null;

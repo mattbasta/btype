@@ -658,7 +658,7 @@ NODES.set(hlirNodes.TypedIdentifierHLIR, function() {
 
 
 export default function translate(ctx) {
-    var tctx = new TranslationContext(ctx.env, ctx);
+    const tctx = new TranslationContext(ctx.env, ctx);
     _node(ctx.scope, ctx.env, ctx, tctx);
     return tctx.toString();
 };

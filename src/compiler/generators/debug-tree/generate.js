@@ -1,7 +1,3 @@
 export default function generate(env) {
-    var output = '';
-    env.included.forEach(i => {
-        output += i.scope.toString();
-    });
-    return output;
+    return Array.from(env.included.values()).map(i => i.scope.toString()).join('\n');
 };

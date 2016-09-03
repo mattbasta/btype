@@ -20,7 +20,7 @@ Some notes about transformation:
 */
 
 export function markFirstClassFunctions(context) {
-    var stack = [];
+    const stack = [];
     context.scope.iterate(
         (node, marker) => {
             if (!(node instanceof hlirNodes.SymbolHLIR)) {
@@ -68,7 +68,7 @@ export function markFirstClassFunctions(context) {
 }
 
 function removeItem(array, item) {
-    for (var i = 0; i < array.length; i++) {
+    for (let i = 0; i < array.length; i++) {
         if (array[i] === item) {
             array.splice(i, 1);
             return array;
@@ -78,7 +78,7 @@ function removeItem(array, item) {
 }
 
 function updateSymbolReferences(funcNode, tree, rootContext, refType) {
-    var targetContext = funcNode[symbols.CONTEXT].parent;
+    const targetContext = funcNode[symbols.CONTEXT].parent;
     tree.iterate(node => {
         if (node instanceof hlirNodes.SymbolHLIR &&
             node[symbols.REFCONTEXT] === targetContext &&
@@ -95,7 +95,7 @@ function updateSymbolReferences(funcNode, tree, rootContext, refType) {
 }
 
 function willFunctionNeedContext(ctx) {
-    for (var e of ctx.functions.entries()) {
+    for (let e of ctx.functions.entries()) {
         if (e.some(f => f[symbols.CONTEXT].accessesLexicalScope)) {
             return true;
         }
@@ -104,13 +104,13 @@ function willFunctionNeedContext(ctx) {
 }
 
 function getFunctionContext(ctx, name) {
-    var mapping = new Map();
+    const mapping = new Map();
     // Find the lexical lookups in each descendant context and put them into a mapping
     ctx.scope.iterate(node => {
         if (!(node instanceof hlirNodes.FunctionHLIR)) return;
         if (node.sideEffectFree) return false;
 
-        for (var lookup of node[symbols.CONTEXT].lexicalLookups.keys()) {
+        for (let lookup of node[symbols.CONTEXT].lexicalLookups.keys()) {
             if (mapping.has(lookup)) continue;
             if (node[symbols.CONTEXT].lexicalLookups.get(lookup) === ctx) {
                 mapping.set(lookup, ctx.typeMap.get(lookup));
@@ -118,19 +118,19 @@ function getFunctionContext(ctx, name) {
         }
     });
 
-    var typeAssignedName = ctx.env.namer();
-    var type = new Struct(typeAssignedName, mapping);
+    const typeAssignedName = ctx.env.namer();
+    const type = new Struct(typeAssignedName, mapping);
     type[symbols.IS_CTX_OBJ] = true;
     type[symbols.ASSIGNED_NAME] = typeAssignedName;
     ctx.env.registerType(typeAssignedName, type, ctx.parent);
 
-    var wrappedType = hlirNodes.TypeHLIR.from(
+    const wrappedType = hlirNodes.TypeHLIR.from(
         type,
         ctx.scope.start,
         ctx.scope.end
     );
 
-    var funcctx = new hlirNodes.DeclarationHLIR(
+    const funcctx = new hlirNodes.DeclarationHLIR(
         wrappedType,
         name,
         new hlirNodes.NewHLIR(
@@ -153,8 +153,8 @@ function getFunctionContext(ctx, name) {
 function processRoot(rootContext) {
     // In the root context, the first thing we want to do is convert any
     // function expressions into function references.
-    var stack = [];
-    var funcsToAppend = [];
+    const stack = [];
+    const funcsToAppend = [];
     rootContext.scope.iterate((node, member) => {
         if (!(node instanceof hlirNodes.FunctionHLIR)) {
             stack.unshift(node);
@@ -171,11 +171,11 @@ function processRoot(rootContext) {
 
         funcsToAppend.push(node);
 
-        var funcType = node.resolveType(rootContext);
-        var frefType = new hlirNodes.TypeHLIR('func', [], node.start, node.end);
+        const funcType = node.resolveType(rootContext);
+        const frefType = new hlirNodes.TypeHLIR('func', [], node.start, node.end);
         frefType.forceType(funcType);
 
-        var refSym = new hlirNodes.SymbolHLIR(node.name || node[symbols.ASSIGNED_NAME], node.start, node.end);
+        const refSym = new hlirNodes.SymbolHLIR(node.name || node[symbols.ASSIGNED_NAME], node.start, node.end);
         refSym[symbols.REFCONTEXT] = rootContext;
         refSym[symbols.REFTYPE] = funcType;
         refSym[symbols.REFNAME] = node[symbols.ASSIGNED_NAME];
@@ -197,7 +197,7 @@ function processRoot(rootContext) {
 }
 
 function processContext(rootCtx, ctx, tree) {
-    var encounteredContexts = rootCtx[TRANSFORM_ENCOUNTERED_CTXS] = rootCtx[TRANSFORM_ENCOUNTERED_CTXS] || new Set();
+    const encounteredContexts = rootCtx[TRANSFORM_ENCOUNTERED_CTXS] = rootCtx[TRANSFORM_ENCOUNTERED_CTXS] || new Set();
 
     // This function runs from the outermost scope to the innermost scope.
     // Though that may be counterintuitive, the result should ultimately be
@@ -226,23 +226,22 @@ function processContext(rootCtx, ctx, tree) {
 
 function processFunc(rootContext, node, context) {
 
-    var ctxName;
-    var funcctx;
-    var ctxMapping;
-    var ctxType;
+    let ctxName;
+    let funcctx;
+    let ctxMapping;
+    let ctxType;
 
     function getContextReference() {
         if (!funcctx) {
             return new hlirNodes.LiteralHLIR('null', null, 0, 0);
         }
 
-        var out = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
+        const out = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
         out[symbols.REFCONTEXT] = context;
         out[symbols.REFTYPE] = ctxType;
         out[symbols.REFNAME] = ctxName;
         out[symbols.IS_FUNC] = false;
         return out;
-
     }
 
     if (willFunctionNeedContext(context)) {
@@ -256,11 +255,11 @@ function processFunc(rootContext, node, context) {
         context.addVar(ctxName, ctxType, ctxName);
 
         function getReference(name, type) {
-            var base = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
+            const base = new hlirNodes.SymbolHLIR(ctxName, 0, 0);
             base[symbols.REFCONTEXT] = context;
             base[symbols.REFTYPE] = ctxType;
             base[symbols.REFNAME] = ctxName;
-            var member = new hlirNodes.MemberHLIR(base, name, 0, 0);
+            const member = new hlirNodes.MemberHLIR(base, name, 0, 0);
             member.forceType(type);
             return member;
         }
@@ -290,14 +289,14 @@ function processFunc(rootContext, node, context) {
 
         // Put initial parameter values into the context
         context.scope.params.forEach(param => {
-            var assignedName = context.nameMap.get(param.name);
+            const assignedName = context.nameMap.get(param.name);
             if (!ctxMapping.has(assignedName)) return;
 
-            var sym = new hlirNodes.SymbolHLIR(param.name, 0, 0);
+            const sym = new hlirNodes.SymbolHLIR(param.name, 0, 0);
             sym[symbols.REFCONTEXT] = context;
             sym[symbols.REFTYPE] = param.resolveType(context);
             sym[symbols.REFNAME] = assignedName;
-            var assign = new hlirNodes.AssignmentHLIR(
+            const assign = new hlirNodes.AssignmentHLIR(
                 getReference(assignedName),
                 sym,
                 0,
@@ -314,18 +313,18 @@ function processFunc(rootContext, node, context) {
                 node[ORIG_TYPE] = node.resolveType(node[symbols.CONTEXT]);
             }
 
-            var ctx = node[symbols.CONTEXT];
-            for (var mem of ctxMapping.keys()) {
+            const ctx = node[symbols.CONTEXT];
+            for (let mem of ctxMapping.keys()) {
                 if (!ctx.lexicalLookups.has(mem)) return; // Ignore lexical lookups not in this scope
                 if (ctx.lexicalLookups.get(mem) !== context) return; // Ignore lexical lookups from other scopes
 
                 ctx.lexicalLookups.delete(mem);
             }
 
-            var type = new hlirNodes.TypeHLIR(funcctx[CTX_TYPEMAPPING].typeName, [], 0, 0);
+            const type = new hlirNodes.TypeHLIR(funcctx[CTX_TYPEMAPPING].typeName, [], 0, 0);
             type.forceType(funcctx[CTX_TYPEMAPPING]);
 
-            var ident = new hlirNodes.TypedIdentifierHLIR(ctxName, type, 0, 0);
+            const ident = new hlirNodes.TypedIdentifierHLIR(ctxName, type, 0, 0);
             ident[symbols.ASSIGNED_NAME] = ctxName;
             ident[symbols.CONTEXT] = ctx;
             ident[symbols.REFCONTEXT] = context;
@@ -337,7 +336,7 @@ function processFunc(rootContext, node, context) {
 
         // Remove all of the converted variables from the `typeMap` and
         // `nameMap` fields.
-        for (var name of ctxMapping.keys()) {
+        for (let name of ctxMapping.keys()) {
             context.nameMap.delete(name);
             context.typeMap.delete(name);
         }
@@ -358,25 +357,25 @@ function processFunc(rootContext, node, context) {
 
     // Replace first class function delcarations with variable declarations
     node.iterateBodies(body => {
-        for (var i = 0; i < body.length; i++) {
-            let iterNode = body[i];
+        for (const i = 0; i < body.length; i++) {
+            const iterNode = body[i];
 
             if (!(iterNode instanceof hlirNodes.FunctionHLIR)) return;
             if (!iterNode[symbols.IS_FIRSTCLASS]) return;
 
-            let type = iterNode.resolveType(context);
+            const type = iterNode.resolveType(context);
             context.env.registerFunc(iterNode);
 
-            let typeIR = new hlirNodes.TypeHLIR(type.typeName || type._type, [], 0, 0);
+            const typeIR = new hlirNodes.TypeHLIR(type.typeName || type._type, [], 0, 0);
             typeIR.forceType(type);
 
-            let ref = new hlirNodes.SymbolHLIR(iterNode.name, 0, 0);
+            const ref = new hlirNodes.SymbolHLIR(iterNode.name, 0, 0);
             ref[symbols.REFCONTEXT] = iterNode[symbols.CONTEXT];
             ref[symbols.REFTYPE] = iterNode.resolveType(iterNode[symbols.CONTEXT]);
             ref[symbols.REFNAME] = iterNode[symbols.ASSIGNED_NAME];
             ref[symbols.IS_FUNC] = true;
 
-            let decl = new hlirNodes.DeclarationHLIR(
+            const decl = new hlirNodes.DeclarationHLIR(
                 type,
                 iterNode.name,
                 hlirNodes.NewHLIR.asFuncRef(
@@ -393,7 +392,7 @@ function processFunc(rootContext, node, context) {
         }
     });
 
-    var stack = [];
+    const stack = [];
     node.iterate(node => {
 
         if (!stack[0] ||
@@ -407,8 +406,8 @@ function processFunc(rootContext, node, context) {
         stack[0].substitute(x => {
             if (x !== node) return x;
             context.env.registerFunc(node);
-            var funcType = node.resolveType();
-            var ref = new hlirNodes.SymbolHLIR(node.name, 0, 0);
+            const funcType = node.resolveType();
+            const ref = new hlirNodes.SymbolHLIR(node.name, 0, 0);
             ref[symbols.REFCONTEXT] = node[symbols.CONTEXT];
             ref[symbols.REFTYPE] = funcType;
             ref[symbols.REFNAME] = node[symbols.ASSIGNED_NAME] + '$$origFunc$';
@@ -429,9 +428,9 @@ function processCallNodes(node, context) {
     node.findAndReplace(node => {
         if (!(node instanceof hlirNodes.CallHLIR)) return;
 
-        var isDeclaration = context.isFuncSet.has(node.callee[symbols.REFNAME]);
+        let isDeclaration = context.isFuncSet.has(node.callee[symbols.REFNAME]);
         if (!isDeclaration && node.callee instanceof hlirNodes.MemberHLIR) {
-            var baseType = node.callee.base.resolveType(context);
+            const baseType = node.callee.base.resolveType(context);
             if (baseType._type === 'module' || baseType.flatTypeName() === 'foreign') {
                 isDeclaration = true;
             }
@@ -445,10 +444,10 @@ function processCallNodes(node, context) {
 }
 
 function upliftContext(rootContext, ctx) {
-    var ctxparent = ctx.parent;
+    const ctxparent = ctx.parent;
     if (ctxparent === rootContext) return;
 
-    var node = ctx.scope;
+    const node = ctx.scope;
     rootContext.functions.add(node);
     ctxparent.functions.delete(node);
 
@@ -460,8 +459,8 @@ function upliftContext(rootContext, ctx) {
 
     // Replace the function itself with a symbol rather than a direct reference
     // or nothing if it is defined as a declaration.
-    var stack = [ctxparent.scope];
-    var oldName = node[symbols.ASSIGNED_NAME];
+    const stack = [ctxparent.scope];
+    const oldName = node[symbols.ASSIGNED_NAME];
     ctxparent.scope.iterate((iterNode, marker) => {
         // If you encounter someting other than the function, ignore it and
         // push it to the stack.
@@ -479,7 +478,7 @@ function upliftContext(rootContext, ctx) {
         } else {
             // Otherwise, replace the function with a symbol referencing the
             // function.
-            let newSymbol = stack[0][marker] = new hlirNodes.SymbolHLIR(
+            const newSymbol = stack[0][marker] = new hlirNodes.SymbolHLIR(
                 node.name,
                 node.start,
                 node.end
@@ -495,8 +494,7 @@ function upliftContext(rootContext, ctx) {
     }, iterNode => stack.shift());
 
     rootContext.scope.body.push(node);
-    var oldName = node[symbols.ASSIGNED_NAME];
-    var newName = node[symbols.ASSIGNED_NAME] += '$$origFunc$';
+    const newName = node[symbols.ASSIGNED_NAME] += '$$origFunc$';
 
     // Replace the old assigned name with the new one within the uplifted
     // function.
@@ -507,7 +505,7 @@ function upliftContext(rootContext, ctx) {
     });
 
     // Replace the old function name in the old parent context.
-    var stack = [];
+    stack.splice(0, stack.length);
     ctxparent.scope.iterate(
         x => {
             if (!(x instanceof hlirNodes.SymbolHLIR)) {
@@ -525,11 +523,11 @@ function upliftContext(rootContext, ctx) {
 
     // If the function is in a function table, update it there as well.
     if (node[symbols.FUNCLIST]) {
-        let funcList = rootContext.env.funcList.get(node[symbols.FUNCLIST]);
+        const funcList = rootContext.env.funcList.get(node[symbols.FUNCLIST]);
         funcList[node[symbols.FUNCLIST_IDX]] = newName;
     }
 
-    var temp = ctx;
+    let temp = ctx;
     while (temp) {
         if (temp.functionDeclarations.has(oldName)) {
             temp.functionDeclarations.set(
