@@ -124,7 +124,7 @@ export default class Environment {
 
         let ctx;
         try {
-            const rootNode = tree[symbols.FMAKEHLIR](this, privileged, errorFormatter);
+            const rootNode = tree[symbols.FMAKEHLIR](this, privileged, errorFormatter, filename);
             ctx = rootNode[symbols.CONTEXT];
             rootNode.settleTypes(ctx);
             // console.log('or', ctx.scope.toString());

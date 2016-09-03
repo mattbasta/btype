@@ -13,7 +13,11 @@ function include(env, func) {
     }
 
     env[STDLIB_REQUESTED].add(func);
-    env[GLOBAL_PREFIX] += exports[func](env);
+    // This has to be assigned to a variable because some of these recursively
+    // call `include()`, which causes all hell to break loose with the way
+    // augmented assignment works in JS.
+    const evaluated = exports[func](env);
+    env[GLOBAL_PREFIX] += evaluated;
 }
 
 export function registerFunc(env, funcName) {

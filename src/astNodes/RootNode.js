@@ -31,10 +31,11 @@ export default class RootNode extends BaseBlockNode {
         return this.body.map(e => e.toString()).join('');
     }
 
-    [symbols.FMAKEHLIR](env, privileged, errorFormatter) {
+    [symbols.FMAKEHLIR](env, privileged, errorFormatter, filename = null) {
         const builder = new ContextBuilder(env, privileged, errorFormatter);
         const rootHLIR = new RootHLIR(this.start, this.end);
         const rootCtx = new RootContext(env, rootHLIR, privileged);
+        rootCtx.filename = filename;
 
         builder.pushCtx(rootCtx);
         rootHLIR.setBody(this[symbols.FMAKEHLIRBLOCK](builder, this.body));

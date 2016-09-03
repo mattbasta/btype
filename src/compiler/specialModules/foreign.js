@@ -152,6 +152,7 @@ export function get(env) {
     const fakeRoot = new RootNode([], 0, 0);
     const hlir = fakeRoot[symbols.FMAKEHLIR](env, true);
     const ctx = hlir[symbols.CONTEXT];
+    ctx.filename = 'foreign';
 
     ctx.exports.set('Math', ctx.addVar('Math', new StdlibType(env, 'Math', MathRaw)));
     ctx.exports.set('external', ctx.addVar('external', new ForeignType(env)));

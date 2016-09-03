@@ -357,7 +357,7 @@ function processFunc(rootContext, node, context) {
 
     // Replace first class function delcarations with variable declarations
     node.iterateBodies(body => {
-        for (const i = 0; i < body.length; i++) {
+        for (let i = 0; i < body.length; i++) {
             const iterNode = body[i];
 
             if (!(iterNode instanceof hlirNodes.FunctionHLIR)) return;

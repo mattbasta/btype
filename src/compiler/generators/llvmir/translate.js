@@ -651,7 +651,7 @@ NODES.set(hlirNodes.RaiseHLIR, function(env, ctx, tctx, extra) {
     const raiseType = getLLVMType(raiseTypeRaw);
 
     const rawValueReg = tctx.getRegister();
-    tctx.write(`${rawValueReg} = bitcase ${raiseType} ${value} to i8*`);
+    tctx.write(`${rawValueReg} = bitcast ${raiseType} ${value} to i8*`);
 
     tctx.write(
         `call void @__cxa_throw(${rawValueReg}, i8*, i8* null)`

@@ -259,6 +259,9 @@ export class Context extends BaseContext {
 
         // A reference to the parent context of this context.
         this.parent = parent;
+        if (parent) {
+            this.filename = parent.filename;
+        }
 
         // A mapping of assigned names of referenced variables to the contexts
         // that contain the definition of those variables.
