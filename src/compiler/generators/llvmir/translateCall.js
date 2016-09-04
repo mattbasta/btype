@@ -159,19 +159,19 @@ function translateRefCall(env, ctx, tctx, extra) {
 
     tctx.write('; funcref:call')
     const type = this.callee.resolveType(ctx);
-    const typeName = getLLVMType(type);
+    const typeName = getLLVMType(type, false);
 
     const callee = _node(this.callee, env, ctx, tctx);
 
     const funcPtrReg = tctx.getRegister();
-    tctx.write(`${funcPtrReg} = getelementptr inbounds ${typeName} ${callee}, i32 0, i32 0`);
+    tctx.write(`${funcPtrReg} = getelementptr inbounds ${typeName}, ${typeName}* ${callee}, i32 0, i32 0`);
     const rawFuncReg = tctx.getRegister();
-    tctx.write(`${rawFuncReg} = load i8** ${funcPtrReg}, align ${getAlignment(type)} ; funcload`);
+    tctx.write(`${rawFuncReg} = load i8*, i8** ${funcPtrReg}, align ${getAlignment(type)} ; funcload`);
 
     const ctxPtrReg = tctx.getRegister();
-    tctx.write(`${ctxPtrReg} = getelementptr inbounds ${typeName} ${callee}, i32 0, i32 1`);
+    tctx.write(`${ctxPtrReg} = getelementptr inbounds ${typeName}, ${typeName}* ${callee}, i32 0, i32 1`);
     const ctxReg = tctx.getRegister();
-    tctx.write(`${ctxReg} = load i8** ${ctxPtrReg}`);
+    tctx.write(`${ctxReg} = load i8*, i8** ${ctxPtrReg}`);
 
     const params = this.params.map(p => {
         let node = _node(p, env, ctx, tctx);
@@ -205,13 +205,13 @@ function translateRefCall(env, ctx, tctx, extra) {
     if (type.args.length && type.args[0][symbols.IS_SELF_PARAM]) {
         nullFuncType = new Func(type.returnType, type.args.slice(1));
     }
-    tctx.write(`${nullFuncReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(nullFuncType)}`);
+    tctx.write(`${nullFuncReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(nullFuncType)}*`);
     let callBody = `${coi} ${returnType} ${nullFuncReg}(${params}) ; call:ref:null`;
 
     if (extra === 'stmt') {
         tctx.write(callBody);
     } else {
-        let nullRetPtr = tctx.getRegister();
+        const nullRetPtr = tctx.getRegister();
         tctx.write(`${nullRetPtr} = ${callBody}`);
         tctx.write(`store ${returnType} ${nullRetPtr}, ${returnType}* ${callRetPtr}, align 8`);
     }
@@ -226,13 +226,13 @@ function translateRefCall(env, ctx, tctx, extra) {
     if (!type.args.length || !(type.args[0][symbols.IS_SELF_PARAM] || type.args[0][symbols.IS_CTX_OBJ])) {
         unnullFuncType = new Func(type.returnType, [unnullCtx].concat(type.args));
     }
-    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(unnullFuncType)}`);
+    tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(unnullFuncType)}*`);
     callBody = `${coi} ${returnType} ${funcReg}(i8* ${ctxReg}${params ? ', ' : ''}${params}) ; call:ref:unnull`;
 
     if (extra === 'stmt') {
         tctx.write(callBody);
     } else {
-        let unnullRetPtr = tctx.getRegister();
+        const unnullRetPtr = tctx.getRegister();
         tctx.write(`${unnullRetPtr} = ${callBody}`);
         tctx.write(`store ${returnType} ${unnullRetPtr}, ${returnType}* ${callRetPtr}, align 8`);
     }
@@ -246,6 +246,6 @@ function translateRefCall(env, ctx, tctx, extra) {
     }
 
     const callRet = tctx.getRegister();
-    tctx.write(`${callRet} = load ${returnType}* ${callRetPtr}, align ${getAlignment(returnTypeRaw)}`);
+    tctx.write(`${callRet} = load ${returnType}, ${returnType}* ${callRetPtr}, align ${getAlignment(returnTypeRaw)}`);
     return callRet;
 }

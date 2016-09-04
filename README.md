@@ -34,6 +34,8 @@ npm install
 brew install llvm  # Or your favorite package manager
 ```
 
+BType targets LLVM 3.8.
+
 
 ## Goals
 

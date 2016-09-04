@@ -21,16 +21,16 @@ export function makeName(assignedName) {
  *                          references properly.
  * @return {string}
  */
-export function getLLVMParamType(type) {
+export function getLLVMParamType(type, asPtr = true) {
     if (!type) {
         return 'void';
     }
 
     if (type[symbols.IS_CTX_OBJ] || type[symbols.IS_SELF_PARAM]) {
-        return 'i8*';
+        return 'i8' + (asPtr ? '*' : '');
     }
 
-    return getLLVMType(type);
+    return getLLVMType(type, asPtr);
 };
 
 /**
@@ -38,13 +38,15 @@ export function getLLVMParamType(type) {
  * @param  {*} btType The type to convert
  * @return {string}
  */
-export function getLLVMType(btType) {
+export function getLLVMType(btType, asPtr = true) {
     if (!btType) {
         return 'void';
     }
 
+    const ptrSuffix = asPtr ? '*' : '';
+
     if (btType._type === 'string') {
-        return '%string*';
+        return `%string${ptrSuffix}`;
     }
 
     if (btType instanceof Primitive) {
@@ -77,10 +79,10 @@ export function getLLVMType(btType) {
         );
 
 
-        return '%' + makeName(filteredFunc.flatTypeName()) + '*';
+        return '%' + makeName(filteredFunc.flatTypeName()) + ptrSuffix;
     }
 
-    return '%' + makeName(btType.flatTypeName()) + '*';
+    return '%' + makeName(btType.flatTypeName()) + ptrSuffix;
 };
 
 /**
@@ -108,8 +110,8 @@ export function getFunctionSignature(type) {
     out += ' (';
 
     if (type.args.length) {
-        out += type.args.map(getLLVMParamType).join(', ');
+        out += type.args.map(x => getLLVMParamType(x)).join(', ');
     }
-    out += ')*';
+    out += ')';
     return out;
 };

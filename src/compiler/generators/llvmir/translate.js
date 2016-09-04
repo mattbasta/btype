@@ -369,7 +369,7 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
 
     if (returnType) {
         const outReg = tctx.getRegister();
-        tctx.write(`${outReg} = load ${returnTypeName}* %retVal, align ${getAlignment(returnType)}`);
+        tctx.write(`${outReg} = load ${returnTypeName}, ${returnTypeName}* %retVal, align ${getAlignment(returnType)}`);
         tctx.write(`ret ${returnTypeName} ${outReg}`);
     } else {
         tctx.write('ret void');
@@ -418,15 +418,17 @@ NODES.set(hlirNodes.LiteralHLIR, function(env, ctx, tctx) {
         const castStrPtr = tctx.getRegister();
         tctx.write(castStrPtr + ' = bitcast i8* ' + strPtr + ' to %string*');
         const lenPtr = tctx.getRegister();
-        tctx.write(lenPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 0');
+        tctx.write(lenPtr + ' = getelementptr %string, %string* ' + castStrPtr + ', i32 0, i32 0');
         tctx.write('store i32 ' + this.value.length + ', i32* ' + lenPtr);
         const capacityPtr = tctx.getRegister();
-        tctx.write(capacityPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 1');
+        tctx.write(capacityPtr + ' = getelementptr %string, %string* ' + castStrPtr + ', i32 0, i32 1');
         tctx.write('store i32 ' + this.value.length + ', i32* ' + capacityPtr);
 
         const strBodyPtr = tctx.getRegister();
-        tctx.write(strBodyPtr + ' = getelementptr %string* ' + castStrPtr + ', i32 0, i32 2');
-        tctx.write('store i16* getelementptr inbounds ([' + (this.value.length + 1) + ' x i16]* ' + strLitIdent + ', i32 0, i32 0), i16** ' + strBodyPtr + ', align 4');
+        tctx.write(`${strBodyPtr} = getelementptr %string, %string* ${castStrPtr}, i32 0, i32 2`);
+        tctx.write(
+            `store i16* getelementptr inbounds ([${this.value.length + 1} x i16], [${this.value.length + 1} x i16]* ${strLitIdent}, i32 0, i32 0), i16** ${strBodyPtr}, align 4`
+        );
 
         return castStrPtr;
     }
@@ -462,7 +464,6 @@ NODES.set(hlirNodes.LoopHLIR, function(env, ctx, tctx) {
 
 NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
     const baseType = this.base.resolveType(ctx);
-    let base;
     if (baseType._type === 'module') {
         return '@' + makeName(baseType.memberMapping.get(this.child));
     }
@@ -489,32 +490,33 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
     }
 
     if (baseType.hasMethod && baseType.hasMethod(this.child)) {
-        let type = this.resolveType(ctx);
-        let typeName = getLLVMParamType(type);
-        let funcType = getFunctionSignature(type);
+        const type = this.resolveType(ctx);
+        const typeName = getLLVMParamType(type, false);
+        const typePtrName = getLLVMParamType(type);
+        const funcType = getFunctionSignature(type);
         tctx.write(`; member:methodref(${baseType.toString()}.${this.child})`);
 
-        if (!env[FUNCREF_TYPES].has(typeName)) {
-            env[GLOBAL_PREFIX] += '\n' + typeName.substr(0, typeName.length - 1) + ' = type { i8*, i8* }'
-            env[FUNCREF_TYPES].add(typeName);
+        if (!env[FUNCREF_TYPES].has(typePtrName)) {
+            env[GLOBAL_PREFIX] += '\n' + typePtrName.substr(0, typePtrName.length - 1) + ' = type { i8*, i8* }'
+            env[FUNCREF_TYPES].add(typePtrName);
         }
 
-        let reg = tctx.getRegister();
+        const reg = tctx.getRegister();
         tctx.write(`${reg} = call i8* @malloc(i32 16)`); // 16 is just to be safe for 64 bit
-        let regPtr = tctx.getRegister();
-        tctx.write(`${regPtr} = bitcast i8* ${reg} to ${typeName}`);
+        const regPtr = tctx.getRegister();
+        tctx.write(`${regPtr} = bitcast i8* ${reg} to ${typePtrName}`);
 
-        let funcLocPtr = tctx.getRegister();
-        tctx.write(`${funcLocPtr} = getelementptr inbounds ${typeName} ${regPtr}, i32 0, i32 0`);
-        let rawFuncLocPtr = tctx.getRegister();
-        tctx.write(`${rawFuncLocPtr} = bitcast ${funcType} @${makeName(baseType.getMethod(this.child))} to i8* ; member:method:funccast`);
+        const funcLocPtr = tctx.getRegister();
+        tctx.write(`${funcLocPtr} = getelementptr inbounds ${typeName}, ${typePtrName} ${regPtr}, i32 0, i32 0`);
+        const rawFuncLocPtr = tctx.getRegister();
+        tctx.write(`${rawFuncLocPtr} = bitcast ${funcType}* @${makeName(baseType.getMethod(this.child))} to i8* ; member:method:funccast`);
         tctx.write(`store i8* ${rawFuncLocPtr}, i8** ${funcLocPtr} ; member:method:func`);
 
-        let baseLocPtr = tctx.getRegister();
-        tctx.write(`${baseLocPtr} = getelementptr inbounds ${typeName} ${regPtr}, i32 0, i32 1`);
-        base = _node(this.base, env, ctx, tctx);
+        const baseLocPtr = tctx.getRegister();
+        tctx.write(`${baseLocPtr} = getelementptr inbounds ${typeName}, ${typePtrName} ${regPtr}, i32 0, i32 1`);
+        const base = _node(this.base, env, ctx, tctx);
 
-        let baseCastReg = tctx.getRegister();
+        const baseCastReg = tctx.getRegister();
         tctx.write(`${baseCastReg} = bitcast ${getLLVMType(baseType)} ${base} to i8*`);
         tctx.write(`store i8* ${baseCastReg}, i8** ${baseLocPtr} ; member:method:self`);
 
@@ -522,11 +524,11 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
     }
 
     if ((baseType._type === 'array' || baseType._type === 'string') && this.child === 'length') {
-        base = _node(this.base, env, ctx, tctx);
-        let lenRegPtr = tctx.getRegister();
-        tctx.write(`${lenRegPtr} = getelementptr inbounds ${getLLVMType(baseType)} ${base}, i32 0, i32 0`);
-        let lenReg = tctx.getRegister();
-        tctx.write(`${lenReg} = load i32* ${lenRegPtr}, align 4`);
+        const base = _node(this.base, env, ctx, tctx);
+        const lenRegPtr = tctx.getRegister();
+        tctx.write(`${lenRegPtr} = getelementptr inbounds ${getLLVMType(baseType, false)}, ${getLLVMType(baseType)} ${base}, i32 0, i32 0`);
+        const lenReg = tctx.getRegister();
+        tctx.write(`${lenReg} = load i32, i32* ${lenRegPtr}, align 4`);
 
         return lenReg;
     }
@@ -536,53 +538,54 @@ NODES.set(hlirNodes.MemberHLIR, function(env, ctx, tctx, extra) {
 
     tctx.write(`; member(${baseType.toString()}.${outType.toString()})`);
 
-    base = _node(this.base, env, ctx, tctx);
+    const base = _node(this.base, env, ctx, tctx);
 
     const outRegPtr = tctx.getRegister();
-    tctx.write(`${outRegPtr} = getelementptr inbounds ${getLLVMType(baseType)} ${base}, i32 0, i32 ${layoutIndex}`);
+    tctx.write(`${outRegPtr} = getelementptr inbounds ${getLLVMType(baseType, false)}, ${getLLVMType(baseType)} ${base}, i32 0, i32 ${layoutIndex}`);
 
     if (extra === 'lvalue') {
         return outRegPtr;
     }
 
     const outReg = tctx.getRegister();
-    tctx.write(`${outReg} = load ${getLLVMType(outType)}* ${outRegPtr}, align ${getAlignment(outType)}`);
+    tctx.write(`${outReg} = load ${getLLVMType(outType)}, ${getLLVMType(outType)}* ${outRegPtr}, align ${getAlignment(outType)}`);
     return outReg;
 });
 
 NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
     const out = _node(this.base, env, ctx, tctx);
     const reg = tctx.getRegister();
-    tctx.write(reg + ' = xor i1 ' + out + ', 1');
+    tctx.write(`${reg} = xor i1 ${out}, 1`);
     return reg;
 });
 
 NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     const baseType = this.resolveType(ctx);
-    const targetType = getLLVMType(baseType);
+    const targetType = getLLVMType(baseType, false);
+    const targetPtrType = getLLVMType(baseType);
     tctx.write(`; NewHLIR(${baseType.toString()})`);
 
     if (baseType instanceof Func) {
         const funcType = getFunctionSignature(baseType);
 
-        if (!env[FUNCREF_TYPES].has(targetType)) {
-            const typeName = targetType.substr(0, targetType.length - 1);
+        if (!env[FUNCREF_TYPES].has(targetPtrType)) {
+            const typeName = targetPtrType.substr(0, targetPtrType.length - 1);
             env[GLOBAL_PREFIX] += `\n${typeName} = type { i8*, i8* }`;
-            env[FUNCREF_TYPES].add(targetType);
+            env[FUNCREF_TYPES].add(targetPtrType);
         }
 
         const reg = tctx.getRegister();
         tctx.write(reg + ' = call i8* @malloc(i32 16) ; funcref'); // 16 is just to be safe for 64 bit
         const regPtr = tctx.getRegister();
-        tctx.write(`${regPtr} = bitcast i8* ${reg} to ${targetType}`);
+        tctx.write(`${regPtr} = bitcast i8* ${reg} to ${targetPtrType}`);
 
         const funcLocPtr = tctx.getRegister();
-        tctx.write(`${funcLocPtr} = getelementptr inbounds ${targetType} ${regPtr}, i32 0, i32 0`);
+        tctx.write(`${funcLocPtr} = getelementptr inbounds ${targetType}, ${targetPtrType} ${regPtr}, i32 0, i32 0`);
 
-        tctx.write(`store i8* bitcast (${funcType} ${_node(this.args[0], env, ctx, tctx)} to i8*), i8** ${funcLocPtr}, align ${getAlignment(baseType)} ; funcref:base`);
+        tctx.write(`store i8* bitcast (${funcType}* ${_node(this.args[0], env, ctx, tctx)} to i8*), i8** ${funcLocPtr}, align ${getAlignment(baseType)} ; funcref:base`);
 
         const ctxLocPtr = tctx.getRegister();
-        tctx.write(`${ctxLocPtr} = getelementptr inbounds ${targetType} ${regPtr}, i32 0, i32 1`);
+        tctx.write(`${ctxLocPtr} = getelementptr inbounds ${targetType}, ${targetPtrType} ${regPtr}, i32 0, i32 1`);
 
         if (this.args.length === 2 &&
             !(this.args[1] instanceof hlirNodes.LiteralHLIR &&
@@ -609,7 +612,7 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
 
         const length = _node(this.args[0], env, ctx, tctx);
         const arr = tctx.getRegister();
-        tctx.write(`${arr} = call ${targetType} @btmake_${targetType.substr(1, targetType.length - 2)}(i32 ${length})`);
+        tctx.write(`${arr} = call ${targetPtrType} @btmake_${targetPtrType.substr(1, targetPtrType.length - 2)}(i32 ${length})`);
         return arr;
     }
 
@@ -617,9 +620,9 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
     const reg = tctx.getRegister();
     tctx.write(`${reg} = call i8* @malloc(i32 ${size})`);
     const ptrReg = tctx.getRegister();
-    tctx.write(`${ptrReg} = bitcast i8* ${reg} to ${targetType}`);
+    tctx.write(`${ptrReg} = bitcast i8* ${reg} to ${targetPtrType}`);
 
-    tctx.write(`call void @btinit_${targetType.substr(1, targetType.length - 2)}(${targetType} ${ptrReg}) ; new:initcall`);
+    tctx.write(`call void @btinit_${targetPtrType.substr(1, targetPtrType.length - 2)}(${targetPtrType} ${ptrReg}) ; new:initcall`);
 
     if (baseType instanceof Struct && baseType.objConstructor) {
         const args = [
@@ -714,26 +717,26 @@ NODES.set(hlirNodes.SubscriptHLIR, function(env, ctx, tctx, parent) {
         childType = baseType.contentsTypeArr[this.childExpr.value];
 
         posPtr = tctx.getRegister();
-        tctx.write(`${posPtr} = getelementptr ${getLLVMType(baseType)} ${base}, i32 0, i32 ${this.childExpr.value}`);
+        tctx.write(`${posPtr} = getelementptr ${getLLVMType(baseType, false)}, ${getLLVMType(baseType)} ${base}, i32 0, i32 ${this.childExpr.value}`);
 
     } else {
         childType = baseType.contentsType;
         const child = _node(this.childExpr, env, ctx, tctx);
 
         const arrBodyPtr = tctx.getRegister();
-        tctx.write(`${arrBodyPtr} = getelementptr inbounds ${getLLVMType(baseType)} ${base}, i32 0, i32 1`);
+        tctx.write(`${arrBodyPtr} = getelementptr inbounds ${getLLVMType(baseType, false)}, ${getLLVMType(baseType)} ${base}, i32 0, i32 1`);
         const arrBody = tctx.getRegister();
-        tctx.write(`${arrBody} = load ${getLLVMType(childType)}** ${arrBodyPtr}`);
+        tctx.write(`${arrBody} = load ${getLLVMType(childType)}*, ${getLLVMType(childType)}** ${arrBodyPtr}`);
 
         posPtr = tctx.getRegister();
-        tctx.write(`${posPtr} = getelementptr ${getLLVMType(childType)}* ${arrBody}, i32 ${child}`);
+        tctx.write(`${posPtr} = getelementptr ${getLLVMType(childType)}, ${getLLVMType(childType)}* ${arrBody}, i32 ${child}`);
     }
     if (parent === 'lvalue') {
         return posPtr;
     }
 
     const valReg = tctx.getRegister();
-    tctx.write(`${valReg} = load ${getLLVMType(childType)}* ${posPtr}, align ${getAlignment(childType)}`);
+    tctx.write(`${valReg} = load ${getLLVMType(childType)}, ${getLLVMType(childType)}* ${posPtr}, align ${getAlignment(childType)}`);
     return valReg;
 });
 
@@ -755,13 +758,14 @@ NODES.set(hlirNodes.SymbolHLIR, function(env, ctx, tctx, extra) {
     const alignment = getAlignment(type);
 
     const ref = (this[symbols.REFCONTEXT] === rootContext ? '@' : '%') + refname;
-    tctx.write(`${reg} = load ${getLLVMType(type)}* ${ref}, align ${alignment}`);
+    tctx.write(`${reg} = load ${getLLVMType(type)}, ${getLLVMType(type)}* ${ref}, align ${alignment}`);
     return reg;
 });
 
 NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
     const type = this.resolveType(ctx);
-    const typeName = getLLVMType(type);
+    const typeName = getLLVMType(type, false);
+    const typePtrName = getLLVMType(type);
 
     const flatTypeName = type.flatTypeName();
     if (!env[TUPLE_TYPES].has(flatTypeName)) {
@@ -772,7 +776,7 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
     const reg = tctx.getRegister();
     tctx.write(reg + ' = call i8* @malloc(i32 ' + size + ')');
     const ptrReg = tctx.getRegister();
-    tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + typeName);
+    tctx.write(ptrReg + ' = bitcast i8* ' + reg + ' to ' + typePtrName);
 
     // Assign all the tuple values
     this.elements.forEach((exp, i) => {
@@ -780,7 +784,7 @@ NODES.set(hlirNodes.TupleLiteralHLIR, function(env, ctx, tctx) {
         const valueType = getLLVMType(exp.resolveType(ctx));
 
         const pReg = tctx.getRegister();
-        tctx.write(`${pReg} = getelementptr inbounds ${typeName} ${ptrReg}, i32 0, i32 ${i}`);
+        tctx.write(`${pReg} = getelementptr inbounds ${typeName}, ${typePtrName} ${ptrReg}, i32 0, i32 ${i}`);
         tctx.write(`store ${valueType} ${value}, ${valueType}* ${pReg}`);
     });
 

@@ -11,27 +11,27 @@ import {getLLVMType, makeName} from './util';
 function translateArrayTypes(env) {
     let out = '';
     env[llvmTranslate.ARRAY_TYPES].forEach(type => {
-        const llvmType = getLLVMType(type);
-        const typeName = llvmType.substr(0, llvmType.length - 1)
+        const typeName = getLLVMType(type, false);
+        const llvmPtrType = getLLVMType(type);
         const innerTypeName = getLLVMType(type.contentsType);
         const typeSize = type.contentsType.getSize() || 4
 
         const innerOut = [
             typeName + ' = type { i32, ' + innerTypeName + '* }',
 
-            'define ' + typeName + '* @btmake_' + typeName.substr(1) + '(i32 %param_length) nounwind {',
+            'define ' + llvmPtrType + ' @btmake_' + typeName.substr(1) + '(i32 %param_length) nounwind {',
             'entry:',
             '    %bodyptr = call i8* @calloc(i32 %param_length, i32 ' + typeSize + ')',
             '    %bodyptrcast = bitcast i8* %bodyptr to ' + innerTypeName + '*',
 
             '    %ptr = call i8* @malloc(i32 16)',
-            '    %result = bitcast i8* %ptr to ' + typeName + '*',
-            '    %finalbodyptr = getelementptr ' + typeName + '* %result, i32 0, i32 1',
+            '    %result = bitcast i8* %ptr to ' + llvmPtrType,
+            '    %finalbodyptr = getelementptr ' + typeName + ', ' + llvmPtrType + ' %result, i32 0, i32 1',
             '    store ' + innerTypeName + '* %bodyptrcast, ' + innerTypeName + '** %finalbodyptr',
 
-            '    %sizePtr = getelementptr ' + typeName + '* %result, i32 0, i32 0',
+            '    %sizePtr = getelementptr ' + typeName + ', ' + llvmPtrType + ' %result, i32 0, i32 0',
             '    store i32 %param_length, i32* %sizePtr',
-            '    ret ' + typeName + '* %result',
+            '    ret ' + llvmPtrType + ' %result',
             '}',
         ];
 
@@ -178,7 +178,7 @@ function typeTranslate(type) {
     output += 'entry:\n';
 
     output += layout.map((member, i) => {
-        let output = '  %ptr' + i + ' = getelementptr inbounds ' + typeNamePtr + ' %inst, i32 0, i32 ' + i + '\n';
+        let output = `  %ptr${i} = getelementptr inbounds ${typeNameCat}, ${typeNamePtr} %inst, i32 0, i32 ${i}\n`;
         const memberType = getLLVMType(member);
         if (member._type === 'primitive') {
             switch (member.typeName) {
