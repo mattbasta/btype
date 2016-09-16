@@ -49,7 +49,7 @@ function makeModule(env, ENV_VARS, body) {
         'function readString(ptr) {',
         '    var len = u32[ptr + 8 >> 2];',
         '    var start = ptr + 16 >> 2;',
-        '    if (this.TextDecoder) return (new TextDecoder()).decode(u32.subarray(start, start + len));', // faster cheaty way
+        '    if (typeof TextDecoder !== \'undefined\') return (new TextDecoder()).decode(u32.subarray(start, start + len));', // faster cheaty way
         '    var out = "";', // slower less cheaty way
         '    for (var i = 0; i < len; i++) {',
         '        out += String.fromCharCode(u32[start + i]);',
