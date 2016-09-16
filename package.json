@@ -16,10 +16,10 @@
   "license": "MIT",
   "devDependencies": {
     "babel-cli": "6.14.*",
+    "babel-preset-es2015": "^6.14.0",
     "mocha": "3.0.*"
   },
   "dependencies": {
-    "babel-preset-es2015": "^6.14.0",
     "babel-preset-node6": "^11.0.0",
     "babel-register": "6.14.*",
     "bitstring": "1.0.*",
