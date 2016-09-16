@@ -20,10 +20,24 @@ At the time of writing, BType is still experimental and should NOT be used for p
 - Generics
 - Strong static typing with type inference
 
+## Goals
+
+- Provide a language with the best features of most modern dynamic languages
+- Code compiled to JS should run faster than vanilla JavaScript
+- Code should compile to a wide array of targets
+- Tools for accessing external JS utilities should be available
+- Automatic memory management
+- Very fast compilation
+- Code compiled to JavaScript should minify well
+
 
 # Requirements
 
-You must have Node 5.x or later installed. Running tests requires LLVM 3.6 or later.
+## Standalone (CLI)
+
+You must have Node 6.x or later installed to run BType via the command line.
+This is mostly for performance reasons. Running tests requires LLVM 3.8 or
+later.
 
 ```bash
 npm install -g btype
@@ -37,12 +51,34 @@ brew install llvm  # Or your favorite package manager
 BType targets LLVM 3.8.
 
 
-## Goals
+## Library
 
-- Provide a language with the best features of JavaScript, Python, etc.
-- Code compiled to JS should run faster than vanilla JavaScript
-- Code should compile to a wide array of targets
-- Tools for accessing external JS utilities should be available
-- Automatic memory management
-- Very fast compilation
-- Code compiled to JavaScript should minify well
+To use BType in your project, you can use these other projects to compile your
+BType source:
+
+- **[btype-hook](https://github.com/mattbasta/btype-hook)**: A Node.js `require()` hook that allows you to import BType code just like a JavaScript file.
+- **[btype-webpack-loader](https://github.com/mattbasta/btype-webpack-loader)**: A Webpack loader that allows you to `require()` or `import` BType code into your project.
+
+If you would like to use BType directly, you can install the compiler as a library:
+
+```bash
+npm install --save btype
+```
+
+You can require it as you'd expect:
+
+```js
+import fs from 'fs';
+import path from 'path';
+
+import btype from 'btype';
+
+const filePath = path.resolve('myBTypeFile.bt');
+const source = fs.readFileSync(filePath).toString();
+
+const transpiled = btype(source, filePath, 'js');
+console.log(transpiled);
+```
+
+To use BType as a library, there is no minimum version of Node required. ES5
+support is required.
