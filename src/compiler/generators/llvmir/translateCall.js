@@ -39,27 +39,6 @@ export default function translateCall(env, ctx, tctx, extra) {
     }
 };
 
-function callOrInvoke(ctx) {
-    if (ctx.scope instanceof hlirNodes.RootHLIR) {
-        return 'call';
-    }
-    while (!(ctx.scope instanceof hlirNodes.FunctionHLIR)) {
-        ctx = ctx.parent;
-        if (!ctx) {
-            return 'call';
-        }
-    }
-    if (ctx.scope.catches.length || ctx.scope.finally) {
-        return 'invoke';
-    }
-    return 'call';
-}
-
-function invokeSuffix(tctx) {
-    const afterLabel = tctx.getUniqueLabel();
-    return [afterLabel, `to label ${afterLabel} unwind label catchstart`];
-}
-
 function translateMethodCall(env, ctx, tctx, extra, baseType) {
     const methodBase = _node(this.callee.base, env, ctx, tctx);
 
@@ -71,41 +50,24 @@ function translateMethodCall(env, ctx, tctx, extra, baseType) {
         return getLLVMType(p.resolveType(ctx)) + ' ' + _node(p, env, ctx, tctx);
     }).join(', ');
 
-    const coi = callOrInvoke(ctx);
-    let callBody = coi + ' ' +
+    const callBody = 'call ' +
         getLLVMType(this.resolveType(ctx)) + ' @' +
         makeName(baseType.getMethod(this.callee.child)) + '(i8* ' +
         baseAsI8 + (params ? ', ' : '') +
-        params + ')';
-
-    let afterLabel = null;
-    if (coi === 'invoke') {
-        const [alab, isuf] = invokeSuffix(tctx);
-        callBody += isuf;
-        afterLabel = alab;
-    }
-
-    callBody += ' ; call:method';
+        params + ') ; call:method';
 
     if (extra === 'stmt') {
         tctx.write(callBody);
-        if (afterLabel) {
-            tctx.writeLabel(afterLabel);
-        }
         return;
     }
 
     const outReg = tctx.getRegister();
-    tctx.write(`${outReg} = ${callBody}`);
-    if (afterLabel) {
-        tctx.writeLabel(afterLabel);
-    }
+    tctx.write(outReg + ' = ' + callBody);
     return outReg;
 }
 
 function translateDeclarationCall(env, ctx, tctx, extra) {
-    const coi = callOrInvoke(ctx);
-    let output = extra === 'stmt' ? `${coi} ` : ` = ${coi} `;
+    let output = extra === 'stmt' ? 'call ' : ' = call ';
 
     // Add the expected return type
     if (extra === 'stmt') {
@@ -131,32 +93,17 @@ function translateDeclarationCall(env, ctx, tctx, extra) {
     }).join(', ');
     output += ')';
 
-    let afterLabel = null;
-    if (coi === 'invoke') {
-        const [alab, isuf] = invokeSuffix(tctx);
-        output += isuf;
-        afterLabel = alab;
-    }
-
     if (extra === 'stmt') {
         tctx.write(output);
-        if (afterLabel) {
-            tctx.writeLabel(afterLabel);
-        }
         return;
     }
 
     const outReg = tctx.getRegister();
     tctx.write(`${outReg}${output} ; call:decl`);
-    if (afterLabel) {
-        tctx.writeLabel(afterLabel);
-    }
     return outReg;
 }
 
 function translateRefCall(env, ctx, tctx, extra) {
-    const coi = callOrInvoke(ctx);
-
     tctx.write('; funcref:call')
     const type = this.callee.resolveType(ctx);
     const typeName = getLLVMType(type, false);
@@ -206,7 +153,7 @@ function translateRefCall(env, ctx, tctx, extra) {
         nullFuncType = new Func(type.returnType, type.args.slice(1));
     }
     tctx.write(`${nullFuncReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(nullFuncType)}*`);
-    let callBody = `${coi} ${returnType} ${nullFuncReg}(${params}) ; call:ref:null`;
+    let callBody = `call ${returnType} ${nullFuncReg}(${params}) ; call:ref:null`;
 
     if (extra === 'stmt') {
         tctx.write(callBody);
@@ -227,7 +174,7 @@ function translateRefCall(env, ctx, tctx, extra) {
         unnullFuncType = new Func(type.returnType, [unnullCtx].concat(type.args));
     }
     tctx.write(`${funcReg} = bitcast i8* ${rawFuncReg} to ${getFunctionSignature(unnullFuncType)}*`);
-    callBody = `${coi} ${returnType} ${funcReg}(i8* ${ctxReg}${params ? ', ' : ''}${params}) ; call:ref:unnull`;
+    callBody = `call ${returnType} ${funcReg}(i8* ${ctxReg}${params ? ', ' : ''}${params}) ; call:ref:unnull`;
 
     if (extra === 'stmt') {
         tctx.write(callBody);
