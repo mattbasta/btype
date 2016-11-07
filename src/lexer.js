@@ -211,7 +211,7 @@ class Lexer {
 
         if (!this.remainingData.trim()) return 'EOF';
 
-        throw this.SyntaxError('Unknown token', this.currentLine, startPointer);
+        throw this.SyntaxError('Unknown token', this.currentLine, this.getColumn(startPointer));
     }
 
     /**
