@@ -25,6 +25,10 @@ export default class FunctionHLIR extends BaseExpressionHLIR {
         this.checkReturnType(this[symbols.CONTEXT]);
     }
 
+    hasExceptionHandlers() {
+        return Boolean(this.catches.length || this.finally);
+    }
+
     resolveType(ctx) {
         if (this[TYPE_CACHE]) {
             return this[TYPE_CACHE];

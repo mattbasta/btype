@@ -10,13 +10,14 @@ import * as types from '../../types';
 import {getAlignment, getFunctionSignature, getLLVMType, getLLVMParamType, makeName} from './util';
 
 
-export const GLOBAL_PREFIX = Symbol();
-export const FOREIGN_REQUESTED = Symbol();
-export const ARRAY_TYPES = Symbol();
-export const TUPLE_TYPES = Symbol();
-export const FUNCREF_TYPES = Symbol();
+export const GLOBAL_PREFIX = Symbol('global prefix');
+export const FOREIGN_REQUESTED = Symbol('foreign requested');
+export const ARRAY_TYPES = Symbol('array types');
+export const TUPLE_TYPES = Symbol('tuple types');
+export const FUNCREF_TYPES = Symbol('funcref types');
 
-const FUNC_LAST_BODY = Symbol();
+export const FUNC_LAST_BODY = Symbol('func last body');
+export const ERROR_TYPE = Symbol('error type');
 
 
 function _binop(env, ctx, tctx) {
@@ -262,6 +263,23 @@ NODES.set(hlirNodes.CallStatementHLIR, function(env, ctx, tctx) {
     _node(this.call, env, ctx, tctx, 'stmt');
 });
 
+NODES.set(hlirNodes.CatchHLIR, function(env, ctx, tctx) {
+    const lpReg = tctx.getRegister();
+    const errType = null; // FIXME
+    tctx.write(`${lpReg} = landingpad { i8*, i32 } catch i8* bitcast (${errType})`);
+
+    this.body.forEach((stmt, i) => {
+        tctx.write('; Statement: ' + stmt.constructor.name);
+        _node(stmt, env, context, tctx);
+    });
+
+    if (ctx.scope.finally) {
+        tctx.write('br label %finally');
+    } else {
+        tctx.write('br label %exitLabel');
+    }
+});
+
 NODES.set(hlirNodes.ContinueHLIR, function(env, ctx, tctx) {
     tctx.write('br label %' + tctx.loopStack[0].start);
 });
@@ -286,10 +304,18 @@ NODES.set(hlirNodes.DeclarationHLIR, function(env, ctx, tctx, parent) {
 
     const ptrName = '%' + makeName(this[symbols.ASSIGNED_NAME]);
     if (this.value) {
-        tctx.write('store ' + getLLVMType(declType) + ' ' + _node(this.value, env, ctx, tctx) + ', ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
+        tctx.write(`store ${getLLVMType(declType)} ${_node(this.value, env, ctx, tctx)}, ${typeName}* ${ptrName}, align ${getAlignment(declType)}${annotation}`);
     } else {
-        tctx.write('store ' + typeName + ' null, ' + typeName + '* ' + ptrName + ', align ' + getAlignment(declType) + annotation);
+        tctx.write(`store ${typeName} null, ${typeName}* ${ptrName}, align ${getAlignment(declType)}${annotation}`);
     }
+});
+
+NODES.set(hlirNodes.FinallyHLIR, function(env, ctx, tctx) {
+    this.body.forEach((stmt, i) => {
+        tctx.write('; Statement: ' + stmt.constructor.name);
+        _node(stmt, env, context, tctx, i === this.body.length - 1 ? FUNC_LAST_BODY : null);
+    });
+    tctx.write('br label %exitLabel');
 });
 
 NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
@@ -298,18 +324,17 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
     const returnType = funcType.getReturnType();
     const returnTypeName = getLLVMType(returnType);
 
-    function getParamSignature(param, i) {
-        const type = param.resolveType(ctx);
-        if (i === 0 && this[symbols.IS_METHOD]) {
-            return `i8* %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
-        }
-        return `${getLLVMParamType(type)} %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
-    }
+    const getParamSignature = (param, i) => {
+        const retVal = i === 0 && this[symbols.IS_METHOD] ?
+            'i8*' :
+            getLLVMParamType(param.resolveType(ctx));
+        return `${retVal} %param_${makeName(param[symbols.ASSIGNED_NAME])}`;
+    };
 
     const name = makeName(this[symbols.ASSIGNED_NAME]);
     tctx.write(
         `define private ${returnType ? returnTypeName : 'void'} @${name}(` +
-        this.params.map(getParamSignature.bind(this)).join(', ') +
+        this.params.map(getParamSignature).join(', ') +
         `) nounwind ssp uwtable { ; func:${this.name || 'anon'}`
     );
 
@@ -355,13 +380,36 @@ NODES.set(hlirNodes.FunctionHLIR, function(env, ctx, tctx) {
         return;
     }
 
+    const hasExceptionHandlers = this.hasExceptionHandlers();
+
     this.body.forEach((stmt, i) => {
         tctx.write('; Statement: ' + stmt.constructor.name);
-        _node(stmt, env, context, tctx, i === this.body.length - 1 ? FUNC_LAST_BODY : null);
+        _node(stmt, env, context, tctx, !hasExceptionHandlers && i === this.body.length - 1 ? FUNC_LAST_BODY : null);
     });
 
-    if (this.hasMatchingNodeExceptLastReturn(node => node instanceof hlirNodes.ReturnHLIR)) {
-        tctx.write('br label %exitLabel');
+    if (
+        hasExceptionHandlers ||
+        this.hasMatchingNodeExceptLastReturn(node => node instanceof hlirNodes.ReturnHLIR)
+    ) {
+        if (this.finally) {
+            tctx.write(`br label %finally`);
+        } else {
+            tctx.write('br label %exitLabel');
+        }
+
+        if (this.catches.length) {
+            tctx.writeLabel('catches');
+            this.catches.forEach(c => {
+                _node(c, env, ctx, tctx);
+            });
+        }
+
+        if (this.finally) {
+            tctx.writeLabel('finally');
+            _node(this.finally, env, ctx, tctx);
+            tctx.write('br label %exitLabel');
+        }
+
         tctx.writeLabel('exitLabel');
     } else {
         tctx.write('; skipping exit labels');
@@ -559,7 +607,7 @@ NODES.set(hlirNodes.NegateHLIR, function(env, ctx, tctx) {
     return reg;
 });
 
-NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
+NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx, extra = null) {
     const baseType = this.resolveType(ctx);
     const targetType = getLLVMType(baseType, false);
     const targetPtrType = getLLVMType(baseType);
@@ -618,7 +666,11 @@ NODES.set(hlirNodes.NewHLIR, function(env, ctx, tctx) {
 
     const size = baseType.getSize();
     const reg = tctx.getRegister();
-    tctx.write(`${reg} = call i8* @malloc(i32 ${size})`);
+    if (extra === 'raise') {
+        tctx.write(`${reg} = call i8* @__cxa_allocate_exception(i64 ${size})`);
+    } else {
+        tctx.write(`${reg} = call i8* @malloc(i32 ${size})`);
+    }
     const ptrReg = tctx.getRegister();
     tctx.write(`${ptrReg} = bitcast i8* ${reg} to ${targetPtrType}`);
 
@@ -649,16 +701,34 @@ NODES.set(hlirNodes.ObjectDeclarationHLIR, function(env, ctx, tctx) {
 });
 
 NODES.set(hlirNodes.RaiseHLIR, function(env, ctx, tctx, extra) {
-    const value = _node(this.value, env, ctx, tctx);
+    const value = _node(this.value, env, ctx, tctx, 'raise');
     const raiseTypeRaw = this.value.resolveType(ctx);
     const raiseType = getLLVMType(raiseTypeRaw);
 
     const rawValueReg = tctx.getRegister();
     tctx.write(`${rawValueReg} = bitcast ${raiseType} ${value} to i8*`);
 
-    tctx.write(
-        `call void @__cxa_throw(${rawValueReg}, i8*, i8* null)`
-    );
+    let exceptionConst = raiseType[ERROR_TYPE];
+    if (!exceptionConst) {
+        // console.log(raiseTypeRaw);
+        exceptionConst = `@${raiseTypeRaw.flatTypeName()}__$$exc`;
+        const errorTypeName = raiseTypeRaw.typeName;
+        const errorTypeNamePrefixed = `${errorTypeName.length}${errorTypeName}\\00`;
+        const nameType = `[${errorTypeNamePrefixed.length - 2} x i8]`;
+        tctx.prefix(`
+        ${exceptionConst}__cxxabiv117__class_type_infoE = external global i8*
+        ${exceptionConst}__name = linkonce_odr constant ${nameType} c"${errorTypeNamePrefixed}"
+        ${exceptionConst} = linkonce_odr constant { i8*, i8* } { i8* bitcast (i8** getelementptr inbounds (i8*, i8** ${exceptionConst}__cxxabiv117__class_type_infoE, i64 2) to i8*), i8* getelementptr inbounds (${nameType}, ${nameType}* ${exceptionConst}__name, i32 0, i32 0) }
+        `);
+    }
+
+    const throwCall = `void @__cxa_throw(i8* ${rawValueReg}, i8* bitcast ({ i8*, i8* }* ${exceptionConst} to i8*), i8* null)`;
+
+    //
+
+    const unreachableLabel = tctx.getUniqueLabel('raise_unreachable');
+    tctx.write(`invoke ${throwCall} to label %${unreachableLabel}`);
+    tctx.writeLabel(unreachableLabel);2
     tctx.write('unreachable');
 });
 

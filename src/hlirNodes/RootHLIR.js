@@ -8,6 +8,10 @@ export default class RootHLIR extends BaseBlockHLIR {
         this.body = [];
     }
 
+    hasExceptionHandlers() {
+        return false;
+    }
+
     setBody(body) {
         this.body = this.body.concat(body);
     }

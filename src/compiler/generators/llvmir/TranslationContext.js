@@ -8,9 +8,26 @@ export default class TranslationContext {
         this.indentation = '';
         this.loopStack = [];
 
+        this.outputPrefix = '';
+
         this.termToName = null;
 
         this.uniqCounter = 0;
+    }
+
+    /**
+     * Prefixes the current translation context with a string
+     * @param  {string} data The data to prefix
+     * @return {void}
+     */
+    prefix(data) {
+        data = data.trim().split('\n').map(x => x.trim()).join('\n');
+
+        if (!this.outputPrefix) {
+            this.outputPrefix = data;
+            return;
+        }
+        this.outputPrefix += '\n\n' + data;
     }
 
     /**
@@ -91,7 +108,7 @@ export default class TranslationContext {
         if (this.outputStack.length > 1) {
             throw new Error('Leaking output in LLVM IR generator');
         }
-        return this.outputStack[0];
+        return this.outputPrefix + '\n' + this.outputStack[0];
     }
 
     /**

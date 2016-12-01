@@ -6,6 +6,23 @@ import * as symbols from '../../../symbols';
 import {getAlignment, getFunctionSignature, getLLVMType, getLLVMParamType, makeName} from './util';
 
 
+function writeCall(callingCtx, tctx, returnType, funcToCall, params, outReg = null, tag = '') {
+    const {scope} = callingCtx;
+    const orPrefix = outReg ? `${outReg} = ` : '';
+    if (scope.hasExceptionHandlers()) {
+        const pil = tctx.getUniqueLabel('postInvoke');
+        tctx.write(
+            `${orPrefix}invoke ${returnType} ${funcToCall}(${params}) to label %${pil} unwind label %catches ${tag ? `; ${tag}` : ''}`
+        );
+        tctx.writeLabel(pil);
+        return;
+    }
+    tctx.write(
+        `${orPrefix}call ${returnType} ${funcToCall}(${params})${tag ? `; ${tag}` : ''}`
+    );
+}
+
+
 export default function translateCall(env, ctx, tctx, extra) {
     // Check whether this is a call to a method.
     // Method calls will always be callees that are MemberHLIR, and
@@ -50,38 +67,29 @@ function translateMethodCall(env, ctx, tctx, extra, baseType) {
         return getLLVMType(p.resolveType(ctx)) + ' ' + _node(p, env, ctx, tctx);
     }).join(', ');
 
-    const callBody = 'call ' +
-        getLLVMType(this.resolveType(ctx)) + ' @' +
-        makeName(baseType.getMethod(this.callee.child)) + '(i8* ' +
-        baseAsI8 + (params ? ', ' : '') +
-        params + ') ; call:method';
-
-    if (extra === 'stmt') {
-        tctx.write(callBody);
-        return;
+    let outReg = null;
+    if (extra !== 'stmt') {
+        outReg = tctx.getRegister();
     }
+    writeCall(
+        ctx,
+        tctx,
+        getLLVMType(this.resolveType(ctx)),
+        `@${makeName(baseType.getMethod(this.callee.child))}`,
+        `i8* ${baseAsI8}${params ? `, ${params}` : ''}`,
+        outReg,
+        'call:method'
+    );
 
-    const outReg = tctx.getRegister();
-    tctx.write(outReg + ' = ' + callBody);
     return outReg;
 }
 
 function translateDeclarationCall(env, ctx, tctx, extra) {
-    let output = extra === 'stmt' ? 'call ' : ' = call ';
+    const returnType = extra === 'stmt' ?
+        'void' :
+        getLLVMType(this.resolveType(ctx));
 
-    // Add the expected return type
-    if (extra === 'stmt') {
-        // Tell LLVM that we don't care about the return type because this
-        // is a call statement.
-        output += 'void ';
-    } else {
-        output += getLLVMType(this.resolveType(ctx)) + ' ';
-    }
-
-    output += _node(this.callee, env, ctx, tctx, 'callee');
-
-    output += '(';
-    output += this.params.map(p => {
+    const params = this.params.map(p => {
         const ptr = _node(p, env, ctx, tctx);
         const ptrType = p.resolveType(ctx);
         if (ptrType[symbols.IS_CTX_OBJ]) {
@@ -91,15 +99,21 @@ function translateDeclarationCall(env, ctx, tctx, extra) {
         }
         return `${getLLVMType(ptrType)} ${ptr}`;
     }).join(', ');
-    output += ')';
 
-    if (extra === 'stmt') {
-        tctx.write(output);
-        return;
+    let outReg = null;
+    if (extra !== 'stmt') {
+        outReg = tctx.getRegister();
     }
+    writeCall(
+        ctx,
+        tctx,
+        returnType,
+        _node(this.callee, env, ctx, tctx, 'callee'),
+        params,
+        outReg,
+        'call:decl'
+    );
 
-    const outReg = tctx.getRegister();
-    tctx.write(`${outReg}${output} ; call:decl`);
     return outReg;
 }
 
