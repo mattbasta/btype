@@ -50,13 +50,12 @@ export default class BaseNode extends NodeBase {
         x.constructor = this.constructor;
         x.prototype = this.prototype;
 
-        Object.keys(x).forEach(key => {
-            if (Array.isArray(x[key])) {
-                x[key] = x[key].slice(0);
-            }
-        });
-
-        return clone;
+        return Object.keys(x)
+            .filter(key => Array.isArray(x[key]))
+            .reduce((acc, cur) => {
+                acc[cur] = acc[cur].slice(0);
+                return acc;
+            }, x);
     }
 
     setFlag(flag) {
