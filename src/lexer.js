@@ -168,17 +168,17 @@ class Lexer {
      */
     next() {
         if (this.peeked !== null) {
-            var tmp = this.peeked;
+            const tmp = this.peeked;
             this.peeked = null;
             return tmp;
         }
 
         if (!this.remainingData || !this.remainingData.trim()) return 'EOF';
 
-        var match;
-        var startPointer = this.pointer;
-        for (var i = 0; i < TOKENS.length; i++) {
-            if (!(match = TOKENS[i][0].exec(this.remainingData))) {
+        let startPointer = this.pointer;
+        for (let i = 0; i < TOKENS.length; i++) {
+            const match = TOKENS[i][0].exec(this.remainingData);
+            if (!match) {
                 continue;
             }
             if (match.index !== 0) {
@@ -211,7 +211,7 @@ class Lexer {
 
         if (!this.remainingData.trim()) return 'EOF';
 
-        throw this.SyntaxError('Unknown token', this.currentLine, startPointer);
+        throw this.SyntaxError('Unknown token', this.currentLine, startPointer - this.lineIndex);
     }
 
     /**
@@ -222,7 +222,7 @@ class Lexer {
         if (this.peeked !== null) {
             return this.peeked;
         }
-        var next = this.next();
+        const next = this.next();
         this.peeked = next;
         return next;
     }
@@ -240,7 +240,7 @@ class Lexer {
      * @return {Token|null}
      */
     accept(tokenType) {
-        var peeked = this.peek();
+        const peeked = this.peek();
         if (peeked.type !== tokenType) {
             return null;
         }
@@ -254,7 +254,7 @@ class Lexer {
      * @return {Token}
      */
     assert(tokenType) {
-        var next = this.next();
+        const next = this.next();
         if (next === 'EOF') {
             if (tokenType !== 'EOF') {
                 throw this.SyntaxError(
@@ -273,28 +273,15 @@ class Lexer {
         return next;
     }
 
-    // SyntaxError(message, line, col) {
-    //     var out = new SyntaxError(message);
-    //     out[symbols.ERR_MSG] = message;
-    //     out[symbols.ERR_LINE] = line;
-    //     out[symbols.ERR_COL] = col;
-    //     return out;
-    // }
+    SyntaxError(message, line, col) {
+        const out = new SyntaxError(message);
+        out[symbols.ERR_MSG] = message;
+        out[symbols.ERR_LINE] = line;
+        out[symbols.ERR_COL] = col;
+        return out;
+    }
 
 }
-
-/*
-FIXME: This is done as it is because of https://phabricator.babeljs.io/T7017.
-Please make this ES6-ey once babel 6.5.0 is released and everything in BType is upgraded.
-*/
-Lexer.prototype.SyntaxError = function(message, line, col) {
-    var out = new SyntaxError(message);
-    out[symbols.ERR_MSG] = message;
-    out[symbols.ERR_LINE] = line;
-    out[symbols.ERR_COL] = col;
-    return out;
-};
-
 
 /**
  * Creates a new lexer
