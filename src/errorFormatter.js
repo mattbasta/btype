@@ -106,8 +106,9 @@ export default class ErrorFormatter {
     getTrimmedLine(lineData, column = 0) {
         let offset = 0;
         if (column > 40) {
+            const origLen = lineData.length;
             lineData = '...' + lineData.substr(column - 37);
-            offset -= 40;
+            offset -= origLen - lineData.length;
         }
         if (lineData.length > 80) {
             lineData = lineData.substr(0, 77) + '...';
